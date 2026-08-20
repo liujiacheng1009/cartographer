@@ -41,10 +41,6 @@ class PoseExtrapolator : public PoseExtrapolatorInterface {
   PoseExtrapolator(const PoseExtrapolator&) = delete;
   PoseExtrapolator& operator=(const PoseExtrapolator&) = delete;
 
-  static std::unique_ptr<PoseExtrapolator> InitializeWithImu(
-      common::Duration pose_queue_duration, double imu_gravity_time_constant,
-      const sensor::ImuData& imu_data);
-
   // Returns the time of the last added pose or Time::min() if no pose was added
   // yet.
   common::Time GetLastPoseTime() const override;

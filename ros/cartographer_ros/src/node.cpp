@@ -253,6 +253,8 @@ void Node::AddExtrapolator(const int trajectory_id,
   CHECK(extrapolators_.count(trajectory_id) == 0);
   const double gravity_time_constant = options.trajectory_builder_options
                                            .trajectory_builder_2d_options()
+                                           .pose_extrapolator_options()
+                                           .constant_velocity()
                                            .imu_gravity_time_constant();
   extrapolators_.emplace(
       std::piecewise_construct, std::forward_as_tuple(trajectory_id),
