@@ -19,17 +19,16 @@
 #include <limits>
 
 #include "cartographer/common/math.h"
-#include "cartographer/mapping/3d/hybrid_grid.h"
+#include "cartographer/sensor/internal/laser_scan_block_grid.h"
 
 namespace cartographer {
 namespace sensor {
 
 namespace {
 
-// Points are encoded on a fixed grid with a grid spacing of 'kPrecision' with
-// integers. Points are organized in blocks, where each point is encoded
-// relative to the block's origin in an int32 with 'kBitsPerCoordinate' bits per
-// coordinate.
+// Planar points are encoded on a fixed grid with a grid spacing of 'kPrecision'
+// using integers. Points are organized in XY blocks and Z is always encoded as
+// zero. Each point is encoded relative to its block's origin in an int32.
 constexpr float kPrecision = 0.001f;  // in meters.
 constexpr int kBitsPerCoordinate = 10;
 constexpr int kCoordinateMask = (1 << kBitsPerCoordinate) - 1;
@@ -99,50 +98,40 @@ void CompressedPointCloud::ConstIterator::ReadNextPoint() {
 CompressedPointCloud::CompressedPointCloud(const PointCloud& point_cloud)
     : num_points_(point_cloud.size()) {
   // Distribute points into blocks.
-  struct RasterPoint {
-    Eigen::Array3i point;
-    int index;
+  struct RasterPoint2D {
+    Eigen::Array2i point;
   };
-  using Blocks = mapping::HybridGridBase<std::vector<RasterPoint>>;
-  Blocks blocks(kPrecision);
-  int num_blocks = 0;
+  internal::LaserScanBlockGrid<RasterPoint2D> blocks;
   CHECK_LE(point_cloud.size(), std::numeric_limits<int>::max());
-  for (int point_index = 0; point_index < static_cast<int>(point_cloud.size());
-       ++point_index) {
-    const RangefinderPoint& point = point_cloud[point_index];
-    CHECK_LT(point.position.cwiseAbs().maxCoeff() / kPrecision,
+  for (const RangefinderPoint& point : point_cloud) {
+    CHECK_LT(point.position.head<2>().cwiseAbs().maxCoeff() / kPrecision,
              1 << kMaxBitsPerDirection)
         << "Point out of bounds: " << point.position;
-    Eigen::Array3i raster_point;
-    Eigen::Array3i block_coordinate;
-    for (int i = 0; i < 3; ++i) {
+    Eigen::Array2i raster_point;
+    Eigen::Array2i block_coordinate;
+    for (int i = 0; i < 2; ++i) {
       raster_point[i] = common::RoundToInt(point.position[i] / kPrecision);
       block_coordinate[i] = raster_point[i] >> kBitsPerCoordinate;
       raster_point[i] &= kCoordinateMask;
     }
-    auto* const block = blocks.mutable_value(block_coordinate);
-    num_blocks += block->empty();
-    block->push_back({raster_point, point_index});
+    auto* const block = blocks.MutableBlock(block_coordinate);
+    block->push_back({raster_point});
   }
 
   // Encode blocks.
-  point_data_.reserve(4 * num_blocks + point_cloud.size());
-  for (Blocks::Iterator it(blocks); !it.Done(); it.Next(), --num_blocks) {
-    const auto& raster_points = it.GetValue();
+  point_data_.reserve(4 * blocks.blocks().size() + point_cloud.size());
+  for (const auto& block : blocks.blocks()) {
+    const auto& raster_points = block.second;
     CHECK_LE(raster_points.size(), std::numeric_limits<int32>::max());
     point_data_.push_back(raster_points.size());
-    const Eigen::Array3i block_coordinate = it.GetCellIndex();
-    point_data_.push_back(block_coordinate.x());
-    point_data_.push_back(block_coordinate.y());
-    point_data_.push_back(block_coordinate.z());
-    for (const RasterPoint& raster_point : raster_points) {
-      point_data_.push_back((((raster_point.point.z() << kBitsPerCoordinate) +
-                              raster_point.point.y())
-                             << kBitsPerCoordinate) +
+    point_data_.push_back(block.first.first);
+    point_data_.push_back(block.first.second);
+    point_data_.push_back(0);  // Z block coordinate for wire compatibility.
+    for (const RasterPoint2D& raster_point : raster_points) {
+      point_data_.push_back((raster_point.point.y() << kBitsPerCoordinate) +
                             raster_point.point.x());
     }
   }
-  CHECK_EQ(num_blocks, 0);
 }
 
 CompressedPointCloud::CompressedPointCloud(

@@ -49,8 +49,8 @@ class SubmapController {
     if (submap_ptr->insertion_finished()) {
       unfinished_submaps_.Trim(submap_id);
     } else {
-      // If the submap is unfinished set the 'num_range_data' to 0 since we
-      // haven't changed the HybridGrid.
+      // If the submap is unfinished set 'num_range_data' to 0 since this
+      // update did not insert new range data into its grid.
       submap_ptr->set_num_range_data(0);
     }
     return submap_ptr;

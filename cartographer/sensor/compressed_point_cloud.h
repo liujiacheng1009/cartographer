@@ -28,11 +28,9 @@
 namespace cartographer {
 namespace sensor {
 
-// A compressed representation of a point cloud consisting of a collection of
-// points (Vector3f) without time information.
-// Internally, points are grouped by blocks. Each block encodes a bit of meta
-// data (number of points in block, coordinates of the block) and encodes each
-// point with a fixed bit rate in relation to the block.
+// A compressed representation of a planar laser scan. Internally, points are
+// grouped by XY blocks and encoded at a fixed bit rate relative to the block.
+// Decompressed points always have z = 0.
 class CompressedPointCloud {
  public:
   class ConstIterator;
