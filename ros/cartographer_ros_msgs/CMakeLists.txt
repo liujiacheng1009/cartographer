@@ -36,12 +36,8 @@ find_package(std_msgs REQUIRED)
 
 set(msg_files
   "msg/BagfileProgress.msg"
-  "msg/HistogramBucket.msg"
   "msg/LandmarkEntry.msg"
   "msg/LandmarkList.msg"
-  "msg/MetricFamily.msg"
-  "msg/MetricLabel.msg"
-  "msg/Metric.msg"
   "msg/StatusCode.msg"
   "msg/StatusResponse.msg"
   "msg/SubmapEntry.msg"
@@ -53,7 +49,6 @@ set(msg_files
 set(srv_files
   "srv/FinishTrajectory.srv"
   "srv/GetTrajectoryStates.srv"
-  "srv/ReadMetrics.srv"
   "srv/RunFinalOptimization.srv"
   "srv/StartTrajectory.srv"
   "srv/TrajectoryQuery.srv"

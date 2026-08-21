@@ -31,11 +31,9 @@
 #include "cartographer/core/time.h"
 #include "cartographer/slam/pose_graph_interface.h"
 #include "cartographer/proto/submap_visualization.pb.h"
-#include "cartographer/core/register.h"
 #include "cartographer/core/point_cloud.h"
 #include "cartographer/core/rigid_transform.h"
 #include "cartographer/core/transform.h"
-#include "cartographer_ros/metrics/family_factory.h"
 #include "cartographer_ros/msg_conversion.h"
 #include "cartographer_ros/sensor_bridge.h"
 #include "cartographer_ros/tf_bridge.h"
@@ -94,8 +92,7 @@ Node::Node(
     const NodeOptions& node_options,
     std::unique_ptr<cartographer::mapping::MapBuilderInterface> map_builder,
     std::shared_ptr<tf2_ros::Buffer> tf_buffer,
-    rclcpp::Node::SharedPtr node,
-    const bool collect_metrics)
+    rclcpp::Node::SharedPtr node)
     : node_options_(node_options)
 {
   node_ = node;
@@ -103,11 +100,6 @@ Node::Node(
   map_builder_bridge_.reset(new cartographer_ros::MapBuilderBridge(node_options_, std::move(map_builder), tf_buffer.get()));
 
   absl::MutexLock lock(&mutex_);
-  if (collect_metrics) {
-    metrics_registry_ = absl::make_unique<metrics::FamilyFactory>();
-    carto::metrics::RegisterAllMetrics(metrics_registry_.get());
-  }
-
   submap_list_publisher_ =
       node_->create_publisher<::cartographer_ros_msgs::msg::SubmapList>(
           kSubmapListTopic, 10);
@@ -159,12 +151,6 @@ Node::Node(
       kGetTrajectoryStatesServiceName,
       std::bind(
           &Node::handleGetTrajectoryStates, this, std::placeholders::_1, std::placeholders::_2));
-  read_metrics_server_ = node_->create_service<cartographer_ros_msgs::srv::ReadMetrics>(
-      kReadMetricsServiceName,
-      std::bind(
-          &Node::handleReadMetrics, this, std::placeholders::_1, std::placeholders::_2));
-
-
   submap_list_timer_ = node_->create_wall_timer(
     std::chrono::milliseconds(int(node_options_.submap_publish_period_sec * 1000)),
     [this]() {
@@ -750,23 +736,6 @@ bool Node::handleWriteState(
     response->status.message =
         "Failed to write '" + request->filename + "'.";
   }
-  return true;
-}
-
-bool Node::handleReadMetrics(
-    const cartographer_ros_msgs::srv::ReadMetrics::Request::SharedPtr,
-    cartographer_ros_msgs::srv::ReadMetrics::Response::SharedPtr response) {
-
-  absl::MutexLock lock(&mutex_);
-  response->timestamp = node_->now();
-  if (!metrics_registry_) {
-    response->status.code = cartographer_ros_msgs::msg::StatusCode::UNAVAILABLE;
-    response->status.message = "Collection of runtime metrics is not activated.";
-    return true;
-  }
-  metrics_registry_->ReadMetrics(response);
-  response->status.code = cartographer_ros_msgs::msg::StatusCode::OK;
-  response->status.message = "Successfully read metrics.";
   return true;
 }
 

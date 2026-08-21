@@ -41,7 +41,6 @@ constexpr char kTrajectoryQueryServiceName[] = "trajectory_query";
 constexpr char kStartTrajectoryServiceName[] = "start_trajectory";
 constexpr char kWriteStateServiceName[] = "write_state";
 constexpr char kGetTrajectoryStatesServiceName[] = "get_trajectory_states";
-constexpr char kReadMetricsServiceName[] = "read_metrics";
 constexpr char kTrajectoryNodeListTopic[] = "trajectory_node_list";
 constexpr char kLandmarkPosesListTopic[] = "landmark_poses_list";
 constexpr char kConstraintListTopic[] = "constraint_list";

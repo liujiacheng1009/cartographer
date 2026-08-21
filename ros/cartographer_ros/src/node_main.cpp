@@ -23,9 +23,6 @@
 #include "rclcpp/rclcpp.hpp"
 #include "tf2_ros/transform_listener.h"
 
-DEFINE_bool(collect_metrics, false,
-            "Activates the collection of runtime metrics. If activated, the "
-            "metrics can be accessed via a ROS service.");
 DEFINE_string(configuration_directory, "",
               "First directory in which configuration files are searched, "
               "second is always the Cartographer installation to allow "
@@ -69,8 +66,7 @@ void Run() {
   auto map_builder =
     cartographer::mapping::CreateMapBuilder(node_options.map_builder_options);
   auto node = std::make_shared<cartographer_ros::Node>(
-    node_options, std::move(map_builder), tf_buffer, cartographer_node,
-    FLAGS_collect_metrics);
+    node_options, std::move(map_builder), tf_buffer, cartographer_node);
   if (!FLAGS_load_state_filename.empty()) {
     node->LoadState(FLAGS_load_state_filename, FLAGS_load_frozen_state);
   }

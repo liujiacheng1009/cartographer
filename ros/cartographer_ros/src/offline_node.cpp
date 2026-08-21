@@ -40,9 +40,6 @@
 #include <regex>
 #include <string>
 
-DEFINE_bool(collect_metrics, false,
-            "Activates the collection of runtime metrics. If activated, the "
-            "metrics can be accessed via a ROS service.");
 DEFINE_string(configuration_directory, "",
               "First directory in which configuration files are searched, "
               "second is always the Cartographer installation to allow "
@@ -174,8 +171,7 @@ void RunOfflineNode(const MapBuilderFactory& map_builder_factory,
   }
   tf_buffer->setUsingDedicatedThread(true);
 
-  Node node(node_options, std::move(map_builder), tf_buffer, cartographer_offline_node,
-            FLAGS_collect_metrics);
+  Node node(node_options, std::move(map_builder), tf_buffer, cartographer_offline_node);
   if (!FLAGS_load_state_filename.empty()) {
     node.LoadState(FLAGS_load_state_filename, FLAGS_load_frozen_state);
   }

@@ -81,9 +81,6 @@ add_library(${PROJECT_NAME} SHARED
   src/time_conversion.cpp
   src/trajectory_options.cpp
   src/urdf_reader.cpp
-  src/metrics/family_factory.cpp
-  src/metrics/internal/family.cpp
-  src/metrics/internal/histogram.cpp
 )
 target_include_directories(${PROJECT_NAME} PUBLIC
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"

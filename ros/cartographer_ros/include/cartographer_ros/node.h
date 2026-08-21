@@ -29,13 +29,11 @@
 #include "cartographer/slam/map_builder_interface.h"
 #include "cartographer/slam/pose_extrapolator.h"
 #include "cartographer_ros/map_builder_bridge.h"
-#include "cartographer_ros/metrics/family_factory.h"
 #include "cartographer_ros/node_constants.h"
 #include "cartographer_ros/node_options.h"
 #include "cartographer_ros/trajectory_options.h"
 #include "cartographer_ros_msgs/srv/finish_trajectory.hpp"
 #include "cartographer_ros_msgs/srv/get_trajectory_states.hpp"
-#include "cartographer_ros_msgs/srv/read_metrics.hpp"
 #include "cartographer_ros_msgs/srv/run_final_optimization.hpp"
 #include "cartographer_ros_msgs/srv/start_trajectory.hpp"
 #include "cartographer_ros_msgs/msg/status_response.hpp"
@@ -62,8 +60,7 @@ class Node {
   Node(const NodeOptions& node_options,
        std::unique_ptr<cartographer::mapping::MapBuilderInterface> map_builder,
        std::shared_ptr<tf2_ros::Buffer> tf_buffer,
-       rclcpp::Node::SharedPtr node,
-       bool collect_metrics);
+       rclcpp::Node::SharedPtr node);
   ~Node();
 
   Node(const Node&) = delete;
@@ -156,8 +153,6 @@ class Node {
   bool handleGetTrajectoryStates(
       const cartographer_ros_msgs::srv::GetTrajectoryStates::Request::SharedPtr,
       cartographer_ros_msgs::srv::GetTrajectoryStates::Response::SharedPtr response);
-  bool handleReadMetrics(const cartographer_ros_msgs::srv::ReadMetrics::Request::SharedPtr,
-      cartographer_ros_msgs::srv::ReadMetrics::Response::SharedPtr response);
 
   // Returns the set of SensorIds expected for a trajectory.
   // 'SensorId::id' is the expected ROS topic name.
@@ -189,7 +184,6 @@ class Node {
   std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
 
   absl::Mutex mutex_;
-  std::unique_ptr<cartographer_ros::metrics::FamilyFactory> metrics_registry_;
   std::shared_ptr<MapBuilderBridge> map_builder_bridge_ GUARDED_BY(mutex_);
 
   rclcpp::Node::SharedPtr node_;
@@ -208,7 +202,6 @@ class Node {
       run_final_optimization_server_;
   ::rclcpp::Service<cartographer_ros_msgs::srv::WriteState>::SharedPtr write_state_server_;
   ::rclcpp::Service<cartographer_ros_msgs::srv::GetTrajectoryStates>::SharedPtr get_trajectory_states_server_;
-  ::rclcpp::Service<cartographer_ros_msgs::srv::ReadMetrics>::SharedPtr read_metrics_server_;
 
 
   struct TrajectorySensorSamplers {
