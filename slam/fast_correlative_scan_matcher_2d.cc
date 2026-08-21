@@ -75,10 +75,10 @@ class SlidingWindowMaximum {
 
 }  // namespace
 
-proto::FastCorrelativeScanMatcherOptions2D
+FastCorrelativeScanMatcherOptions2D
 CreateFastCorrelativeScanMatcherOptions2D(
     common::ParameterDictionary* const parameter_dictionary) {
-  proto::FastCorrelativeScanMatcherOptions2D options;
+  FastCorrelativeScanMatcherOptions2D options;
   options.set_linear_search_window(
       parameter_dictionary->GetDouble("linear_search_window"));
   options.set_angular_search_window(
@@ -170,7 +170,7 @@ uint8 PrecomputationGrid2D::ComputeCellValue(const float probability) const {
 
 PrecomputationGridStack2D::PrecomputationGridStack2D(
     const Grid2D& grid,
-    const proto::FastCorrelativeScanMatcherOptions2D& options) {
+    const FastCorrelativeScanMatcherOptions2D& options) {
   CHECK_GE(options.branch_and_bound_depth(), 1);
   const int max_width = 1 << (options.branch_and_bound_depth() - 1);
   precomputation_grids_.reserve(options.branch_and_bound_depth());
@@ -187,7 +187,7 @@ PrecomputationGridStack2D::PrecomputationGridStack2D(
 
 FastCorrelativeScanMatcher2D::FastCorrelativeScanMatcher2D(
     const Grid2D& grid,
-    const proto::FastCorrelativeScanMatcherOptions2D& options)
+    const FastCorrelativeScanMatcherOptions2D& options)
     : options_(options),
       limits_(grid.limits()),
       precomputation_grid_stack_(

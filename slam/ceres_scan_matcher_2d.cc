@@ -34,9 +34,9 @@ namespace cartographer {
 namespace mapping {
 namespace scan_matching {
 
-proto::CeresScanMatcherOptions2D CreateCeresScanMatcherOptions2D(
+CeresScanMatcherOptions2D CreateCeresScanMatcherOptions2D(
     common::ParameterDictionary* const parameter_dictionary) {
-  proto::CeresScanMatcherOptions2D options;
+  CeresScanMatcherOptions2D options;
   options.set_occupied_space_weight(
       parameter_dictionary->GetDouble("occupied_space_weight"));
   options.set_translation_weight(
@@ -44,13 +44,13 @@ proto::CeresScanMatcherOptions2D CreateCeresScanMatcherOptions2D(
   options.set_rotation_weight(
       parameter_dictionary->GetDouble("rotation_weight"));
   *options.mutable_ceres_solver_options() =
-      common::CreateCeresSolverOptionsProto(
+      common::CreateCeresSolverOptionsConfig(
           parameter_dictionary->GetDictionary("ceres_solver_options").get());
   return options;
 }
 
 CeresScanMatcher2D::CeresScanMatcher2D(
-    const proto::CeresScanMatcherOptions2D& options)
+    const CeresScanMatcherOptions2D& options)
     : options_(options),
       ceres_solver_options_(
           common::CreateCeresSolverOptions(options.ceres_solver_options())) {

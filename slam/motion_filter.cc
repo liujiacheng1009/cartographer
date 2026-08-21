@@ -22,9 +22,9 @@
 namespace cartographer {
 namespace mapping {
 
-proto::MotionFilterOptions CreateMotionFilterOptions(
+MotionFilterOptions CreateMotionFilterOptions(
     common::ParameterDictionary* const parameter_dictionary) {
-  proto::MotionFilterOptions options;
+  MotionFilterOptions options;
   options.set_max_time_seconds(
       parameter_dictionary->GetDouble("max_time_seconds"));
   options.set_max_distance_meters(
@@ -34,7 +34,7 @@ proto::MotionFilterOptions CreateMotionFilterOptions(
   return options;
 }
 
-MotionFilter::MotionFilter(const proto::MotionFilterOptions& options)
+MotionFilter::MotionFilter(const MotionFilterOptions& options)
     : options_(options) {}
 
 bool MotionFilter::IsSimilar(const common::Time time,

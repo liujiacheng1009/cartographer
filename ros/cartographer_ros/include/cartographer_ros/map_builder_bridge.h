@@ -25,7 +25,7 @@
 #include "absl/synchronization/mutex.h"
 #include "cartographer/slam/map_builder_interface.h"
 #include "cartographer/slam/pose_graph_interface.h"
-#include "cartographer/proto/trajectory_builder_options.pb.h"
+#include "cartographer/slam/options.h"
 #include "cartographer/slam/trajectory_builder_interface.h"
 #include "cartographer_ros/node_options.h"
 #include "cartographer_ros/sensor_bridge.h"

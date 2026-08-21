@@ -23,7 +23,7 @@
 #include "Eigen/Core"
 #include "cartographer/core/parameter_dictionary.h"
 #include "cartographer/slam/grid_2d.h"
-#include "cartographer/proto/ceres_scan_matcher_options_2d.pb.h"
+#include "cartographer/slam/options.h"
 #include "cartographer/core/point_cloud.h"
 #include "ceres/ceres.h"
 
@@ -31,13 +31,13 @@ namespace cartographer {
 namespace mapping {
 namespace scan_matching {
 
-proto::CeresScanMatcherOptions2D CreateCeresScanMatcherOptions2D(
+CeresScanMatcherOptions2D CreateCeresScanMatcherOptions2D(
     common::ParameterDictionary* parameter_dictionary);
 
 // Align scans with an existing map using Ceres.
 class CeresScanMatcher2D {
  public:
-  explicit CeresScanMatcher2D(const proto::CeresScanMatcherOptions2D& options);
+  explicit CeresScanMatcher2D(const CeresScanMatcherOptions2D& options);
   virtual ~CeresScanMatcher2D();
 
   CeresScanMatcher2D(const CeresScanMatcher2D&) = delete;
@@ -53,7 +53,7 @@ class CeresScanMatcher2D {
              ceres::Solver::Summary* summary) const;
 
  private:
-  const proto::CeresScanMatcherOptions2D options_;
+  const CeresScanMatcherOptions2D options_;
   ceres::Solver::Options ceres_solver_options_;
 };
 

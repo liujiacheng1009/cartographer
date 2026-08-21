@@ -36,7 +36,7 @@
 #include "cartographer/slam/ceres_scan_matcher_2d.h"
 #include "cartographer/slam/fast_correlative_scan_matcher_2d.h"
 #include "cartographer/slam/pose_graph_interface.h"
-#include "cartographer/proto/constraint_builder_options.pb.h"
+#include "cartographer/slam/options.h"
 #include "cartographer/core/family_factory.h"
 #include "cartographer/core/voxel_filter.h"
 #include "cartographer/core/point_cloud.h"
@@ -62,7 +62,7 @@ class ConstraintBuilder2D {
   using Constraint = PoseGraphInterface::Constraint;
   using Result = std::vector<Constraint>;
 
-  ConstraintBuilder2D(const proto::ConstraintBuilderOptions& options,
+  ConstraintBuilder2D(const ConstraintBuilderOptions& options,
                       common::ThreadPoolInterface* thread_pool);
   ~ConstraintBuilder2D();
 
@@ -133,7 +133,7 @@ class ConstraintBuilder2D {
 
   void RunWhenDoneCallback() LOCKS_EXCLUDED(mutex_);
 
-  const constraints::proto::ConstraintBuilderOptions options_;
+  const ConstraintBuilderOptions options_;
   common::ThreadPoolInterface* thread_pool_;
   absl::Mutex mutex_;
 

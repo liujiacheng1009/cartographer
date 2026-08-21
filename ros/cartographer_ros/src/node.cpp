@@ -605,14 +605,12 @@ bool Node::handleStartTrajectory(
       return true;
     }
 
-    ::cartographer::mapping::proto::InitialTrajectoryPose
-        initial_trajectory_pose;
-    initial_trajectory_pose.set_to_trajectory_id(
-        request->relative_to_trajectory_id);
-    *initial_trajectory_pose.mutable_relative_pose() =
-        cartographer::transform::ToProto(pose);
-    initial_trajectory_pose.set_timestamp(cartographer::common::ToUniversal(
-        ::cartographer_ros::FromRos(rclcpp::Time(0))));
+    ::cartographer::mapping::InitialTrajectoryPose initial_trajectory_pose;
+    initial_trajectory_pose.to_trajectory_id =
+        request->relative_to_trajectory_id;
+    initial_trajectory_pose.relative_pose = pose;
+    initial_trajectory_pose.timestamp =
+        ::cartographer_ros::FromRos(rclcpp::Time(0));
     *trajectory_options.trajectory_builder_options
          .mutable_initial_trajectory_pose() = initial_trajectory_pose;
   }

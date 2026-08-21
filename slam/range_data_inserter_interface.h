@@ -21,13 +21,13 @@
 #include <vector>
 
 #include "cartographer/slam/grid_interface.h"
-#include "cartographer/proto/submaps_options_2d.pb.h"
+#include "cartographer/slam/options.h"
 #include "cartographer/core/range_data.h"
 
 namespace cartographer {
 namespace mapping {
 
-proto::RangeDataInserterOptions CreateRangeDataInserterOptions(
+RangeDataInserterOptions CreateRangeDataInserterOptions(
     common::ParameterDictionary* const parameter_dictionary);
 
 class RangeDataInserterInterface {

@@ -30,7 +30,7 @@
 #include "cartographer/slam/id.h"
 #include "cartographer/slam/optimization_problem_interface.h"
 #include "cartographer/slam/pose_graph_interface.h"
-#include "cartographer/proto/optimization_problem_options.pb.h"
+#include "cartographer/slam/options.h"
 #include "cartographer/core/imu_data.h"
 #include "cartographer/core/map_by_time.h"
 #include "cartographer/core/odometry_data.h"
@@ -56,7 +56,7 @@ class OptimizationProblem2D
                                           transform::Rigid2d> {
  public:
   explicit OptimizationProblem2D(
-      const optimization::proto::OptimizationProblemOptions& options);
+      const OptimizationProblemOptions& options);
   ~OptimizationProblem2D();
 
   OptimizationProblem2D(const OptimizationProblem2D&) = delete;
@@ -124,7 +124,7 @@ class OptimizationProblem2D
       int trajectory_id, const NodeSpec2D& first_node_data,
       const NodeSpec2D& second_node_data) const;
 
-  optimization::proto::OptimizationProblemOptions options_;
+  OptimizationProblemOptions options_;
   MapById<NodeId, NodeSpec2D> node_data_;
   MapById<SubmapId, SubmapSpec2D> submap_data_;
   std::map<std::string, transform::Rigid3d> landmark_data_;

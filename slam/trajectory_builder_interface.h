@@ -25,7 +25,7 @@
 #include "cartographer/core/parameter_dictionary.h"
 #include "cartographer/core/port.h"
 #include "cartographer/core/time.h"
-#include "cartographer/proto/trajectory_builder_options.pb.h"
+#include "cartographer/slam/options.h"
 #include "cartographer/slam/submaps.h"
 #include "cartographer/core/fixed_frame_pose_data.h"
 #include "cartographer/core/imu_data.h"
@@ -36,7 +36,7 @@
 namespace cartographer {
 namespace mapping {
 
-proto::TrajectoryBuilderOptions CreateTrajectoryBuilderOptions(
+TrajectoryBuilderOptions CreateTrajectoryBuilderOptions(
     common::ParameterDictionary* const parameter_dictionary);
 
 // This interface is used for both 2D and 3D SLAM. Implementations wire up a
@@ -103,10 +103,6 @@ class TrajectoryBuilderInterface {
   virtual void AddSensorData(const std::string& sensor_id,
                              const sensor::LandmarkData& landmark_data) = 0;
 };
-
-proto::SensorId ToProto(const TrajectoryBuilderInterface::SensorId& sensor_id);
-TrajectoryBuilderInterface::SensorId FromProto(
-    const proto::SensorId& sensor_id_proto);
 
 }  // namespace mapping
 }  // namespace cartographer

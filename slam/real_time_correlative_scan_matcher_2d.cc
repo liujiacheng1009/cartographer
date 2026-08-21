@@ -53,7 +53,7 @@ float ComputeCandidateScore(const ProbabilityGrid& probability_grid,
 }  // namespace
 
 RealTimeCorrelativeScanMatcher2D::RealTimeCorrelativeScanMatcher2D(
-    const proto::RealTimeCorrelativeScanMatcherOptions& options)
+    const RealTimeCorrelativeScanMatcherOptions& options)
     : options_(options) {}
 
 std::vector<Candidate2D>

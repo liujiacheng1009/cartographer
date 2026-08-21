@@ -44,15 +44,14 @@ float MaxCorrespondenceCostFromProto(const proto::Grid2D& proto) {
 }
 }  // namespace
 
-proto::GridOptions2D CreateGridOptions2D(
+GridOptions2D CreateGridOptions2D(
     common::ParameterDictionary* const parameter_dictionary) {
-  proto::GridOptions2D options;
+  GridOptions2D options;
   const std::string grid_type_string =
       parameter_dictionary->GetString("grid_type");
-  proto::GridOptions2D_GridType grid_type;
-  CHECK(proto::GridOptions2D_GridType_Parse(grid_type_string, &grid_type))
-      << "Unknown GridOptions2D_GridType kind: " << grid_type_string;
-  options.set_grid_type(grid_type);
+  CHECK_EQ(grid_type_string, "PROBABILITY_GRID")
+      << "Unknown GridOptions2D::GridType kind: " << grid_type_string;
+  options.set_grid_type(GridOptions2D::PROBABILITY_GRID);
   options.set_resolution(parameter_dictionary->GetDouble("resolution"));
   return options;
 }

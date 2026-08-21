@@ -22,9 +22,9 @@ namespace cartographer {
 namespace mapping {
 namespace optimization {
 
-proto::OptimizationProblemOptions CreateOptimizationProblemOptions(
+OptimizationProblemOptions CreateOptimizationProblemOptions(
     common::ParameterDictionary* const parameter_dictionary) {
-  proto::OptimizationProblemOptions options;
+  OptimizationProblemOptions options;
   options.set_huber_scale(parameter_dictionary->GetDouble("huber_scale"));
   options.set_odometry_translation_weight(
       parameter_dictionary->GetDouble("odometry_translation_weight"));
@@ -47,7 +47,7 @@ proto::OptimizationProblemOptions CreateOptimizationProblemOptions(
   options.set_log_solver_summary(
       parameter_dictionary->GetBool("log_solver_summary"));
   *options.mutable_ceres_solver_options() =
-      common::CreateCeresSolverOptionsProto(
+      common::CreateCeresSolverOptionsConfig(
           parameter_dictionary->GetDictionary("ceres_solver_options").get());
   return options;
 }

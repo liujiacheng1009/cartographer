@@ -27,7 +27,7 @@
 #include "cartographer/slam/motion_filter.h"
 #include "cartographer/slam/range_data_collator.h"
 #include "cartographer/slam/pose_extrapolator.h"
-#include "cartographer/proto/local_trajectory_builder_options_2d.pb.h"
+#include "cartographer/slam/options.h"
 #include "cartographer/core/family_factory.h"
 #include "cartographer/core/imu_data.h"
 #include "cartographer/core/voxel_filter.h"
@@ -56,7 +56,7 @@ class LocalTrajectoryBuilder2D {
   };
 
   explicit LocalTrajectoryBuilder2D(
-      const proto::LocalTrajectoryBuilderOptions2D& options,
+      const LocalTrajectoryBuilderOptions2D& options,
       const std::vector<std::string>& expected_range_sensor_ids);
   ~LocalTrajectoryBuilder2D();
 
@@ -99,7 +99,7 @@ class LocalTrajectoryBuilder2D {
   // Lazily constructs a PoseExtrapolator.
   void InitializeExtrapolator(common::Time time);
 
-  const proto::LocalTrajectoryBuilderOptions2D options_;
+  const LocalTrajectoryBuilderOptions2D options_;
   ActiveSubmaps2D active_submaps_;
 
   MotionFilter motion_filter_;

@@ -23,10 +23,10 @@ namespace mapping {
 
 namespace {
 
-proto::ConstantVelocityPoseExtrapolatorOptions
+ConstantVelocityPoseExtrapolatorOptions
 CreateConstantVelocityPoseExtrapolatorOptions(
     common::ParameterDictionary* const parameter_dictionary) {
-  proto::ConstantVelocityPoseExtrapolatorOptions options;
+  ConstantVelocityPoseExtrapolatorOptions options;
   options.set_pose_queue_duration(
       parameter_dictionary->GetDouble("pose_queue_duration"));
   options.set_imu_gravity_time_constant(
@@ -36,9 +36,9 @@ CreateConstantVelocityPoseExtrapolatorOptions(
 
 }  // namespace
 
-proto::PoseExtrapolatorOptions CreatePoseExtrapolatorOptions(
+PoseExtrapolatorOptions CreatePoseExtrapolatorOptions(
     common::ParameterDictionary* const parameter_dictionary) {
-  proto::PoseExtrapolatorOptions options;
+  PoseExtrapolatorOptions options;
   *options.mutable_constant_velocity() =
       CreateConstantVelocityPoseExtrapolatorOptions(
           parameter_dictionary->GetDictionary("constant_velocity").get());

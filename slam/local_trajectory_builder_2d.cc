@@ -36,7 +36,7 @@ static auto* kScanMatcherResidualDistanceMetric = metrics::Histogram::Null();
 static auto* kScanMatcherResidualAngleMetric = metrics::Histogram::Null();
 
 LocalTrajectoryBuilder2D::LocalTrajectoryBuilder2D(
-    const proto::LocalTrajectoryBuilderOptions2D& options,
+    const LocalTrajectoryBuilderOptions2D& options,
     const std::vector<std::string>& expected_range_sensor_ids)
     : options_(options),
       active_submaps_(options.submaps_options()),

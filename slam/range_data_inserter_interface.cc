@@ -21,18 +21,17 @@
 namespace cartographer {
 namespace mapping {
 
-proto::RangeDataInserterOptions CreateRangeDataInserterOptions(
+RangeDataInserterOptions CreateRangeDataInserterOptions(
     common::ParameterDictionary* const parameter_dictionary) {
-  proto::RangeDataInserterOptions options;
+  RangeDataInserterOptions options;
   const std::string range_data_inserter_type_string =
       parameter_dictionary->GetString("range_data_inserter_type");
-  proto::RangeDataInserterOptions_RangeDataInserterType
-      range_data_inserter_type;
-  CHECK(proto::RangeDataInserterOptions_RangeDataInserterType_Parse(
-      range_data_inserter_type_string, &range_data_inserter_type))
-      << "Unknown RangeDataInserterOptions_RangeDataInserterType kind: "
+  CHECK_EQ(range_data_inserter_type_string,
+           "PROBABILITY_GRID_INSERTER_2D")
+      << "Unknown RangeDataInserterOptions::RangeDataInserterType kind: "
       << range_data_inserter_type_string;
-  options.set_range_data_inserter_type(range_data_inserter_type);
+  options.set_range_data_inserter_type(
+      RangeDataInserterOptions::PROBABILITY_GRID_INSERTER_2D);
   *options.mutable_probability_grid_range_data_inserter_options_2d() =
       CreateProbabilityGridRangeDataInserterOptions2D(
           parameter_dictionary

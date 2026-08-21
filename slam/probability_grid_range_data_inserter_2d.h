@@ -24,7 +24,7 @@
 #include "cartographer/core/port.h"
 #include "cartographer/slam/probability_grid.h"
 #include "cartographer/slam/xy_index.h"
-#include "cartographer/proto/probability_grid_range_data_inserter_options_2d.pb.h"
+#include "cartographer/slam/options.h"
 #include "cartographer/slam/range_data_inserter_interface.h"
 #include "cartographer/core/point_cloud.h"
 #include "cartographer/core/range_data.h"
@@ -32,14 +32,14 @@
 namespace cartographer {
 namespace mapping {
 
-proto::ProbabilityGridRangeDataInserterOptions2D
+ProbabilityGridRangeDataInserterOptions2D
 CreateProbabilityGridRangeDataInserterOptions2D(
     common::ParameterDictionary* parameter_dictionary);
 
 class ProbabilityGridRangeDataInserter2D : public RangeDataInserterInterface {
  public:
   explicit ProbabilityGridRangeDataInserter2D(
-      const proto::ProbabilityGridRangeDataInserterOptions2D& options);
+      const ProbabilityGridRangeDataInserterOptions2D& options);
 
   ProbabilityGridRangeDataInserter2D(
       const ProbabilityGridRangeDataInserter2D&) = delete;
@@ -51,7 +51,7 @@ class ProbabilityGridRangeDataInserter2D : public RangeDataInserterInterface {
                       GridInterface* grid) const override;
 
  private:
-  const proto::ProbabilityGridRangeDataInserterOptions2D options_;
+  const ProbabilityGridRangeDataInserterOptions2D options_;
   const std::vector<uint16> hit_table_;
   const std::vector<uint16> miss_table_;
 };

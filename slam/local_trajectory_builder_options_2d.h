@@ -18,12 +18,12 @@
 #define CARTOGRAPHER_MAPPING_INTERNAL_2D_LOCAL_TRAJECTORY_BUILDER_OPTIONS_2D_H_
 
 #include "cartographer/core/parameter_dictionary.h"
-#include "cartographer/proto/local_trajectory_builder_options_2d.pb.h"
+#include "cartographer/slam/options.h"
 
 namespace cartographer {
 namespace mapping {
 
-proto::LocalTrajectoryBuilderOptions2D CreateLocalTrajectoryBuilderOptions2D(
+LocalTrajectoryBuilderOptions2D CreateLocalTrajectoryBuilderOptions2D(
     common::ParameterDictionary* parameter_dictionary);
 
 }  // namespace mapping

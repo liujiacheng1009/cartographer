@@ -21,9 +21,9 @@
 namespace cartographer {
 namespace mapping {
 
-proto::MapBuilderOptions CreateMapBuilderOptions(
+MapBuilderOptions CreateMapBuilderOptions(
     common::ParameterDictionary* const parameter_dictionary) {
-  proto::MapBuilderOptions options;
+  MapBuilderOptions options;
   options.set_use_trajectory_builder_2d(
       parameter_dictionary->GetBool("use_trajectory_builder_2d"));
   options.set_num_background_threads(

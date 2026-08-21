@@ -18,17 +18,17 @@
 #define CARTOGRAPHER_COMMON_CERES_SOLVER_OPTIONS_H_
 
 #include "cartographer/core/parameter_dictionary.h"
-#include "cartographer/proto/ceres_solver_options.pb.h"
+#include "cartographer/slam/options.h"
 #include "ceres/ceres.h"
 
 namespace cartographer {
 namespace common {
 
-proto::CeresSolverOptions CreateCeresSolverOptionsProto(
+mapping::CeresSolverOptions CreateCeresSolverOptionsConfig(
     common::ParameterDictionary* parameter_dictionary);
 
 ceres::Solver::Options CreateCeresSolverOptions(
-    const proto::CeresSolverOptions& proto);
+    const mapping::CeresSolverOptions& config);
 
 }  // namespace common
 }  // namespace cartographer

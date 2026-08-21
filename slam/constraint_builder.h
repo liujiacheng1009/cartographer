@@ -18,13 +18,13 @@
 #define CARTOGRAPHER_MAPPING_INTERNAL_CONSTRAINTS_CONSTRAINT_BUILDER_H_
 
 #include "cartographer/core/parameter_dictionary.h"
-#include "cartographer/proto/constraint_builder_options.pb.h"
+#include "cartographer/slam/options.h"
 
 namespace cartographer {
 namespace mapping {
 namespace constraints {
 
-proto::ConstraintBuilderOptions CreateConstraintBuilderOptions(
+ConstraintBuilderOptions CreateConstraintBuilderOptions(
     common::ParameterDictionary* parameter_dictionary);
 
 }  // namespace constraints

@@ -32,7 +32,7 @@
 #include "absl/memory/memory.h"
 #include "cartographer/core/math.h"
 #include "cartographer/slam/overlapping_submaps_trimmer_2d.h"
-#include "cartographer/proto/constraint_builder_options.pb.h"
+#include "cartographer/slam/options.h"
 #include "cartographer/core/compressed_point_cloud.h"
 #include "cartographer/core/voxel_filter.h"
 #include "cartographer/core/transform.h"
@@ -50,7 +50,7 @@ static auto* kFrozenSubmapsMetric = metrics::Gauge::Null();
 static auto* kDeletedSubmapsMetric = metrics::Gauge::Null();
 
 PoseGraph2D::PoseGraph2D(
-    const proto::PoseGraphOptions& options,
+    const PoseGraphOptions& options,
     std::unique_ptr<optimization::OptimizationProblem2D> optimization_problem,
     common::ThreadPool* thread_pool)
     : options_(options),

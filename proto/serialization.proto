@@ -20,7 +20,6 @@ import "cartographer/proto/pose_graph.proto";
 import "cartographer/proto/submap.proto";
 import "cartographer/proto/trajectory_node_data.proto";
 import "cartographer/proto/sensor.proto";
-import "cartographer/proto/trajectory_builder_options.proto";
 import "cartographer/proto/transform.proto";
 
 message Submap {
@@ -68,9 +67,9 @@ message SerializationHeader {
 }
 
 message SerializedData {
+  reserved 2;  // Former serialized configuration options.
   oneof data {
     PoseGraph pose_graph = 1;
-    AllTrajectoryBuilderOptions all_trajectory_builder_options = 2;
     Submap submap = 3;
     Node node = 4;
     TrajectoryData trajectory_data = 5;

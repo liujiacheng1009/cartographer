@@ -32,9 +32,9 @@
 namespace cartographer {
 namespace mapping {
 
-proto::SubmapsOptions2D CreateSubmapsOptions2D(
+SubmapsOptions2D CreateSubmapsOptions2D(
     common::ParameterDictionary* const parameter_dictionary) {
-  proto::SubmapsOptions2D options;
+  SubmapsOptions2D options;
   options.set_num_range_data(
       parameter_dictionary->GetNonNegativeInt("num_range_data"));
   *options.mutable_grid_options_2d() = CreateGridOptions2D(
@@ -44,14 +44,14 @@ proto::SubmapsOptions2D CreateSubmapsOptions2D(
           parameter_dictionary->GetDictionary("range_data_inserter").get());
 
   bool valid_range_data_inserter_grid_combination = false;
-  const proto::GridOptions2D_GridType& grid_type =
+  const GridOptions2D::GridType grid_type =
       options.grid_options_2d().grid_type();
-  const proto::RangeDataInserterOptions_RangeDataInserterType&
+  const RangeDataInserterOptions::RangeDataInserterType
       range_data_inserter_type =
           options.range_data_inserter_options().range_data_inserter_type();
-  if (grid_type == proto::GridOptions2D::PROBABILITY_GRID &&
+  if (grid_type == GridOptions2D::PROBABILITY_GRID &&
       range_data_inserter_type ==
-          proto::RangeDataInserterOptions::PROBABILITY_GRID_INSERTER_2D) {
+          RangeDataInserterOptions::PROBABILITY_GRID_INSERTER_2D) {
     valid_range_data_inserter_grid_combination = true;
   }
   CHECK(valid_range_data_inserter_grid_combination)
@@ -139,7 +139,7 @@ void Submap2D::Finish() {
   set_insertion_finished(true);
 }
 
-ActiveSubmaps2D::ActiveSubmaps2D(const proto::SubmapsOptions2D& options)
+ActiveSubmaps2D::ActiveSubmaps2D(const SubmapsOptions2D& options)
     : options_(options), range_data_inserter_(CreateRangeDataInserter()) {}
 
 std::vector<std::shared_ptr<const Submap2D>> ActiveSubmaps2D::submaps() const {
@@ -165,12 +165,13 @@ std::vector<std::shared_ptr<const Submap2D>> ActiveSubmaps2D::InsertRangeData(
 std::unique_ptr<RangeDataInserterInterface>
 ActiveSubmaps2D::CreateRangeDataInserter() {
   switch (options_.range_data_inserter_options().range_data_inserter_type()) {
-    case proto::RangeDataInserterOptions::PROBABILITY_GRID_INSERTER_2D:
+    case RangeDataInserterOptions::PROBABILITY_GRID_INSERTER_2D:
       return absl::make_unique<ProbabilityGridRangeDataInserter2D>(
           options_.range_data_inserter_options()
               .probability_grid_range_data_inserter_options_2d());
     default:
       LOG(FATAL) << "Unknown RangeDataInserterType.";
+      std::abort();
   }
 }
 
@@ -179,7 +180,7 @@ std::unique_ptr<GridInterface> ActiveSubmaps2D::CreateGrid(
   constexpr int kInitialSubmapSize = 100;
   float resolution = options_.grid_options_2d().resolution();
   switch (options_.grid_options_2d().grid_type()) {
-    case proto::GridOptions2D::PROBABILITY_GRID:
+    case GridOptions2D::PROBABILITY_GRID:
       return absl::make_unique<ProbabilityGrid>(
           MapLimits(resolution,
                     origin.cast<double>() + 0.5 * kInitialSubmapSize *
@@ -189,6 +190,7 @@ std::unique_ptr<GridInterface> ActiveSubmaps2D::CreateGrid(
           &conversion_tables_);
     default:
       LOG(FATAL) << "Unknown GridType.";
+      std::abort();
   }
 }
 

@@ -23,7 +23,7 @@ namespace mapping {
 namespace {
 
 void PopulatePureLocalizationTrimmerOptions(
-    proto::TrajectoryBuilderOptions* const trajectory_builder_options,
+    TrajectoryBuilderOptions* const trajectory_builder_options,
     common::ParameterDictionary* const parameter_dictionary) {
   constexpr char kDictionaryKey[] = "pure_localization_trimmer";
   if (!parameter_dictionary->HasKey(kDictionaryKey)) return;
@@ -36,7 +36,7 @@ void PopulatePureLocalizationTrimmerOptions(
 }
 
 void PopulatePoseGraphOdometryMotionFilterOptions(
-    proto::TrajectoryBuilderOptions* const trajectory_builder_options,
+    TrajectoryBuilderOptions* const trajectory_builder_options,
     common::ParameterDictionary* const parameter_dictionary) {
   constexpr char kDictionaryKey[] = "pose_graph_odometry_motion_filter";
   if (!parameter_dictionary->HasKey(kDictionaryKey)) return;
@@ -54,9 +54,9 @@ void PopulatePoseGraphOdometryMotionFilterOptions(
 
 }  // namespace
 
-proto::TrajectoryBuilderOptions CreateTrajectoryBuilderOptions(
+TrajectoryBuilderOptions CreateTrajectoryBuilderOptions(
     common::ParameterDictionary* const parameter_dictionary) {
-  proto::TrajectoryBuilderOptions options;
+  TrajectoryBuilderOptions options;
   *options.mutable_trajectory_builder_2d_options() =
       CreateLocalTrajectoryBuilderOptions2D(
           parameter_dictionary->GetDictionary("trajectory_builder_2d").get());
@@ -67,60 +67,6 @@ proto::TrajectoryBuilderOptions CreateTrajectoryBuilderOptions(
   PopulatePureLocalizationTrimmerOptions(&options, parameter_dictionary);
   PopulatePoseGraphOdometryMotionFilterOptions(&options, parameter_dictionary);
   return options;
-}
-
-proto::SensorId ToProto(const TrajectoryBuilderInterface::SensorId& sensor_id) {
-  proto::SensorId sensor_id_proto;
-  switch (sensor_id.type) {
-    case TrajectoryBuilderInterface::SensorId::SensorType::RANGE:
-      sensor_id_proto.set_type(proto::SensorId::RANGE);
-      break;
-    case TrajectoryBuilderInterface::SensorId::SensorType::IMU:
-      sensor_id_proto.set_type(proto::SensorId::IMU);
-      break;
-    case TrajectoryBuilderInterface::SensorId::SensorType::ODOMETRY:
-      sensor_id_proto.set_type(proto::SensorId::ODOMETRY);
-      break;
-    case TrajectoryBuilderInterface::SensorId::SensorType::FIXED_FRAME_POSE:
-      sensor_id_proto.set_type(proto::SensorId::FIXED_FRAME_POSE);
-      break;
-    case TrajectoryBuilderInterface::SensorId::SensorType::LANDMARK:
-      sensor_id_proto.set_type(proto::SensorId::LANDMARK);
-      break;
-    default:
-      LOG(FATAL) << "Unsupported sensor type.";
-  }
-  sensor_id_proto.set_id(sensor_id.id);
-  return sensor_id_proto;
-}
-
-TrajectoryBuilderInterface::SensorId FromProto(
-    const proto::SensorId& sensor_id_proto) {
-  TrajectoryBuilderInterface::SensorId sensor_id;
-  switch (sensor_id_proto.type()) {
-    case proto::SensorId::RANGE:
-      sensor_id.type = TrajectoryBuilderInterface::SensorId::SensorType::RANGE;
-      break;
-    case proto::SensorId::IMU:
-      sensor_id.type = TrajectoryBuilderInterface::SensorId::SensorType::IMU;
-      break;
-    case proto::SensorId::ODOMETRY:
-      sensor_id.type =
-          TrajectoryBuilderInterface::SensorId::SensorType::ODOMETRY;
-      break;
-    case proto::SensorId::FIXED_FRAME_POSE:
-      sensor_id.type =
-          TrajectoryBuilderInterface::SensorId::SensorType::FIXED_FRAME_POSE;
-      break;
-    case proto::SensorId::LANDMARK:
-      sensor_id.type =
-          TrajectoryBuilderInterface::SensorId::SensorType::LANDMARK;
-      break;
-    default:
-      LOG(FATAL) << "Unsupported sensor type.";
-  }
-  sensor_id.id = sensor_id_proto.id();
-  return sensor_id;
 }
 
 }  // namespace mapping

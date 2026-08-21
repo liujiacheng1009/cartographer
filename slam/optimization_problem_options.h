@@ -18,13 +18,13 @@
 #define CARTOGRAPHER_MAPPING_INTERNAL_OPTIMIZATION_OPTIMIZATION_PROBLEM_OPTIONS_H_
 
 #include "cartographer/core/parameter_dictionary.h"
-#include "cartographer/proto/optimization_problem_options.pb.h"
+#include "cartographer/slam/options.h"
 
 namespace cartographer {
 namespace mapping {
 namespace optimization {
 
-proto::OptimizationProblemOptions CreateOptimizationProblemOptions(
+OptimizationProblemOptions CreateOptimizationProblemOptions(
     common::ParameterDictionary* parameter_dictionary);
 
 }  // namespace optimization

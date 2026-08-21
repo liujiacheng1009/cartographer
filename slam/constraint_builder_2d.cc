@@ -31,8 +31,8 @@
 #include "absl/memory/memory.h"
 #include "cartographer/core/math.h"
 #include "cartographer/core/thread_pool.h"
-#include "cartographer/proto/ceres_scan_matcher_options_2d.pb.h"
-#include "cartographer/proto/fast_correlative_scan_matcher_options_2d.pb.h"
+#include "cartographer/slam/options.h"
+#include "cartographer/slam/options.h"
 #include "cartographer/core/counter.h"
 #include "cartographer/core/gauge.h"
 #include "cartographer/core/metrics_histogram.h"
@@ -57,7 +57,7 @@ transform::Rigid2d ComputeSubmapPose(const Submap2D& submap) {
 }
 
 ConstraintBuilder2D::ConstraintBuilder2D(
-    const constraints::proto::ConstraintBuilderOptions& options,
+    const ConstraintBuilderOptions& options,
     common::ThreadPoolInterface* const thread_pool)
     : options_(options),
       thread_pool_(thread_pool),

@@ -52,7 +52,7 @@ std::vector<std::string> SelectRangeSensorIds(
 
 void MaybeAddPureLocalizationTrimmer(
     const int trajectory_id,
-    const proto::TrajectoryBuilderOptions& trajectory_options,
+    const TrajectoryBuilderOptions& trajectory_options,
     PoseGraph* pose_graph) {
   if (trajectory_options.pure_localization()) {
     LOG(WARNING)
@@ -71,7 +71,7 @@ void MaybeAddPureLocalizationTrimmer(
 
 }  // namespace
 
-MapBuilder::MapBuilder(const proto::MapBuilderOptions& options)
+MapBuilder::MapBuilder(const MapBuilderOptions& options)
     : options_(options), thread_pool_(options.num_background_threads()) {
   CHECK(options.use_trajectory_builder_2d());
   pose_graph_ = absl::make_unique<PoseGraph2D>(
@@ -88,7 +88,7 @@ MapBuilder::MapBuilder(const proto::MapBuilderOptions& options)
 
 int MapBuilder::AddTrajectoryBuilder(
     const std::set<SensorId>& expected_sensor_ids,
-    const proto::TrajectoryBuilderOptions& trajectory_options,
+    const TrajectoryBuilderOptions& trajectory_options,
     LocalSlamResultCallback local_slam_result_callback) {
   const int trajectory_id = trajectory_builders_.size();
 
@@ -120,28 +120,15 @@ int MapBuilder::AddTrajectoryBuilder(
     const auto& initial_trajectory_pose =
         trajectory_options.initial_trajectory_pose();
     pose_graph_->SetInitialTrajectoryPose(
-        trajectory_id, initial_trajectory_pose.to_trajectory_id(),
-        transform::ToRigid3(initial_trajectory_pose.relative_pose()),
-        common::FromUniversal(initial_trajectory_pose.timestamp()));
+        trajectory_id, initial_trajectory_pose.to_trajectory_id,
+        initial_trajectory_pose.relative_pose, initial_trajectory_pose.timestamp);
   }
-  proto::TrajectoryBuilderOptionsWithSensorIds options_with_sensor_ids_proto;
-  for (const auto& sensor_id : expected_sensor_ids) {
-    *options_with_sensor_ids_proto.add_sensor_id() = ToProto(sensor_id);
-  }
-  *options_with_sensor_ids_proto.mutable_trajectory_builder_options() =
-      trajectory_options;
-  all_trajectory_builder_options_.push_back(options_with_sensor_ids_proto);
-  CHECK_EQ(trajectory_builders_.size(), all_trajectory_builder_options_.size());
   return trajectory_id;
 }
 
-int MapBuilder::AddTrajectoryForDeserialization(
-    const proto::TrajectoryBuilderOptionsWithSensorIds&
-        options_with_sensor_ids_proto) {
+int MapBuilder::AddTrajectoryForDeserialization() {
   const int trajectory_id = trajectory_builders_.size();
   trajectory_builders_.emplace_back();
-  all_trajectory_builder_options_.push_back(options_with_sensor_ids_proto);
-  CHECK_EQ(trajectory_builders_.size(), all_trajectory_builder_options_.size());
   return trajectory_id;
 }
 
@@ -171,15 +158,13 @@ std::string MapBuilder::SubmapToProto(
 
 void MapBuilder::SerializeState(bool include_unfinished_submaps,
                                 io::ProtoStreamWriterInterface* const writer) {
-  io::WritePbStream(*pose_graph_, all_trajectory_builder_options_, writer,
-                    include_unfinished_submaps);
+  io::WritePbStream(*pose_graph_, writer, include_unfinished_submaps);
 }
 
 bool MapBuilder::SerializeStateToFile(bool include_unfinished_submaps,
                                       const std::string& filename) {
   io::ProtoStreamWriter writer(filename);
-  io::WritePbStream(*pose_graph_, all_trajectory_builder_options_, &writer,
-                    include_unfinished_submaps);
+  io::WritePbStream(*pose_graph_, &writer, include_unfinished_submaps);
   return (writer.Close());
 }
 
@@ -190,16 +175,10 @@ std::map<int, int> MapBuilder::LoadState(
   // Create a copy of the pose_graph_proto, such that we can re-write the
   // trajectory ids.
   proto::PoseGraph pose_graph_proto = deserializer.pose_graph();
-  const auto& all_builder_options_proto =
-      deserializer.all_trajectory_builder_options();
-
   std::map<int, int> trajectory_remapping;
   for (int i = 0; i < pose_graph_proto.trajectory_size(); ++i) {
     auto& trajectory_proto = *pose_graph_proto.mutable_trajectory(i);
-    const auto& options_with_sensor_ids_proto =
-        all_builder_options_proto.options_with_sensor_ids(i);
-    const int new_trajectory_id =
-        AddTrajectoryForDeserialization(options_with_sensor_ids_proto);
+    const int new_trajectory_id = AddTrajectoryForDeserialization();
     CHECK(trajectory_remapping
               .emplace(trajectory_proto.trajectory_id(), new_trajectory_id)
               .second)
@@ -252,11 +231,6 @@ std::map<int, int> MapBuilder::LoadState(
       case SerializedData::kPoseGraph:
         LOG(ERROR) << "Found multiple serialized `PoseGraph`. Serialized "
                       "stream likely corrupt!.";
-        break;
-      case SerializedData::kAllTrajectoryBuilderOptions:
-        LOG(ERROR) << "Found multiple serialized "
-                      "`AllTrajectoryBuilderOptions`. Serialized stream likely "
-                      "corrupt!.";
         break;
       case SerializedData::kSubmap: {
         proto.mutable_submap()->mutable_submap_id()->set_trajectory_id(
@@ -359,7 +333,7 @@ std::map<int, int> MapBuilder::LoadStateFromFile(
 }
 
 std::unique_ptr<MapBuilderInterface> CreateMapBuilder(
-    const proto::MapBuilderOptions& options) {
+    const MapBuilderOptions& options) {
   return absl::make_unique<MapBuilder>(options);
 }
 

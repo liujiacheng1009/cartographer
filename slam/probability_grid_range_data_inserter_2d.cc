@@ -96,10 +96,10 @@ void CastRays(const sensor::RangeData& range_data,
 }
 }  // namespace
 
-proto::ProbabilityGridRangeDataInserterOptions2D
+ProbabilityGridRangeDataInserterOptions2D
 CreateProbabilityGridRangeDataInserterOptions2D(
     common::ParameterDictionary* parameter_dictionary) {
-  proto::ProbabilityGridRangeDataInserterOptions2D options;
+  ProbabilityGridRangeDataInserterOptions2D options;
   options.set_hit_probability(
       parameter_dictionary->GetDouble("hit_probability"));
   options.set_miss_probability(
@@ -114,7 +114,7 @@ CreateProbabilityGridRangeDataInserterOptions2D(
 }
 
 ProbabilityGridRangeDataInserter2D::ProbabilityGridRangeDataInserter2D(
-    const proto::ProbabilityGridRangeDataInserterOptions2D& options)
+    const ProbabilityGridRangeDataInserterOptions2D& options)
     : options_(options),
       hit_table_(ComputeLookupTableToApplyCorrespondenceCostOdds(
           Odds(options.hit_probability()))),

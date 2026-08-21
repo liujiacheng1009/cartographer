@@ -21,7 +21,7 @@
 
 #include "cartographer/core/parameter_dictionary.h"
 #include "cartographer/core/point_cloud.h"
-#include "cartographer/proto/adaptive_voxel_filter_options.pb.h"
+#include "cartographer/slam/options.h"
 #include "cartographer/core/timed_point_cloud_data.h"
 
 namespace cartographer {
@@ -37,12 +37,12 @@ std::vector<sensor::TimedPointCloudOriginData::RangeMeasurement> VoxelFilter(
         range_measurements,
     const float resolution);
 
-proto::AdaptiveVoxelFilterOptions CreateAdaptiveVoxelFilterOptions(
+mapping::AdaptiveVoxelFilterOptions CreateAdaptiveVoxelFilterOptions(
     common::ParameterDictionary* const parameter_dictionary);
 
 PointCloud AdaptiveVoxelFilter(
     const PointCloud& point_cloud,
-    const proto::AdaptiveVoxelFilterOptions& options);
+    const mapping::AdaptiveVoxelFilterOptions& options);
 
 }  // namespace sensor
 }  // namespace cartographer

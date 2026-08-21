@@ -43,7 +43,7 @@
 #include "Eigen/Core"
 #include "cartographer/slam/grid_2d.h"
 #include "cartographer/slam/correlative_scan_matcher_2d.h"
-#include "cartographer/proto/real_time_correlative_scan_matcher_options.pb.h"
+#include "cartographer/slam/options.h"
 
 namespace cartographer {
 namespace mapping {
@@ -53,7 +53,7 @@ namespace scan_matching {
 class RealTimeCorrelativeScanMatcher2D {
  public:
   explicit RealTimeCorrelativeScanMatcher2D(
-      const proto::RealTimeCorrelativeScanMatcherOptions& options);
+      const RealTimeCorrelativeScanMatcherOptions& options);
 
   RealTimeCorrelativeScanMatcher2D(const RealTimeCorrelativeScanMatcher2D&) =
       delete;
@@ -81,7 +81,7 @@ class RealTimeCorrelativeScanMatcher2D {
   std::vector<Candidate2D> GenerateExhaustiveSearchCandidates(
       const SearchParameters& search_parameters) const;
 
-  const proto::RealTimeCorrelativeScanMatcherOptions options_;
+  const RealTimeCorrelativeScanMatcherOptions options_;
 };
 
 }  // namespace scan_matching

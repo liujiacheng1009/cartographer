@@ -26,7 +26,7 @@
 #include "cartographer/slam/map_limits.h"
 #include "cartographer/proto/serialization.pb.h"
 #include "cartographer/proto/submap_visualization.pb.h"
-#include "cartographer/proto/submaps_options_2d.pb.h"
+#include "cartographer/slam/options.h"
 #include "cartographer/slam/range_data_inserter_interface.h"
 #include "cartographer/slam/submaps.h"
 #include "cartographer/slam/trajectory_node.h"
@@ -37,7 +37,7 @@
 namespace cartographer {
 namespace mapping {
 
-proto::SubmapsOptions2D CreateSubmapsOptions2D(
+SubmapsOptions2D CreateSubmapsOptions2D(
     common::ParameterDictionary* parameter_dictionary);
 
 class Submap2D : public Submap {
@@ -78,7 +78,7 @@ class Submap2D : public Submap {
 // "new" submap gets created. The "old" submap is forgotten by this object.
 class ActiveSubmaps2D {
  public:
-  explicit ActiveSubmaps2D(const proto::SubmapsOptions2D& options);
+  explicit ActiveSubmaps2D(const SubmapsOptions2D& options);
 
   ActiveSubmaps2D(const ActiveSubmaps2D&) = delete;
   ActiveSubmaps2D& operator=(const ActiveSubmaps2D&) = delete;
@@ -95,7 +95,7 @@ class ActiveSubmaps2D {
   void FinishSubmap();
   void AddSubmap(const Eigen::Vector2f& origin);
 
-  const proto::SubmapsOptions2D options_;
+  const SubmapsOptions2D options_;
   std::vector<std::shared_ptr<Submap2D>> submaps_;
   std::unique_ptr<RangeDataInserterInterface> range_data_inserter_;
   ValueConversionTables conversion_tables_;

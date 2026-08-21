@@ -21,7 +21,7 @@
 #include <tuple>
 
 #include "cartographer/core/time.h"
-#include "cartographer/proto/pose_extrapolator_options.pb.h"
+#include "cartographer/slam/options.h"
 #include "cartographer/core/imu_data.h"
 #include "cartographer/core/odometry_data.h"
 #include "cartographer/core/rigid_transform.h"
@@ -30,7 +30,7 @@
 namespace cartographer {
 namespace mapping {
 
-proto::PoseExtrapolatorOptions CreatePoseExtrapolatorOptions(
+PoseExtrapolatorOptions CreatePoseExtrapolatorOptions(
     common::ParameterDictionary* const parameter_dictionary);
 
 class PoseExtrapolatorInterface {

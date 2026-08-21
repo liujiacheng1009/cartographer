@@ -26,9 +26,9 @@
 namespace cartographer {
 namespace mapping {
 
-proto::LocalTrajectoryBuilderOptions2D CreateLocalTrajectoryBuilderOptions2D(
+LocalTrajectoryBuilderOptions2D CreateLocalTrajectoryBuilderOptions2D(
     common::ParameterDictionary* const parameter_dictionary) {
-  proto::LocalTrajectoryBuilderOptions2D options;
+  LocalTrajectoryBuilderOptions2D options;
   options.set_min_range(parameter_dictionary->GetDouble("min_range"));
   options.set_max_range(parameter_dictionary->GetDouble("max_range"));
   options.set_min_z(parameter_dictionary->GetDouble("min_z"));

@@ -28,7 +28,7 @@
 #include "cartographer/slam/pose_graph_interface.h"
 #include "cartographer/slam/pose_graph_trimmer.h"
 #include "cartographer/proto/pose_graph.pb.h"
-#include "cartographer/proto/pose_graph_options.pb.h"
+#include "cartographer/slam/options.h"
 #include "cartographer/proto/serialization.pb.h"
 #include "cartographer/slam/submaps.h"
 #include "cartographer/slam/trajectory_node.h"
@@ -41,7 +41,7 @@
 namespace cartographer {
 namespace mapping {
 
-proto::PoseGraphOptions CreatePoseGraphOptions(
+PoseGraphOptions CreatePoseGraphOptions(
     common::ParameterDictionary* const parameter_dictionary);
 
 class PoseGraph : public PoseGraphInterface {

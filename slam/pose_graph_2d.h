@@ -64,7 +64,7 @@ namespace mapping {
 class PoseGraph2D : public PoseGraph {
  public:
   PoseGraph2D(
-      const proto::PoseGraphOptions& options,
+      const PoseGraphOptions& options,
       std::unique_ptr<optimization::OptimizationProblem2D> optimization_problem,
       common::ThreadPool* thread_pool);
   ~PoseGraph2D() override;
@@ -238,7 +238,7 @@ class PoseGraph2D : public PoseGraph {
   void UpdateTrajectoryConnectivity(const Constraint& constraint)
       EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
-  const proto::PoseGraphOptions options_;
+  const PoseGraphOptions options_;
   GlobalSlamOptimizationCallback global_slam_optimization_callback_;
   mutable absl::Mutex mutex_;
   absl::Mutex work_queue_mutex_;

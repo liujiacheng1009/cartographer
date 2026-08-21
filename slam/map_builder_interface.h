@@ -27,16 +27,16 @@
 #include "cartographer/state/proto_stream_interface.h"
 #include "cartographer/slam/id.h"
 #include "cartographer/slam/pose_graph_interface.h"
-#include "cartographer/proto/map_builder_options.pb.h"
+#include "cartographer/slam/options.h"
 #include "cartographer/proto/submap_visualization.pb.h"
-#include "cartographer/proto/trajectory_builder_options.pb.h"
+#include "cartographer/slam/options.h"
 #include "cartographer/slam/submaps.h"
 #include "cartographer/slam/trajectory_builder_interface.h"
 
 namespace cartographer {
 namespace mapping {
 
-proto::MapBuilderOptions CreateMapBuilderOptions(
+MapBuilderOptions CreateMapBuilderOptions(
     common::ParameterDictionary* const parameter_dictionary);
 
 // This interface is used for both library and RPC implementations.
@@ -57,14 +57,12 @@ class MapBuilderInterface {
   // Creates a new trajectory builder and returns its index.
   virtual int AddTrajectoryBuilder(
       const std::set<SensorId>& expected_sensor_ids,
-      const proto::TrajectoryBuilderOptions& trajectory_options,
+      const TrajectoryBuilderOptions& trajectory_options,
       LocalSlamResultCallback local_slam_result_callback) = 0;
 
   // Creates a new trajectory and returns its index. Querying the trajectory
   // builder for it will return 'nullptr'.
-  virtual int AddTrajectoryForDeserialization(
-      const proto::TrajectoryBuilderOptionsWithSensorIds&
-          options_with_sensor_ids_proto) = 0;
+  virtual int AddTrajectoryForDeserialization() = 0;
 
   // Returns the 'TrajectoryBuilderInterface' corresponding to the specified
   // 'trajectory_id' or 'nullptr' if the trajectory has no corresponding
@@ -110,8 +108,6 @@ class MapBuilderInterface {
 
   virtual mapping::PoseGraphInterface* pose_graph() = 0;
 
-  virtual const std::vector<proto::TrajectoryBuilderOptionsWithSensorIds>&
-  GetAllTrajectoryBuilderOptions() const = 0;
 };
 
 }  // namespace mapping

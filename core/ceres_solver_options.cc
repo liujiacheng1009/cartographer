@@ -19,25 +19,25 @@
 namespace cartographer {
 namespace common {
 
-proto::CeresSolverOptions CreateCeresSolverOptionsProto(
+mapping::CeresSolverOptions CreateCeresSolverOptionsConfig(
     common::ParameterDictionary* parameter_dictionary) {
-  proto::CeresSolverOptions proto;
-  proto.set_use_nonmonotonic_steps(
+  mapping::CeresSolverOptions config;
+  config.set_use_nonmonotonic_steps(
       parameter_dictionary->GetBool("use_nonmonotonic_steps"));
-  proto.set_max_num_iterations(
+  config.set_max_num_iterations(
       parameter_dictionary->GetNonNegativeInt("max_num_iterations"));
-  proto.set_num_threads(parameter_dictionary->GetNonNegativeInt("num_threads"));
-  CHECK_GT(proto.max_num_iterations(), 0);
-  CHECK_GT(proto.num_threads(), 0);
-  return proto;
+  config.set_num_threads(parameter_dictionary->GetNonNegativeInt("num_threads"));
+  CHECK_GT(config.max_num_iterations(), 0);
+  CHECK_GT(config.num_threads(), 0);
+  return config;
 }
 
 ceres::Solver::Options CreateCeresSolverOptions(
-    const proto::CeresSolverOptions& proto) {
+    const mapping::CeresSolverOptions& config) {
   ceres::Solver::Options options;
-  options.use_nonmonotonic_steps = proto.use_nonmonotonic_steps();
-  options.max_num_iterations = proto.max_num_iterations();
-  options.num_threads = proto.num_threads();
+  options.use_nonmonotonic_steps = config.use_nonmonotonic_steps();
+  options.max_num_iterations = config.max_num_iterations();
+  options.num_threads = config.num_threads();
   return options;
 }
 

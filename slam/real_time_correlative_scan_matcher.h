@@ -19,13 +19,13 @@
 #define CARTOGRAPHER_MAPPING_INTERNAL_SCAN_MATCHING_REAL_TIME_CORRELATIVE_SCAN_MATCHER_H_
 
 #include "cartographer/core/parameter_dictionary.h"
-#include "cartographer/proto/real_time_correlative_scan_matcher_options.pb.h"
+#include "cartographer/slam/options.h"
 
 namespace cartographer {
 namespace mapping {
 namespace scan_matching {
 
-proto::RealTimeCorrelativeScanMatcherOptions
+RealTimeCorrelativeScanMatcherOptions
 CreateRealTimeCorrelativeScanMatcherOptions(
     common::ParameterDictionary* const parameter_dictionary);
 

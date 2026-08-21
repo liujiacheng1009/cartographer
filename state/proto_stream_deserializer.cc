@@ -31,8 +31,7 @@ mapping::proto::SerializationHeader ReadHeaderOrDie(
 }
 
 bool IsVersionSupported(const mapping::proto::SerializationHeader& header) {
-  return header.format_version() == kMappingStateSerializationFormatVersion ||
-         header.format_version() == kFormatVersionWithoutSubmapHistograms;
+  return header.format_version() == kMappingStateSerializationFormatVersion;
 }
 
 }  // namespace
@@ -57,17 +56,6 @@ ProtoStreamDeserializer::ProtoStreamDeserializer(
          "`SerializationHeader`, but got field tag "
       << pose_graph_.data_case();
 
-  CHECK(ReadNextSerializedData(&all_trajectory_builder_options_))
-      << "Serialized stream misses `AllTrajectoryBuilderOptions`.";
-  CHECK(all_trajectory_builder_options_.has_all_trajectory_builder_options())
-      << "Serialized stream order corrupt. Expecting "
-         "`AllTrajectoryBuilderOptions` after "
-         "PoseGraph, got field tag "
-      << all_trajectory_builder_options_.data_case();
-
-  CHECK_EQ(pose_graph_.pose_graph().trajectory_size(),
-           all_trajectory_builder_options_.all_trajectory_builder_options()
-               .options_with_sensor_ids_size());
 }
 
 bool ProtoStreamDeserializer::ReadNextSerializedData(

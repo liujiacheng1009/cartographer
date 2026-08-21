@@ -32,14 +32,14 @@
 #include "cartographer/core/port.h"
 #include "cartographer/slam/grid_2d.h"
 #include "cartographer/slam/correlative_scan_matcher_2d.h"
-#include "cartographer/proto/fast_correlative_scan_matcher_options_2d.pb.h"
+#include "cartographer/slam/options.h"
 #include "cartographer/core/point_cloud.h"
 
 namespace cartographer {
 namespace mapping {
 namespace scan_matching {
 
-proto::FastCorrelativeScanMatcherOptions2D
+FastCorrelativeScanMatcherOptions2D
 CreateFastCorrelativeScanMatcherOptions2D(
     common::ParameterDictionary* parameter_dictionary);
 
@@ -96,7 +96,7 @@ class PrecomputationGridStack2D {
  public:
   PrecomputationGridStack2D(
       const Grid2D& grid,
-      const proto::FastCorrelativeScanMatcherOptions2D& options);
+      const FastCorrelativeScanMatcherOptions2D& options);
 
   const PrecomputationGrid2D& Get(int index) {
     return precomputation_grids_[index];
@@ -113,7 +113,7 @@ class FastCorrelativeScanMatcher2D {
  public:
   FastCorrelativeScanMatcher2D(
       const Grid2D& grid,
-      const proto::FastCorrelativeScanMatcherOptions2D& options);
+      const FastCorrelativeScanMatcherOptions2D& options);
   ~FastCorrelativeScanMatcher2D();
 
   FastCorrelativeScanMatcher2D(const FastCorrelativeScanMatcher2D&) = delete;
@@ -158,7 +158,7 @@ class FastCorrelativeScanMatcher2D {
                              const std::vector<Candidate2D>& candidates,
                              int candidate_depth, float min_score) const;
 
-  const proto::FastCorrelativeScanMatcherOptions2D options_;
+  const FastCorrelativeScanMatcherOptions2D options_;
   MapLimits limits_;
   std::unique_ptr<PrecomputationGridStack2D> precomputation_grid_stack_;
 };

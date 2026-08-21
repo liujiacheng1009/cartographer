@@ -21,12 +21,12 @@
 
 #include "cartographer/core/parameter_dictionary.h"
 #include "cartographer/core/port.h"
-#include "cartographer/proto/trajectory_builder_options.pb.h"
+#include "cartographer/slam/options.h"
 
 namespace cartographer_ros {
 
 struct TrajectoryOptions {
-  ::cartographer::mapping::proto::TrajectoryBuilderOptions
+  ::cartographer::mapping::TrajectoryBuilderOptions
       trajectory_builder_options;
   std::string tracking_frame;
   std::string published_frame;

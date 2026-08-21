@@ -4,10 +4,10 @@ namespace cartographer {
 namespace mapping {
 namespace scan_matching {
 
-proto::RealTimeCorrelativeScanMatcherOptions
+RealTimeCorrelativeScanMatcherOptions
 CreateRealTimeCorrelativeScanMatcherOptions(
     common::ParameterDictionary* const parameter_dictionary) {
-  proto::RealTimeCorrelativeScanMatcherOptions options;
+  RealTimeCorrelativeScanMatcherOptions options;
   options.set_linear_search_window(
       parameter_dictionary->GetDouble("linear_search_window"));
   options.set_angular_search_window(
