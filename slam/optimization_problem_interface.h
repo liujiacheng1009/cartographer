@@ -26,10 +26,9 @@
 #include "cartographer/core/time.h"
 #include "cartographer/slam/id.h"
 #include "cartographer/slam/pose_graph_interface.h"
-#include "cartographer/core/fixed_frame_pose_data.h"
-#include "cartographer/core/imu_data.h"
+#include "cartographer/core/sensor_data.h"
 #include "cartographer/core/map_by_time.h"
-#include "cartographer/core/odometry_data.h"
+#include "cartographer/core/sensor_data.h"
 
 namespace cartographer {
 namespace mapping {

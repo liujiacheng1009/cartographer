@@ -21,8 +21,7 @@
 
 #include "absl/types/optional.h"
 #include "cartographer/slam/trajectory_builder_interface.h"
-#include "cartographer/core/imu_data.h"
-#include "cartographer/core/odometry_data.h"
+#include "cartographer/core/sensor_data.h"
 #include "cartographer/core/rigid_transform.h"
 #include "cartographer/core/transform.h"
 #include "cartographer_ros/tf_bridge.h"

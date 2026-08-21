@@ -33,9 +33,7 @@
 #include "cartographer/core/thread_pool.h"
 #include "cartographer/slam/options.h"
 #include "cartographer/slam/options.h"
-#include "cartographer/core/counter.h"
-#include "cartographer/core/gauge.h"
-#include "cartographer/core/metrics_histogram.h"
+#include "cartographer/core/metrics.h"
 #include "cartographer/core/transform.h"
 #include "glog/logging.h"
 

@@ -19,7 +19,7 @@
 #include "absl/memory/memory.h"
 #include "absl/types/optional.h"
 #include "cartographer/core/time.h"
-#include "cartographer/state/map_database.h"
+#include "cartographer/state/swmap.h"
 #include "cartographer/slam/local_trajectory_builder_2d.h"
 #include "cartographer/slam/pose_graph_2d.h"
 #include "cartographer/slam/collated_trajectory_builder.h"

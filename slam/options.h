@@ -6,8 +6,10 @@
 
 #include <optional>
 
+#include "cartographer/core/parameter_dictionary.h"
 #include "cartographer/core/rigid_transform.h"
 #include "cartographer/core/time.h"
+#include "ceres/ceres.h"
 
 namespace cartographer {
 namespace mapping {
@@ -309,10 +311,31 @@ struct TrajectoryBuilderOptions {
   std::optional<MotionFilterOptions> pose_graph_odometry_motion_filter_;
 };
 
+LocalTrajectoryBuilderOptions2D CreateLocalTrajectoryBuilderOptions2D(
+    common::ParameterDictionary* parameter_dictionary);
+
+namespace optimization {
+OptimizationProblemOptions CreateOptimizationProblemOptions(
+    common::ParameterDictionary* parameter_dictionary);
+}  // namespace optimization
+
+namespace scan_matching {
+RealTimeCorrelativeScanMatcherOptions
+CreateRealTimeCorrelativeScanMatcherOptions(
+    common::ParameterDictionary* parameter_dictionary);
+}  // namespace scan_matching
+
 #undef CARTOGRAPHER_OPTION_FIELD
 #undef CARTOGRAPHER_OPTION_SCALAR
 
 }  // namespace mapping
+
+namespace common {
+mapping::CeresSolverOptions CreateCeresSolverOptionsConfig(
+    ParameterDictionary* parameter_dictionary);
+ceres::Solver::Options CreateCeresSolverOptions(
+    const mapping::CeresSolverOptions& config);
+}  // namespace common
 }  // namespace cartographer
 
 #endif  // CARTOGRAPHER_MAPPING_OPTIONS_H_

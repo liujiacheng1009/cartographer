@@ -20,7 +20,7 @@
 #include <memory>
 
 #include "absl/memory/memory.h"
-#include "cartographer/core/family_factory.h"
+#include "cartographer/core/metrics.h"
 #include "cartographer/core/range_data.h"
 
 namespace cartographer {

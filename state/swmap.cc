@@ -1,4 +1,4 @@
-#include "cartographer/state/map_database.h"
+#include "cartographer/state/swmap.h"
 
 #include <cstring>
 #include <filesystem>

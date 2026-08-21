@@ -24,13 +24,13 @@
 #include <string>
 #include <vector>
 
-#include "cartographer/core/ceres_solver_options.h"
+#include "cartographer/slam/options.h"
 #include "cartographer/core/histogram.h"
 #include "cartographer/core/math.h"
 #include "cartographer/slam/ceres_pose.h"
 #include "cartographer/slam/landmark_cost_function_2d.h"
 #include "cartographer/slam/spa_cost_function_2d.h"
-#include "cartographer/core/odometry_data.h"
+#include "cartographer/core/sensor_data.h"
 #include "cartographer/core/transform.h"
 #include "ceres/ceres.h"
 #include "glog/logging.h"

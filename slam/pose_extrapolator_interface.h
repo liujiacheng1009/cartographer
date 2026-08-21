@@ -22,8 +22,7 @@
 
 #include "cartographer/core/time.h"
 #include "cartographer/slam/options.h"
-#include "cartographer/core/imu_data.h"
-#include "cartographer/core/odometry_data.h"
+#include "cartographer/core/sensor_data.h"
 #include "cartographer/core/rigid_transform.h"
 #include "cartographer/core/timestamped_transform.h"
 

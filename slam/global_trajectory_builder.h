@@ -22,7 +22,7 @@
 #include "cartographer/slam/local_trajectory_builder_2d.h"
 #include "cartographer/slam/pose_graph_2d.h"
 #include "cartographer/slam/trajectory_builder_interface.h"
-#include "cartographer/core/family_factory.h"
+#include "cartographer/core/metrics.h"
 
 namespace cartographer {
 namespace mapping {

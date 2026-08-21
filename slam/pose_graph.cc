@@ -17,7 +17,7 @@
 #include "cartographer/slam/pose_graph.h"
 
 #include "cartographer/slam/constraint_builder.h"
-#include "cartographer/slam/optimization_problem_options.h"
+#include "cartographer/slam/options.h"
 #include "cartographer/core/transform.h"
 #include "glog/logging.h"
 

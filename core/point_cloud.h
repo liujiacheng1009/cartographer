@@ -20,12 +20,52 @@
 #include <vector>
 
 #include "Eigen/Core"
-#include "cartographer/core/rangefinder_point.h"
 #include "cartographer/core/rigid_transform.h"
 #include "glog/logging.h"
 
 namespace cartographer {
 namespace sensor {
+
+struct RangefinderPoint {
+  Eigen::Vector3f position;
+};
+
+struct TimedRangefinderPoint {
+  Eigen::Vector3f position;
+  float time;
+};
+
+template <class T>
+inline RangefinderPoint operator*(const transform::Rigid3<T>& lhs,
+                                  const RangefinderPoint& rhs) {
+  return {lhs * rhs.position};
+}
+
+template <class T>
+inline TimedRangefinderPoint operator*(const transform::Rigid3<T>& lhs,
+                                       const TimedRangefinderPoint& rhs) {
+  return {lhs * rhs.position, rhs.time};
+}
+
+inline bool operator==(const RangefinderPoint& lhs,
+                       const RangefinderPoint& rhs) {
+  return lhs.position == rhs.position;
+}
+
+inline bool operator==(const TimedRangefinderPoint& lhs,
+                       const TimedRangefinderPoint& rhs) {
+  return lhs.position == rhs.position && lhs.time == rhs.time;
+}
+
+inline RangefinderPoint ToRangefinderPoint(
+    const TimedRangefinderPoint& point) {
+  return {point.position};
+}
+
+inline TimedRangefinderPoint ToTimedRangefinderPoint(
+    const RangefinderPoint& point, float time) {
+  return {point.position, time};
+}
 
 // Stores 3D positions of points together with some additional data, e.g.
 // intensities.

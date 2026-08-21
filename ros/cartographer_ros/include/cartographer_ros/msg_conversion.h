@@ -19,7 +19,7 @@
 
 #include "cartographer/core/time.h"
 #include "cartographer/state/submap_painter.h"
-#include "cartographer/core/landmark_data.h"
+#include "cartographer/core/sensor_data.h"
 #include "cartographer/core/point_cloud.h"
 #include "cartographer/core/rigid_transform.h"
 #include "cartographer_ros_msgs/msg/landmark_list.hpp"

@@ -22,7 +22,7 @@
 #include "absl/types/optional.h"
 #include "cartographer/core/time.h"
 #include "cartographer/slam/motion_filter.h"
-#include "cartographer/core/family_factory.h"
+#include "cartographer/core/metrics.h"
 #include "glog/logging.h"
 
 namespace cartographer {

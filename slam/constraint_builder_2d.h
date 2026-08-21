@@ -37,7 +37,7 @@
 #include "cartographer/slam/fast_correlative_scan_matcher_2d.h"
 #include "cartographer/slam/pose_graph_interface.h"
 #include "cartographer/slam/options.h"
-#include "cartographer/core/family_factory.h"
+#include "cartographer/core/metrics.h"
 #include "cartographer/core/voxel_filter.h"
 #include "cartographer/core/point_cloud.h"
 

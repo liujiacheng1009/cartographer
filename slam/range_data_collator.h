@@ -20,7 +20,7 @@
 #include <memory>
 
 #include "absl/memory/memory.h"
-#include "cartographer/core/timed_point_cloud_data.h"
+#include "cartographer/core/sensor_data.h"
 
 namespace cartographer {
 namespace mapping {

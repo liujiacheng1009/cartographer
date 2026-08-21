@@ -28,10 +28,10 @@
 #include "cartographer/slam/range_data_collator.h"
 #include "cartographer/slam/pose_extrapolator.h"
 #include "cartographer/slam/options.h"
-#include "cartographer/core/family_factory.h"
-#include "cartographer/core/imu_data.h"
+#include "cartographer/core/metrics.h"
+#include "cartographer/core/sensor_data.h"
 #include "cartographer/core/voxel_filter.h"
-#include "cartographer/core/odometry_data.h"
+#include "cartographer/core/sensor_data.h"
 #include "cartographer/core/range_data.h"
 #include "cartographer/core/rigid_transform.h"
 

@@ -31,9 +31,9 @@
 #include "cartographer/slam/optimization_problem_interface.h"
 #include "cartographer/slam/pose_graph_interface.h"
 #include "cartographer/slam/options.h"
-#include "cartographer/core/imu_data.h"
+#include "cartographer/core/sensor_data.h"
 #include "cartographer/core/map_by_time.h"
-#include "cartographer/core/odometry_data.h"
+#include "cartographer/core/sensor_data.h"
 #include "cartographer/core/timestamped_transform.h"
 
 namespace cartographer {

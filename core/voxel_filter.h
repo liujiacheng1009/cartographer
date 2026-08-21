@@ -22,7 +22,7 @@
 #include "cartographer/core/parameter_dictionary.h"
 #include "cartographer/core/point_cloud.h"
 #include "cartographer/slam/options.h"
-#include "cartographer/core/timed_point_cloud_data.h"
+#include "cartographer/core/sensor_data.h"
 
 namespace cartographer {
 namespace sensor {

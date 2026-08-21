@@ -30,12 +30,10 @@
 #include "cartographer/slam/options.h"
 #include "cartographer/slam/submaps.h"
 #include "cartographer/slam/trajectory_node.h"
-#include "cartographer/core/fixed_frame_pose_data.h"
-#include "cartographer/core/imu_data.h"
-#include "cartographer/core/landmark_data.h"
+#include "cartographer/core/sensor_data.h"
 #include "cartographer/core/map_by_time.h"
-#include "cartographer/core/odometry_data.h"
-#include "cartographer/state/serialized_state.h"
+#include "cartographer/core/sensor_data.h"
+#include "cartographer/state/swmap.h"
 
 namespace cartographer {
 namespace mapping {

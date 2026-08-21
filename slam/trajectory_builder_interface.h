@@ -27,11 +27,7 @@
 #include "cartographer/core/time.h"
 #include "cartographer/slam/options.h"
 #include "cartographer/slam/submaps.h"
-#include "cartographer/core/fixed_frame_pose_data.h"
-#include "cartographer/core/imu_data.h"
-#include "cartographer/core/landmark_data.h"
-#include "cartographer/core/odometry_data.h"
-#include "cartographer/core/timed_point_cloud_data.h"
+#include "cartographer/core/sensor_data.h"
 
 namespace cartographer {
 namespace mapping {

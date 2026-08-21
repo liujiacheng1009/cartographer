@@ -23,8 +23,7 @@
 #include "cartographer/core/time.h"
 #include "cartographer/slam/imu_tracker.h"
 #include "cartographer/slam/pose_extrapolator_interface.h"
-#include "cartographer/core/imu_data.h"
-#include "cartographer/core/odometry_data.h"
+#include "cartographer/core/sensor_data.h"
 #include "cartographer/core/rigid_transform.h"
 
 namespace cartographer {

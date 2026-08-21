@@ -21,8 +21,7 @@
 #include <vector>
 
 #include "absl/container/flat_hash_map.h"
-#include "cartographer/core/counter.h"
-#include "cartographer/core/family_factory.h"
+#include "cartographer/core/metrics.h"
 #include "cartographer/core/collator_interface.h"
 #include "cartographer/core/ordered_multi_queue.h"
 

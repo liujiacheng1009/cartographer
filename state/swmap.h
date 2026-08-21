@@ -1,5 +1,5 @@
-#ifndef CARTOGRAPHER_STATE_SERIALIZED_STATE_H_
-#define CARTOGRAPHER_STATE_SERIALIZED_STATE_H_
+#ifndef CARTOGRAPHER_STATE_SWMAP_H_
+#define CARTOGRAPHER_STATE_SWMAP_H_
 
 #include <map>
 #include <string>
@@ -11,6 +11,9 @@
 #include "cartographer/slam/xy_index.h"
 
 namespace cartographer {
+namespace mapping {
+class PoseGraph;
+}
 namespace io {
 
 struct SerializedGrid2D {
@@ -47,7 +50,12 @@ struct SerializedState {
   std::map<std::string, transform::Rigid3d> landmark_poses;
 };
 
+bool WriteSwMap(const std::string& filename,
+                const mapping::PoseGraph& pose_graph,
+                bool include_unfinished_submaps);
+SerializedState ReadSwMap(const std::string& filename);
+
 }  // namespace io
 }  // namespace cartographer
 
-#endif  // CARTOGRAPHER_STATE_SERIALIZED_STATE_H_
+#endif  // CARTOGRAPHER_STATE_SWMAP_H_

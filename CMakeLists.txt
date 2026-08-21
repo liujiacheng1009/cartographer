@@ -59,13 +59,10 @@ install(DIRECTORY cmake DESTINATION share/cartographer/)
 file(GLOB_RECURSE ALL_LIBRARY_HDRS
   "core/*.h" "slam/*.h" "state/*.h")
 set(ALL_LIBRARY_SRCS
-  core/ceres_solver_options.cc
   core/collator.cc
-  core/counter.cc
   core/fixed_ratio_sampler.cc
-  core/gauge.cc
   core/histogram.cc
-  core/metrics_histogram.cc
+  core/metrics.cc
   core/ordered_multi_queue.cc
   core/parameter_dictionary.cc
   core/point_cloud.cc
@@ -90,13 +87,12 @@ set(ALL_LIBRARY_SRCS
   slam/grid_2d.cc
   slam/imu_tracker.cc
   slam/local_trajectory_builder_2d.cc
-  slam/local_trajectory_builder_options_2d.cc
   slam/map_builder.cc
   slam/map_builder_interface.cc
   slam/motion_filter.cc
   slam/occupied_space_cost_function_2d.cc
   slam/optimization_problem_2d.cc
-  slam/optimization_problem_options.cc
+  slam/options.cc
   slam/overlapping_submaps_trimmer_2d.cc
   slam/pose_extrapolator.cc
   slam/pose_extrapolator_interface.cc
@@ -109,7 +105,6 @@ set(ALL_LIBRARY_SRCS
   slam/range_data_collator.cc
   slam/range_data_inserter_interface.cc
   slam/ray_to_pixel_mask.cc
-  slam/real_time_correlative_scan_matcher.cc
   slam/real_time_correlative_scan_matcher_2d.cc
   slam/spa_cost_function_2d.cc
   slam/submap_2d.cc
@@ -119,7 +114,7 @@ set(ALL_LIBRARY_SRCS
   state/color.cc
   state/file_writer.cc
   state/image.cc
-  state/map_database.cc
+  state/swmap.cc
   state/submap_painter.cc
 )
 
