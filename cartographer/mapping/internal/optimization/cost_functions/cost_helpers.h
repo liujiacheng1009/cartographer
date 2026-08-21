@@ -60,16 +60,6 @@ template <typename T>
 std::array<T, 4> SlerpQuaternions(const T* const start, const T* const end,
                                   double factor);
 
-// Interpolates 3D poses. Linear interpolation is performed for translation and
-// spherical-linear one for rotation.
-template <typename T>
-std::tuple<std::array<T, 4> /* rotation */, std::array<T, 3> /* translation */>
-InterpolateNodes3D(const T* const prev_node_rotation,
-                   const T* const prev_node_translation,
-                   const T* const next_node_rotation,
-                   const T* const next_node_translation,
-                   const double interpolation_parameter);
-
 // Embeds 2D poses into 3D and interpolates them. Linear interpolation is
 // performed for translation and spherical-linear one for rotation.
 template <typename T>

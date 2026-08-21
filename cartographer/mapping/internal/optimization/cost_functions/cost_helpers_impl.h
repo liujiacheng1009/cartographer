@@ -132,28 +132,6 @@ std::array<T, 4> SlerpQuaternions(const T* const start, const T* const end,
 
 template <typename T>
 std::tuple<std::array<T, 4> /* rotation */, std::array<T, 3> /* translation */>
-InterpolateNodes3D(const T* const prev_node_rotation,
-                   const T* const prev_node_translation,
-                   const T* const next_node_rotation,
-                   const T* const next_node_translation,
-                   const double interpolation_parameter) {
-  return std::make_tuple(
-      SlerpQuaternions(prev_node_rotation, next_node_rotation,
-                       interpolation_parameter),
-      std::array<T, 3>{
-          {prev_node_translation[0] +
-               interpolation_parameter *
-                   (next_node_translation[0] - prev_node_translation[0]),
-           prev_node_translation[1] +
-               interpolation_parameter *
-                   (next_node_translation[1] - prev_node_translation[1]),
-           prev_node_translation[2] +
-               interpolation_parameter *
-                   (next_node_translation[2] - prev_node_translation[2])}});
-}
-
-template <typename T>
-std::tuple<std::array<T, 4> /* rotation */, std::array<T, 3> /* translation */>
 InterpolateNodes2D(const T* const prev_node_pose,
                    const Eigen::Quaterniond& prev_node_gravity_alignment,
                    const T* const next_node_pose,

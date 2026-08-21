@@ -20,15 +20,13 @@ import "cartographer/common/proto/ceres_solver_options.proto";
 
 // NEXT ID: 26
 message OptimizationProblemOptions {
+  reserved 8; // Former 3D IMU acceleration weight.
+  reserved 9; // Former 3D IMU rotation weight.
+  reserved 13; // Former 3D Z constraint flag.
+  reserved 18; // Former online 3D IMU extrinsics flag.
   reserved 20 to 22; // For visual constraints.
   // Scaling parameter for Huber loss function.
   double huber_scale = 1;
-
-  // Scaling parameter for the IMU acceleration term.
-  double acceleration_weight = 8;
-
-  // Scaling parameter for the IMU rotation term.
-  double rotation_weight = 9;
 
   // Scaling parameter for translation between consecutive nodes based on the
   // local SLAM pose.
@@ -59,12 +57,6 @@ message OptimizationProblemOptions {
   // with fixed_frame_pose_translation_weight.
   double fixed_frame_pose_tolerant_loss_param_a = 24;
   double fixed_frame_pose_tolerant_loss_param_b = 25;
-
-  // 3D only: fix Z.
-  bool fix_z_in_3d = 13;
-
-  // 3D only: activate online IMU extrinsics.
-  bool use_online_imu_extrinsics_in_3d = 18;
 
   // If true, the Ceres solver summary will be logged for every optimization.
   bool log_solver_summary = 5;
