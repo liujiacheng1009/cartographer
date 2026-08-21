@@ -44,13 +44,6 @@ if(${BUILD_PROMETHEUS})
   find_package( ZLIB REQUIRED )
 endif()
 
-include(FindPkgConfig)
-if (NOT WIN32)
-  PKG_SEARCH_MODULE(CAIRO REQUIRED cairo>=1.12.16)
-else()
-  find_library(CAIRO_LIBRARIES cairo)
-endif()
-
 # Install catkin package.xml
 install(FILES package.xml DESTINATION share/cartographer)
 
@@ -110,11 +103,7 @@ set(ALL_LIBRARY_SRCS
   slam/trajectory_builder_interface.cc
   slam/trajectory_connectivity_state.cc
   slam/value_conversion_tables.cc
-  state/color.cc
-  state/file_writer.cc
-  state/image.cc
   state/swmap.cc
-  state/submap_painter.cc
 )
 
 # Remove dotfiles/-folders that could potentially pollute the build.
@@ -124,25 +113,25 @@ if (ALL_DOTFILES)
 endif()
 set(INSTALL_SOURCE_HDRS ${ALL_LIBRARY_HDRS})
 
-add_library(${PROJECT_NAME} STATIC ${ALL_LIBRARY_HDRS} ${ALL_LIBRARY_SRCS})
+add_library(cartographer_offline_core STATIC ${ALL_LIBRARY_HDRS} ${ALL_LIBRARY_SRCS})
 
 configure_file(
   ${PROJECT_SOURCE_DIR}/core/config.h.cmake
   ${PROJECT_BINARY_DIR}/cartographer/core/config.h)
 
-target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
+target_include_directories(cartographer_offline_core SYSTEM PUBLIC
   "${EIGEN3_INCLUDE_DIR}")
-target_link_libraries(${PROJECT_NAME} PUBLIC ${EIGEN3_LIBRARIES})
+target_link_libraries(cartographer_offline_core PUBLIC ${EIGEN3_LIBRARIES})
 
-target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
+target_include_directories(cartographer_offline_core SYSTEM PUBLIC
   "${CERES_INCLUDE_DIRS}")
-target_link_libraries(${PROJECT_NAME} PUBLIC ${CERES_LIBRARIES})
+target_link_libraries(cartographer_offline_core PUBLIC ${CERES_LIBRARIES})
 
-target_link_libraries(${PROJECT_NAME} PUBLIC yaml-cpp)
+target_link_libraries(cartographer_offline_core PUBLIC yaml-cpp)
 
-target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
+target_include_directories(cartographer_offline_core SYSTEM PUBLIC
   "${Boost_INCLUDE_DIRS}")
-target_link_libraries(${PROJECT_NAME} PUBLIC ${Boost_LIBRARIES})
+target_link_libraries(cartographer_offline_core PUBLIC ${Boost_LIBRARIES})
 
 if (WIN32)
   find_package(glog REQUIRED)
@@ -151,24 +140,18 @@ else()
   set(GLOG_LIBRARY glog)
 endif()
 
-target_link_libraries(${PROJECT_NAME} PUBLIC ${GLOG_LIBRARY})
-target_link_libraries(${PROJECT_NAME} PUBLIC gflags)
+target_link_libraries(cartographer_offline_core PUBLIC ${GLOG_LIBRARY})
+target_link_libraries(cartographer_offline_core PUBLIC gflags)
 if(WIN32)
   # Needed to fix conflict with MSVC's error macro.
-  target_compile_definitions(${PROJECT_NAME} PUBLIC -DGLOG_NO_ABBREVIATED_SEVERITIES)
+  target_compile_definitions(cartographer_offline_core PUBLIC -DGLOG_NO_ABBREVIATED_SEVERITIES)
 endif()
 if(MSVC)
   # Needed for VS 2017 5.8
-  target_compile_definitions(${PROJECT_NAME} PUBLIC -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_USE_MATH_DEFINES)
+  target_compile_definitions(cartographer_offline_core PUBLIC -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_USE_MATH_DEFINES)
 endif()
 
-if("${CAIRO_INCLUDE_DIRS}")
-  target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
-    "${CAIRO_INCLUDE_DIRS}")
-endif()
-target_link_libraries(${PROJECT_NAME} PUBLIC ${CAIRO_LIBRARIES})
-
-target_link_libraries(${PROJECT_NAME} PUBLIC sqlite3
+target_link_libraries(cartographer_offline_core PUBLIC sqlite3
   absl::algorithm
   absl::base
   absl::debugging
@@ -183,29 +166,29 @@ target_link_libraries(${PROJECT_NAME} PUBLIC sqlite3
   absl::utility 
 )
 if (NOT WIN32)
-  target_link_libraries(${PROJECT_NAME} PUBLIC pthread)
+  target_link_libraries(cartographer_offline_core PUBLIC pthread)
 endif()
 if(${BUILD_PROMETHEUS})
-  target_link_libraries(${PROJECT_NAME} PUBLIC ${ZLIB_LIBRARIES})
-  target_link_libraries(${PROJECT_NAME} PUBLIC prometheus-cpp-core)
-  target_link_libraries(${PROJECT_NAME} PUBLIC prometheus-cpp-pull)
-  target_compile_definitions(${PROJECT_NAME} PUBLIC USE_PROMETHEUS=1)
+  target_link_libraries(cartographer_offline_core PUBLIC ${ZLIB_LIBRARIES})
+  target_link_libraries(cartographer_offline_core PUBLIC prometheus-cpp-core)
+  target_link_libraries(cartographer_offline_core PUBLIC prometheus-cpp-pull)
+  target_compile_definitions(cartographer_offline_core PUBLIC USE_PROMETHEUS=1)
 endif()
 
 set(TARGET_COMPILE_FLAGS "${TARGET_COMPILE_FLAGS} ${GOOG_CXX_FLAGS}")
-set_target_properties(${PROJECT_NAME} PROPERTIES
+set_target_properties(cartographer_offline_core PROPERTIES
   COMPILE_FLAGS ${TARGET_COMPILE_FLAGS})
 
 # Add the binary directory first, so that port.h is included after it has
 # been generated.
-target_include_directories(${PROJECT_NAME} PUBLIC
+target_include_directories(cartographer_offline_core PUBLIC
     $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>
     $<BUILD_INTERFACE:${CARTOGRAPHER_SOURCE_PARENT}>
     $<INSTALL_INTERFACE:include>
 )
 
 install(
-  TARGETS ${PROJECT_NAME}
+  TARGETS cartographer_offline_core
   EXPORT CartographerExport
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
