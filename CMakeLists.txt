@@ -69,11 +69,11 @@ install(DIRECTORY config/ DESTINATION share/cartographer/configuration_files)
 install(DIRECTORY cmake DESTINATION share/cartographer/)
 
 file(GLOB_RECURSE ALL_LIBRARY_HDRS
-  "core/*.h" "slam/*.h" "state/*.h" "tools/*.h")
+  "core/*.h" "slam/*.h" "state/*.h")
 file(GLOB_RECURSE ALL_LIBRARY_SRCS
-  "core/*.cc" "slam/*.cc" "state/*.cc" "tools/*.cc")
+  "core/*.cc" "slam/*.cc" "state/*.cc")
 file(GLOB_RECURSE ALL_EXECUTABLES
-  "core/*_main.cc" "slam/*_main.cc" "state/*_main.cc" "tools/*_main.cc")
+  "core/*_main.cc" "slam/*_main.cc" "state/*_main.cc")
 
 # Remove dotfiles/-folders that could potentially pollute the build.
 file(GLOB_RECURSE ALL_DOTFILES ".*/*")
