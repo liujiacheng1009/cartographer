@@ -102,7 +102,7 @@ typename Rigid2<FloatType>::Vector operator*(
   return rigid.rotation() * point + rigid.translation();
 }
 
-// This is needed for gmock.
+// Stream representation for logging and diagnostics.
 template <typename T>
 std::ostream& operator<<(std::ostream& os,
                          const cartographer::transform::Rigid2<T>& rigid) {
@@ -195,7 +195,7 @@ typename Rigid3<FloatType>::Vector operator*(
   return rigid.rotation() * point + rigid.translation();
 }
 
-// This is needed for gmock.
+// Stream representation for logging and diagnostics.
 template <typename T>
 std::ostream& operator<<(std::ostream& os,
                          const cartographer::transform::Rigid3<T>& rigid) {

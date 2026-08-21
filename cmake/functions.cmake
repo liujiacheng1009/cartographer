@@ -32,18 +32,6 @@ macro(_common_compile_stuff)
   target_link_libraries(${NAME} PUBLIC ${PROJECT_NAME})
 endmacro(_common_compile_stuff)
 
-function(google_test NAME ARG_SRC)
-  add_executable(${NAME} ${ARG_SRC})
-  _common_compile_stuff()
-
-  # Make sure that gmock always includes the correct gtest/gtest.h.
-  target_include_directories("${NAME}" SYSTEM PRIVATE
-    "${GMOCK_INCLUDE_DIRS}")
-  target_link_libraries("${NAME}" PUBLIC ${GMOCK_LIBRARIES})
-
-  add_test(${NAME} ${NAME})
-endfunction()
-
 function(google_binary NAME)
   _parse_arguments("${ARGN}")
 
@@ -135,9 +123,4 @@ macro(google_initialize_cartographer_project)
     endif()
     include(${FILES_LIST_PATH})
   endif()
-endmacro()
-
-macro(google_enable_testing)
-  enable_testing()
-  find_package(GMock REQUIRED)
 endmacro()
