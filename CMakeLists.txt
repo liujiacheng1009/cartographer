@@ -58,19 +58,76 @@ install(DIRECTORY cmake DESTINATION share/cartographer/)
 
 file(GLOB_RECURSE ALL_LIBRARY_HDRS
   "core/*.h" "slam/*.h" "state/*.h")
-file(GLOB_RECURSE ALL_LIBRARY_SRCS
-  "core/*.cc" "slam/*.cc" "state/*.cc")
-file(GLOB_RECURSE ALL_EXECUTABLES
-  "core/*_main.cc" "slam/*_main.cc" "state/*_main.cc")
+set(ALL_LIBRARY_SRCS
+  core/ceres_solver_options.cc
+  core/collator.cc
+  core/counter.cc
+  core/fixed_ratio_sampler.cc
+  core/gauge.cc
+  core/histogram.cc
+  core/metrics_histogram.cc
+  core/ordered_multi_queue.cc
+  core/parameter_dictionary.cc
+  core/point_cloud.cc
+  core/range_data.cc
+  core/rigid_transform.cc
+  core/task.cc
+  core/thread_pool.cc
+  core/time.cc
+  core/timestamped_transform.cc
+  core/trajectory_collator.cc
+  core/voxel_filter.cc
+  slam/ceres_pose.cc
+  slam/ceres_scan_matcher_2d.cc
+  slam/collated_trajectory_builder.cc
+  slam/connected_components.cc
+  slam/constraint_builder_2d.cc
+  slam/constraint_builder.cc
+  slam/correlative_scan_matcher_2d.cc
+  slam/eigen_quaterniond_from_two_vectors.cc
+  slam/fast_correlative_scan_matcher_2d.cc
+  slam/global_trajectory_builder.cc
+  slam/grid_2d.cc
+  slam/imu_tracker.cc
+  slam/local_trajectory_builder_2d.cc
+  slam/local_trajectory_builder_options_2d.cc
+  slam/map_builder.cc
+  slam/map_builder_interface.cc
+  slam/motion_filter.cc
+  slam/occupied_space_cost_function_2d.cc
+  slam/optimization_problem_2d.cc
+  slam/optimization_problem_options.cc
+  slam/overlapping_submaps_trimmer_2d.cc
+  slam/pose_extrapolator.cc
+  slam/pose_extrapolator_interface.cc
+  slam/pose_graph.cc
+  slam/pose_graph_2d.cc
+  slam/pose_graph_trimmer.cc
+  slam/probability_grid.cc
+  slam/probability_grid_range_data_inserter_2d.cc
+  slam/probability_values.cc
+  slam/range_data_collator.cc
+  slam/range_data_inserter_interface.cc
+  slam/ray_to_pixel_mask.cc
+  slam/real_time_correlative_scan_matcher.cc
+  slam/real_time_correlative_scan_matcher_2d.cc
+  slam/spa_cost_function_2d.cc
+  slam/submap_2d.cc
+  slam/trajectory_builder_interface.cc
+  slam/trajectory_connectivity_state.cc
+  slam/value_conversion_tables.cc
+  state/color.cc
+  state/file_writer.cc
+  state/image.cc
+  state/map_database.cc
+  state/submap_painter.cc
+)
 
 # Remove dotfiles/-folders that could potentially pollute the build.
 file(GLOB_RECURSE ALL_DOTFILES ".*/*")
 if (ALL_DOTFILES)
   list(REMOVE_ITEM ALL_LIBRARY_HDRS ${ALL_DOTFILES})
-  list(REMOVE_ITEM ALL_LIBRARY_SRCS ${ALL_DOTFILES})
-  list(REMOVE_ITEM ALL_EXECUTABLES ${ALL_DOTFILES})
 endif()
-list(REMOVE_ITEM ALL_LIBRARY_SRCS ${ALL_EXECUTABLES})
 set(INSTALL_SOURCE_HDRS ${ALL_LIBRARY_HDRS})
 
 add_library(${PROJECT_NAME} STATIC ${ALL_LIBRARY_HDRS} ${ALL_LIBRARY_SRCS})

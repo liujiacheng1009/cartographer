@@ -212,14 +212,3 @@ ament_export_dependencies(
   visualization_msgs
 )
 ament_package()
-
-#google_binary(cartographer_dev_rosbag_publisher
-#  SRCS
-#  dev/rosbag_publisher_main.cc
-#)
-
-
-#google_binary(cartographer_dev_trajectory_comparison
-#  SRCS
-#  dev/trajectory_comparison_main.cc
-#)
