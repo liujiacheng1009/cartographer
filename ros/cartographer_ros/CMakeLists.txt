@@ -232,23 +232,3 @@ ament_package()
 #  SRCS
 #  dev/trajectory_comparison_main.cc
 #)
-
-
-## TODO(cschuet): Add support for shared library case.
-#if (${BUILD_GRPC})
-#  google_binary(cartographer_grpc_node
-#    SRCS
-#      cartographer_grpc/node_grpc_main.cc
-#  )
-
-
-#  google_binary(cartographer_grpc_offline_node
-#    SRCS
-#      cartographer_grpc/offline_node_grpc_main.cc
-#  )
-
-#  install(PROGRAMS
-#    ../scripts/cartographer_grpc_server.sh
-#    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-#  )
-#endif()

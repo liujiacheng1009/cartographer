@@ -23,7 +23,6 @@
 set_and_check(CARTOGRAPHER_CMAKE_DIR "@PACKAGE_CARTOGRAPHER_CMAKE_DIR@")
 
 set(CERES_DIR_HINTS @Ceres_DIR@)
-set(CARTOGRAPHER_HAS_GRPC @CARTOGRAPHER_HAS_GRPC@)
 
 if (cartographer_FIND_QUIETLY)
    set(QUIET_OR_REQUIRED_OPTION "QUIET")
@@ -40,10 +39,6 @@ if (WIN32)
     find_package(glog REQUIRED)
 endif()
 find_package(absl ${QUIET_OR_REQUIRED_OPTION})
-if(CARTOGRAPHER_HAS_GRPC)
-   find_package(async_grpc ${QUIET_OR_REQUIRED_OPTION})
-endif()
-
 include("${CARTOGRAPHER_CMAKE_DIR}/CartographerTargets.cmake")
 
 unset(QUIET_OR_REQUIRED_OPTION)
