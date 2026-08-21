@@ -55,10 +55,10 @@ endfunction()
 macro(google_initialize_cartographer_project)
   if(CARTOGRAPHER_CMAKE_DIR)
     set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH}
-        ${CARTOGRAPHER_CMAKE_DIR}/modules)
+        ${CARTOGRAPHER_CMAKE_DIR})
   else()
     set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH}
-        ${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules)
+        ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
   endif()
 
   if(WIN32)

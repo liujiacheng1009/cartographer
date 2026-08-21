@@ -25,9 +25,9 @@
 #include <vector>
 
 #include "absl/synchronization/mutex.h"
-#include "cartographer/common/fixed_ratio_sampler.h"
-#include "cartographer/mapping/map_builder_interface.h"
-#include "cartographer/mapping/pose_extrapolator.h"
+#include "cartographer/core/fixed_ratio_sampler.h"
+#include "cartographer/slam/map_builder_interface.h"
+#include "cartographer/slam/pose_extrapolator.h"
 #include "cartographer_ros/map_builder_bridge.h"
 #include "cartographer_ros/metrics/family_factory.h"
 #include "cartographer_ros/node_constants.h"

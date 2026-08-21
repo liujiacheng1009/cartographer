@@ -20,9 +20,9 @@
 #include <string>
 
 #include "Eigen/Core"
-#include "cartographer/io/file_writer.h"
-#include "cartographer/io/image.h"
-#include "cartographer/mapping/2d/map_limits.h"
+#include "cartographer/state/file_writer.h"
+#include "cartographer/state/image.h"
+#include "cartographer/slam/map_limits.h"
 
 namespace cartographer_ros {
 

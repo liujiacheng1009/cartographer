@@ -23,10 +23,10 @@
 #include <unordered_map>
 
 #include "absl/synchronization/mutex.h"
-#include "cartographer/mapping/map_builder_interface.h"
-#include "cartographer/mapping/pose_graph_interface.h"
-#include "cartographer/mapping/proto/trajectory_builder_options.pb.h"
-#include "cartographer/mapping/trajectory_builder_interface.h"
+#include "cartographer/slam/map_builder_interface.h"
+#include "cartographer/slam/pose_graph_interface.h"
+#include "cartographer/proto/trajectory_builder_options.pb.h"
+#include "cartographer/slam/trajectory_builder_interface.h"
 #include "cartographer_ros/node_options.h"
 #include "cartographer_ros/sensor_bridge.h"
 #include "cartographer_ros/tf_bridge.h"

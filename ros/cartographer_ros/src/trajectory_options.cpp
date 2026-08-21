@@ -16,9 +16,9 @@
 
 #include "cartographer_ros/trajectory_options.h"
 
-#include "cartographer/mapping/trajectory_builder_interface.h"
-#include "cartographer/transform/rigid_transform.h"
-#include "cartographer/transform/transform.h"
+#include "cartographer/slam/trajectory_builder_interface.h"
+#include "cartographer/core/rigid_transform.h"
+#include "cartographer/core/transform.h"
 #include "cartographer_ros/time_conversion.h"
 #include "glog/logging.h"
 

@@ -18,12 +18,12 @@
 
 #include <cmath>
 
-#include "cartographer/common/math.h"
-#include "cartographer/common/port.h"
-#include "cartographer/common/time.h"
-#include "cartographer/io/submap_painter.h"
-#include "cartographer/transform/proto/transform.pb.h"
-#include "cartographer/transform/transform.h"
+#include "cartographer/core/math.h"
+#include "cartographer/core/port.h"
+#include "cartographer/core/time.h"
+#include "cartographer/state/submap_painter.h"
+#include "cartographer/proto/transform.pb.h"
+#include "cartographer/core/transform.h"
 #include "cartographer_ros/time_conversion.h"
 #include "geometry_msgs/msg/pose.hpp"
 #include "geometry_msgs/msg/quaternion.hpp"

@@ -21,7 +21,7 @@
 #include <vector>
 
 #include "absl/synchronization/mutex.h"
-#include "cartographer/metrics/histogram.h"
+#include "cartographer/core/metrics_histogram.h"
 #include "cartographer_ros_msgs/msg/metric.hpp"
 
 namespace cartographer_ros {

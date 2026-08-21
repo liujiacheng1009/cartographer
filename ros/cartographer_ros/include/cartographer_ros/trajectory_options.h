@@ -19,9 +19,9 @@
 
 #include <string>
 
-#include "cartographer/common/lua_parameter_dictionary.h"
-#include "cartographer/common/port.h"
-#include "cartographer/mapping/proto/trajectory_builder_options.pb.h"
+#include "cartographer/core/lua_parameter_dictionary.h"
+#include "cartographer/core/port.h"
+#include "cartographer/proto/trajectory_builder_options.pb.h"
 
 namespace cartographer_ros {
 

@@ -21,10 +21,10 @@
 #include <string>
 #include <vector>
 
-#include "cartographer/io/image.h"
-#include "cartographer/io/submap_painter.h"
-#include "cartographer/mapping/id.h"
-#include "cartographer/transform/rigid_transform.h"
+#include "cartographer/state/image.h"
+#include "cartographer/state/submap_painter.h"
+#include "cartographer/slam/id.h"
+#include "cartographer/core/rigid_transform.h"
 #include "cartographer_ros_msgs/srv/submap_query.hpp"
 #include <rclcpp/rclcpp.hpp>
 

@@ -20,11 +20,11 @@
 #include <memory>
 
 #include "absl/types/optional.h"
-#include "cartographer/mapping/trajectory_builder_interface.h"
-#include "cartographer/sensor/imu_data.h"
-#include "cartographer/sensor/odometry_data.h"
-#include "cartographer/transform/rigid_transform.h"
-#include "cartographer/transform/transform.h"
+#include "cartographer/slam/trajectory_builder_interface.h"
+#include "cartographer/core/imu_data.h"
+#include "cartographer/core/odometry_data.h"
+#include "cartographer/core/rigid_transform.h"
+#include "cartographer/core/transform.h"
 #include "cartographer_ros/tf_bridge.h"
 #include "cartographer_ros_msgs/msg/landmark_list.hpp"
 #include <geometry_msgs/msg/transform.hpp>

@@ -17,7 +17,7 @@
 #ifndef CARTOGRAPHER_ROS_METRICS_INTERNAL_COUNTER_H
 #define CARTOGRAPHER_ROS_METRICS_INTERNAL_COUNTER_H
 
-#include "cartographer/metrics/counter.h"
+#include "cartographer/core/counter.h"
 #include "cartographer_ros/metrics/internal/gauge.h"
 #include "cartographer_ros_msgs/msg/metric.hpp"
 

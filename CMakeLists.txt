@@ -16,6 +16,9 @@ cmake_minimum_required(VERSION 3.2)
 
 project(cartographer)
 
+get_filename_component(CARTOGRAPHER_SOURCE_PARENT
+  "${PROJECT_SOURCE_DIR}/.." ABSOLUTE)
+
 set(CARTOGRAPHER_MAJOR_VERSION 1)
 set(CARTOGRAPHER_MINOR_VERSION 0)
 set(CARTOGRAPHER_PATCH_VERSION 0)
@@ -61,13 +64,16 @@ install(FILES package.xml DESTINATION share/cartographer)
 set(CARTOGRAPHER_CONFIGURATION_FILES_DIRECTORY ${CMAKE_INSTALL_PREFIX}/share/cartographer/configuration_files
   CACHE PATH ".lua configuration files directory")
 
-install(DIRECTORY configuration_files DESTINATION share/cartographer/)
+install(DIRECTORY config/ DESTINATION share/cartographer/configuration_files)
 
 install(DIRECTORY cmake DESTINATION share/cartographer/)
 
-file(GLOB_RECURSE ALL_LIBRARY_HDRS "cartographer/*.h")
-file(GLOB_RECURSE ALL_LIBRARY_SRCS "cartographer/*.cc")
-file(GLOB_RECURSE ALL_EXECUTABLES "cartographer/*_main.cc")
+file(GLOB_RECURSE ALL_LIBRARY_HDRS
+  "core/*.h" "slam/*.h" "state/*.h" "tools/*.h")
+file(GLOB_RECURSE ALL_LIBRARY_SRCS
+  "core/*.cc" "slam/*.cc" "state/*.cc" "tools/*.cc")
+file(GLOB_RECURSE ALL_EXECUTABLES
+  "core/*_main.cc" "slam/*_main.cc" "state/*_main.cc" "tools/*_main.cc")
 
 # Remove dotfiles/-folders that could potentially pollute the build.
 file(GLOB_RECURSE ALL_DOTFILES ".*/*")
@@ -77,23 +83,15 @@ if (ALL_DOTFILES)
   list(REMOVE_ITEM ALL_EXECUTABLES ${ALL_DOTFILES})
 endif()
 list(REMOVE_ITEM ALL_LIBRARY_SRCS ${ALL_EXECUTABLES})
-file(GLOB_RECURSE ALL_PROMETHEUS_FILES "cartographer/cloud/metrics/prometheus/*")
-if (NOT ${BUILD_PROMETHEUS})
-  list(REMOVE_ITEM ALL_LIBRARY_HDRS ${ALL_PROMETHEUS_FILES})
-  list(REMOVE_ITEM ALL_LIBRARY_SRCS ${ALL_PROMETHEUS_FILES})
-  list(REMOVE_ITEM ALL_EXECUTABLES ${ALL_PROMETHEUS_FILES})
-endif()
 set(INSTALL_SOURCE_HDRS ${ALL_LIBRARY_HDRS})
-file(GLOB_RECURSE INTERNAL_HDRS "cartographer/*/internal/*.h")
-list(REMOVE_ITEM INSTALL_SOURCE_HDRS ${INTERNAL_HDRS})
 
-file(GLOB_RECURSE ALL_PROTOS "cartographer/*.proto")
+file(GLOB ALL_PROTOS "proto/*.proto")
 
 # TODO(cschuet): Move proto compilation to separate function.
 set(ALL_PROTO_SRCS)
 set(ALL_PROTO_HDRS)
 foreach(ABS_FIL ${ALL_PROTOS})
-  file(RELATIVE_PATH REL_FIL ${PROJECT_SOURCE_DIR} ${ABS_FIL})
+  file(RELATIVE_PATH REL_FIL ${CARTOGRAPHER_SOURCE_PARENT} ${ABS_FIL})
   get_filename_component(DIR ${REL_FIL} DIRECTORY)
   get_filename_component(FIL_WE ${REL_FIL} NAME_WE)
 
@@ -104,8 +102,8 @@ foreach(ABS_FIL ${ALL_PROTOS})
     OUTPUT "${PROJECT_BINARY_DIR}/${DIR}/${FIL_WE}.pb.cc"
            "${PROJECT_BINARY_DIR}/${DIR}/${FIL_WE}.pb.h"
     COMMAND  ${PROTOBUF_PROTOC_EXECUTABLE}
-    ARGS --cpp_out  ${PROJECT_BINARY_DIR} -I
-      ${PROJECT_SOURCE_DIR} ${ABS_FIL}
+    ARGS --cpp_out ${PROJECT_BINARY_DIR} -I
+      ${CARTOGRAPHER_SOURCE_PARENT} ${ABS_FIL}
     DEPENDS ${ABS_FIL}
     COMMENT "Running C++ protocol buffer compiler on ${ABS_FIL}"
     VERBATIM
@@ -120,8 +118,8 @@ set(INSTALL_GENERATED_HDRS ${ALL_PROTO_HDRS})
 add_library(${PROJECT_NAME} STATIC ${ALL_LIBRARY_HDRS} ${ALL_LIBRARY_SRCS})
 
 configure_file(
-  ${PROJECT_SOURCE_DIR}/cartographer/common/config.h.cmake
-  ${PROJECT_BINARY_DIR}/cartographer/common/config.h)
+  ${PROJECT_SOURCE_DIR}/core/config.h.cmake
+  ${PROJECT_BINARY_DIR}/cartographer/core/config.h)
 
 target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
   "${EIGEN3_INCLUDE_DIR}")
@@ -199,7 +197,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 # been generated.
 target_include_directories(${PROJECT_NAME} PUBLIC
     $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>
-    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
+    $<BUILD_INTERFACE:${CARTOGRAPHER_SOURCE_PARENT}>
     $<INSTALL_INTERFACE:include>
 )
 
@@ -216,7 +214,7 @@ foreach(HDR ${INSTALL_SOURCE_HDRS})
   get_filename_component(DIR ${REL_FIL} DIRECTORY)
   install(
     FILES ${HDR}
-    DESTINATION include/${DIR}
+    DESTINATION include/cartographer/${DIR}
   )
 endforeach()
 

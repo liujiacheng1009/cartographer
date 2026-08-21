@@ -17,11 +17,11 @@
 #ifndef CARTOGRAPHER_ROS_CARTOGRAPHER_ROS_MSG_CONVERSION_H
 #define CARTOGRAPHER_ROS_CARTOGRAPHER_ROS_MSG_CONVERSION_H
 
-#include "cartographer/common/time.h"
-#include "cartographer/io/submap_painter.h"
-#include "cartographer/sensor/landmark_data.h"
-#include "cartographer/sensor/point_cloud.h"
-#include "cartographer/transform/rigid_transform.h"
+#include "cartographer/core/time.h"
+#include "cartographer/state/submap_painter.h"
+#include "cartographer/core/landmark_data.h"
+#include "cartographer/core/point_cloud.h"
+#include "cartographer/core/rigid_transform.h"
 #include "cartographer_ros_msgs/msg/landmark_list.hpp"
 #include "geometry_msgs/msg/pose.hpp"
 #include "geometry_msgs/msg/point.hpp"

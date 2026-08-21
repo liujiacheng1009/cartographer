@@ -18,8 +18,8 @@
 
 #include <vector>
 
-#include "cartographer/common/configuration_file_resolver.h"
-#include "cartographer/mapping/map_builder_interface.h"
+#include "cartographer/core/configuration_file_resolver.h"
+#include "cartographer/slam/map_builder_interface.h"
 #include "glog/logging.h"
 
 namespace cartographer_ros {

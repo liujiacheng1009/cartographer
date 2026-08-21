@@ -15,7 +15,7 @@
  */
 
 #include "absl/memory/memory.h"
-#include "cartographer/mapping/map_builder.h"
+#include "cartographer/slam/map_builder.h"
 #include "cartographer_ros/node.h"
 #include "cartographer_ros/node_options.h"
 #include "cartographer_ros/ros_log_sink.h"

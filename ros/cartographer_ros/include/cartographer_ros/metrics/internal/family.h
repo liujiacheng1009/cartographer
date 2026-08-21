@@ -20,7 +20,7 @@
 #include <memory>
 #include <string>
 
-#include "cartographer/metrics/family_factory.h"
+#include "cartographer/core/family_factory.h"
 #include "cartographer_ros/metrics/internal/counter.h"
 #include "cartographer_ros/metrics/internal/gauge.h"
 #include "cartographer_ros/metrics/internal/histogram.h"

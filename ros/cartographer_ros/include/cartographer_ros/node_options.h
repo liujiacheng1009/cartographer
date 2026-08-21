@@ -20,9 +20,9 @@
 #include <string>
 #include <tuple>
 
-#include "cartographer/common/lua_parameter_dictionary.h"
-#include "cartographer/common/port.h"
-#include "cartographer/mapping/proto/map_builder_options.pb.h"
+#include "cartographer/core/lua_parameter_dictionary.h"
+#include "cartographer/core/port.h"
+#include "cartographer/proto/map_builder_options.pb.h"
 #include "cartographer_ros/trajectory_options.h"
 
 namespace cartographer_ros {

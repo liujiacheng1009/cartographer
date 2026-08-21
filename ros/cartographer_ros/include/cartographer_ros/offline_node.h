@@ -23,7 +23,7 @@
 #include <vector>
 
 #include <rclcpp/rclcpp.hpp>
-#include "cartographer/mapping/map_builder_interface.h"
+#include "cartographer/slam/map_builder_interface.h"
 #include "cartographer_ros/node_options.h"
 
 namespace cartographer_ros {

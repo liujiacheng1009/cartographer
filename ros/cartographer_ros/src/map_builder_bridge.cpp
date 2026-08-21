@@ -17,8 +17,8 @@
 #include "cartographer_ros/map_builder_bridge.h"
 
 #include "absl/memory/memory.h"
-#include "cartographer/io/color.h"
-#include "cartographer/io/proto_stream.h"
+#include "cartographer/state/color.h"
+#include "cartographer/state/proto_stream.h"
 #include "cartographer_ros/msg_conversion.h"
 #include "cartographer_ros/time_conversion.h"
 #include "cartographer_ros_msgs/msg/status_code.hpp"

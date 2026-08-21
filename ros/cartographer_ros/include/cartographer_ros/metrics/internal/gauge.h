@@ -21,7 +21,7 @@
 #include <string>
 
 #include "absl/synchronization/mutex.h"
-#include "cartographer/metrics/gauge.h"
+#include "cartographer/core/gauge.h"
 #include "cartographer_ros_msgs/msg/metric.hpp"
 
 namespace cartographer_ros {

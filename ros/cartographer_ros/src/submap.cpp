@@ -17,8 +17,8 @@
 #include "cartographer_ros/submap.h"
 
 #include "absl/memory/memory.h"
-#include "cartographer/common/port.h"
-#include "cartographer/transform/transform.h"
+#include "cartographer/core/port.h"
+#include "cartographer/core/transform.h"
 #include "cartographer_ros/msg_conversion.h"
 #include "cartographer_ros_msgs/msg/status_code.hpp"
 #include "cartographer_ros_msgs/srv/submap_query.hpp"
