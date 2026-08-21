@@ -22,6 +22,7 @@
 #include "cartographer/state/mapping_state_serialization.h"
 #include "cartographer/state/proto_stream.h"
 #include "cartographer/state/proto_stream_deserializer.h"
+#include "cartographer/state/map_database.h"
 #include "cartographer/slam/local_trajectory_builder_2d.h"
 #include "cartographer/slam/pose_graph_2d.h"
 #include "cartographer/slam/collated_trajectory_builder.h"
@@ -163,9 +164,7 @@ void MapBuilder::SerializeState(bool include_unfinished_submaps,
 
 bool MapBuilder::SerializeStateToFile(bool include_unfinished_submaps,
                                       const std::string& filename) {
-  io::ProtoStreamWriter writer(filename);
-  io::WritePbStream(*pose_graph_, &writer, include_unfinished_submaps);
-  return (writer.Close());
+  return io::WriteSwMap(filename, *pose_graph_, include_unfinished_submaps);
 }
 
 std::map<int, int> MapBuilder::LoadState(
@@ -327,8 +326,40 @@ std::map<int, int> MapBuilder::LoadStateFromFile(
     LOG(WARNING) << "The file containing the state should be a .swmap file.";
   }
   LOG(INFO) << "Loading saved state '" << state_filename << "'...";
-  io::ProtoStreamReader stream(state_filename);
-  return LoadState(&stream, load_frozen_state);
+  CHECK(load_frozen_state)
+      << "Native .swmap loading currently supports frozen maps only.";
+  io::SerializedState state = io::ReadSwMap(state_filename);
+  std::map<int, int> trajectory_remapping;
+  for (int old_id : state.trajectory_ids) {
+    const int new_id = AddTrajectoryForDeserialization();
+    CHECK(trajectory_remapping.emplace(old_id, new_id).second);
+    pose_graph_->FreezeTrajectory(new_id);
+  }
+  for (const auto& landmark : state.landmark_poses) {
+    pose_graph_->SetLandmarkPose(landmark.first, landmark.second, true);
+  }
+  for (auto& submap : state.submaps) {
+    submap.id.trajectory_id = trajectory_remapping.at(submap.id.trajectory_id);
+    pose_graph_->AddSerializedSubmap(submap);
+  }
+  for (auto& node : state.nodes) {
+    node.id.trajectory_id = trajectory_remapping.at(node.id.trajectory_id);
+    pose_graph_->AddSerializedNode(node);
+  }
+  for (const auto& item : state.trajectory_data) {
+    pose_graph_->SetSerializedTrajectoryData(
+        trajectory_remapping.at(item.first), item.second);
+  }
+  for (auto constraint : state.constraints) {
+    constraint.submap_id.trajectory_id =
+        trajectory_remapping.at(constraint.submap_id.trajectory_id);
+    constraint.node_id.trajectory_id =
+        trajectory_remapping.at(constraint.node_id.trajectory_id);
+    if (constraint.tag == PoseGraph::Constraint::INTRA_SUBMAP) {
+      pose_graph_->AddNodeToSubmap(constraint.node_id, constraint.submap_id);
+    }
+  }
+  return trajectory_remapping;
 }
 
 std::unique_ptr<MapBuilderInterface> CreateMapBuilder(

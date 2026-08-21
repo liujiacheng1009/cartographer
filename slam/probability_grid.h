@@ -32,6 +32,11 @@ class ProbabilityGrid : public Grid2D {
  public:
   explicit ProbabilityGrid(const MapLimits& limits,
                            ValueConversionTables* conversion_tables);
+  ProbabilityGrid(const MapLimits& limits, std::vector<uint16> cells,
+                  const Eigen::AlignedBox2i& known_cells_box,
+                  float min_correspondence_cost,
+                  float max_correspondence_cost,
+                  ValueConversionTables* conversion_tables);
   explicit ProbabilityGrid(const proto::Grid2D& proto,
                            ValueConversionTables* conversion_tables);
 

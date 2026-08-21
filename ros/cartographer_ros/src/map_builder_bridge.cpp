@@ -115,8 +115,7 @@ void MapBuilderBridge::LoadState(const std::string& state_filename,
       << "The file containing the state to be loaded must be a "
          ".swmap file.";
   LOG(INFO) << "Loading saved state '" << state_filename << "'...";
-  cartographer::io::ProtoStreamReader stream(state_filename);
-  map_builder_->LoadState(&stream, load_frozen_state);
+  map_builder_->LoadStateFromFile(state_filename, load_frozen_state);
 }
 
 int MapBuilderBridge::AddTrajectory(

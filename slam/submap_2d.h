@@ -44,6 +44,9 @@ class Submap2D : public Submap {
  public:
   Submap2D(const Eigen::Vector2f& origin, std::unique_ptr<Grid2D> grid,
            ValueConversionTables* conversion_tables);
+  Submap2D(const transform::Rigid3d& local_pose, int num_range_data,
+           bool finished, std::unique_ptr<Grid2D> grid,
+           ValueConversionTables* conversion_tables);
   explicit Submap2D(const proto::Submap2D& proto,
                     ValueConversionTables* conversion_tables);
 

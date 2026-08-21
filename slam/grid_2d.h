@@ -40,6 +40,10 @@ class Grid2D : public GridInterface {
   Grid2D(const MapLimits& limits, float min_correspondence_cost,
          float max_correspondence_cost,
          ValueConversionTables* conversion_tables);
+  Grid2D(const MapLimits& limits, std::vector<uint16> cells,
+         const Eigen::AlignedBox2i& known_cells_box,
+         float min_correspondence_cost, float max_correspondence_cost,
+         ValueConversionTables* conversion_tables);
   explicit Grid2D(const proto::Grid2D& proto,
                   ValueConversionTables* conversion_tables);
 
@@ -63,6 +67,13 @@ class Grid2D : public GridInterface {
 
   // Returns the maximum possible correspondence cost.
   float GetMaxCorrespondenceCost() const { return max_correspondence_cost_; }
+
+  const std::vector<uint16>& cells_for_serialization() const {
+    return correspondence_cost_cells_;
+  }
+  const Eigen::AlignedBox2i& known_cells_box_for_serialization() const {
+    return known_cells_box_;
+  }
 
   // Returns true if the probability at the specified index is known.
   bool IsKnown(const Eigen::Array2i& cell_index) const {

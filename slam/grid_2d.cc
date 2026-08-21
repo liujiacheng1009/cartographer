@@ -71,6 +71,23 @@ Grid2D::Grid2D(const MapLimits& limits, float min_correspondence_cost,
   CHECK_LT(min_correspondence_cost_, max_correspondence_cost_);
 }
 
+Grid2D::Grid2D(const MapLimits& limits, std::vector<uint16> cells,
+               const Eigen::AlignedBox2i& known_cells_box,
+               float min_correspondence_cost, float max_correspondence_cost,
+               ValueConversionTables* conversion_tables)
+    : limits_(limits),
+      correspondence_cost_cells_(std::move(cells)),
+      min_correspondence_cost_(min_correspondence_cost),
+      max_correspondence_cost_(max_correspondence_cost),
+      known_cells_box_(known_cells_box),
+      value_to_correspondence_cost_table_(conversion_tables->GetConversionTable(
+          max_correspondence_cost, min_correspondence_cost,
+          max_correspondence_cost)) {
+  CHECK_EQ(correspondence_cost_cells_.size(),
+           limits.cell_limits().num_x_cells * limits.cell_limits().num_y_cells);
+  CHECK_LT(min_correspondence_cost_, max_correspondence_cost_);
+}
+
 Grid2D::Grid2D(const proto::Grid2D& proto,
                ValueConversionTables* conversion_tables)
     : limits_(proto.limits()),

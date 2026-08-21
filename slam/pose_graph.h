@@ -37,6 +37,7 @@
 #include "cartographer/core/landmark_data.h"
 #include "cartographer/core/map_by_time.h"
 #include "cartographer/core/odometry_data.h"
+#include "cartographer/state/serialized_state.h"
 
 namespace cartographer {
 namespace mapping {
@@ -94,6 +95,11 @@ class PoseGraph : public PoseGraphInterface {
   // Sets the trajectory data from a proto.
   virtual void SetTrajectoryDataFromProto(
       const mapping::proto::TrajectoryData& data) = 0;
+
+  virtual void AddSerializedSubmap(const io::SerializedSubmap2D& submap) = 0;
+  virtual void AddSerializedNode(const io::SerializedNode& node) = 0;
+  virtual void SetSerializedTrajectoryData(
+      int trajectory_id, const TrajectoryData& data) = 0;
 
   // Adds information that 'node_id' was inserted into 'submap_id'. The submap
   // has to be deserialized first.

@@ -30,6 +30,17 @@ ProbabilityGrid::ProbabilityGrid(const MapLimits& limits,
              conversion_tables),
       conversion_tables_(conversion_tables) {}
 
+ProbabilityGrid::ProbabilityGrid(const MapLimits& limits,
+                                 std::vector<uint16> cells,
+                                 const Eigen::AlignedBox2i& known_cells_box,
+                                 float min_correspondence_cost,
+                                 float max_correspondence_cost,
+                                 ValueConversionTables* conversion_tables)
+    : Grid2D(limits, std::move(cells), known_cells_box,
+             min_correspondence_cost, max_correspondence_cost,
+             conversion_tables),
+      conversion_tables_(conversion_tables) {}
+
 ProbabilityGrid::ProbabilityGrid(const proto::Grid2D& proto,
                                  ValueConversionTables* conversion_tables)
     : Grid2D(proto, conversion_tables), conversion_tables_(conversion_tables) {

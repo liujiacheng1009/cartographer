@@ -108,6 +108,10 @@ class PoseGraph2D : public PoseGraph {
   void AddNodeFromProto(const transform::Rigid3d& global_pose,
                         const proto::Node& node) override;
   void SetTrajectoryDataFromProto(const proto::TrajectoryData& data) override;
+  void AddSerializedSubmap(const io::SerializedSubmap2D& submap) override;
+  void AddSerializedNode(const io::SerializedNode& node) override;
+  void SetSerializedTrajectoryData(int trajectory_id,
+                                   const TrajectoryData& data) override;
   void AddNodeToSubmap(const NodeId& node_id,
                        const SubmapId& submap_id) override;
   void AddSerializedConstraints(

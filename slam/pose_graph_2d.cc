@@ -15,6 +15,7 @@
  */
 
 #include "cartographer/slam/pose_graph_2d.h"
+#include "cartographer/slam/probability_grid.h"
 
 #include <algorithm>
 #include <cmath>
@@ -781,6 +782,77 @@ void PoseGraph2D::SetTrajectoryDataFromProto(
                       return WorkItem::Result::kDoNotRunOptimization;
                     });
   }
+}
+
+void PoseGraph2D::AddSerializedSubmap(const io::SerializedSubmap2D& value) {
+  const transform::Rigid2d global_pose = transform::Project2D(value.global_pose);
+  auto grid = absl::make_unique<ProbabilityGrid>(
+      MapLimits(value.grid.resolution, value.grid.max, value.grid.cell_limits),
+      value.grid.cells, value.grid.known_cells_box,
+      value.grid.min_correspondence_cost, value.grid.max_correspondence_cost,
+      &conversion_tables_);
+  const std::shared_ptr<const Submap2D> submap =
+      std::make_shared<const Submap2D>(value.local_pose, value.num_range_data,
+                                       value.finished, std::move(grid),
+                                       &conversion_tables_);
+  {
+    absl::MutexLock locker(&mutex_);
+    AddTrajectoryIfNeeded(value.id.trajectory_id);
+    if (!CanAddWorkItemModifying(value.id.trajectory_id)) return;
+    data_.submap_data.Insert(value.id, InternalSubmapData());
+    data_.submap_data.at(value.id).submap = submap;
+    data_.global_submap_poses_2d.Insert(
+        value.id, optimization::SubmapSpec2D{global_pose});
+  }
+  if (IsTrajectoryFrozen(value.id.trajectory_id)) {
+    kFrozenSubmapsMetric->Increment();
+  } else {
+    kActiveSubmapsMetric->Increment();
+  }
+  AddWorkItem([this, id = value.id, global_pose]() LOCKS_EXCLUDED(mutex_) {
+    absl::MutexLock locker(&mutex_);
+    data_.submap_data.at(id).state = SubmapState::kFinished;
+    optimization_problem_->InsertSubmap(id, global_pose);
+    return WorkItem::Result::kDoNotRunOptimization;
+  });
+}
+
+void PoseGraph2D::AddSerializedNode(const io::SerializedNode& value) {
+  auto constant_data = std::make_shared<const TrajectoryNode::Data>(value.data);
+  {
+    absl::MutexLock locker(&mutex_);
+    AddTrajectoryIfNeeded(value.id.trajectory_id);
+    if (!CanAddWorkItemModifying(value.id.trajectory_id)) return;
+    data_.trajectory_nodes.Insert(
+        value.id, TrajectoryNode{constant_data, value.global_pose});
+  }
+  AddWorkItem([this, id = value.id, global_pose = value.global_pose]()
+                  LOCKS_EXCLUDED(mutex_) {
+    absl::MutexLock locker(&mutex_);
+    const auto& data = data_.trajectory_nodes.at(id).constant_data;
+    const auto gravity_alignment_inverse = transform::Rigid3d::Rotation(
+        data->gravity_alignment.inverse());
+    optimization_problem_->InsertTrajectoryNode(
+        id, optimization::NodeSpec2D{
+                data->time,
+                transform::Project2D(data->local_pose *
+                                     gravity_alignment_inverse),
+                transform::Project2D(global_pose *
+                                     gravity_alignment_inverse),
+                data->gravity_alignment});
+    return WorkItem::Result::kDoNotRunOptimization;
+  });
+}
+
+void PoseGraph2D::SetSerializedTrajectoryData(
+    int trajectory_id, const TrajectoryData& trajectory_data) {
+  AddWorkItem([this, trajectory_id, trajectory_data]() LOCKS_EXCLUDED(mutex_) {
+    absl::MutexLock locker(&mutex_);
+    if (CanAddWorkItemModifying(trajectory_id)) {
+      optimization_problem_->SetTrajectoryData(trajectory_id, trajectory_data);
+    }
+    return WorkItem::Result::kDoNotRunOptimization;
+  });
 }
 
 void PoseGraph2D::AddNodeToSubmap(const NodeId& node_id,

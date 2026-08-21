@@ -69,6 +69,16 @@ Submap2D::Submap2D(const Eigen::Vector2f& origin, std::unique_ptr<Grid2D> grid,
   grid_ = std::move(grid);
 }
 
+Submap2D::Submap2D(const transform::Rigid3d& local_pose, int num_range_data,
+                   bool finished, std::unique_ptr<Grid2D> grid,
+                   ValueConversionTables* conversion_tables)
+    : Submap(local_pose),
+      grid_(std::move(grid)),
+      conversion_tables_(conversion_tables) {
+  set_num_range_data(num_range_data);
+  set_insertion_finished(finished);
+}
+
 Submap2D::Submap2D(const proto::Submap2D& proto,
                    ValueConversionTables* conversion_tables)
     : Submap(transform::ToRigid3(proto.local_pose())),
