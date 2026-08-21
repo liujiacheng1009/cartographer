@@ -25,7 +25,6 @@
 #include "cartographer/slam/probability_grid.h"
 #include "cartographer/slam/xy_index.h"
 #include "cartographer/slam/options.h"
-#include "cartographer/slam/range_data_inserter_interface.h"
 #include "cartographer/core/point_cloud.h"
 #include "cartographer/core/range_data.h"
 
@@ -35,8 +34,10 @@ namespace mapping {
 ProbabilityGridRangeDataInserterOptions2D
 CreateProbabilityGridRangeDataInserterOptions2D(
     common::ParameterDictionary* parameter_dictionary);
+RangeDataInserterOptions CreateRangeDataInserterOptions(
+    common::ParameterDictionary* parameter_dictionary);
 
-class ProbabilityGridRangeDataInserter2D : public RangeDataInserterInterface {
+class ProbabilityGridRangeDataInserter2D {
  public:
   explicit ProbabilityGridRangeDataInserter2D(
       const ProbabilityGridRangeDataInserterOptions2D& options);
@@ -47,8 +48,8 @@ class ProbabilityGridRangeDataInserter2D : public RangeDataInserterInterface {
       const ProbabilityGridRangeDataInserter2D&) = delete;
 
   // Inserts 'range_data' into 'probability_grid'.
-  virtual void Insert(const sensor::RangeData& range_data,
-                      GridInterface* grid) const override;
+  void Insert(const sensor::RangeData& range_data,
+              ProbabilityGrid* probability_grid) const;
 
  private:
   const ProbabilityGridRangeDataInserterOptions2D options_;

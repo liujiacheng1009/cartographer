@@ -96,14 +96,13 @@ set(ALL_LIBRARY_SRCS
   slam/overlapping_submaps_trimmer_2d.cc
   slam/pose_extrapolator.cc
   slam/pose_extrapolator_interface.cc
-  slam/pose_graph.cc
-  slam/pose_graph_2d.cc
+  slam/pose_graph_workflow.cc
+  slam/pose_graph_query.cc
   slam/pose_graph_trimmer.cc
   slam/probability_grid.cc
   slam/probability_grid_range_data_inserter_2d.cc
   slam/probability_values.cc
   slam/range_data_collator.cc
-  slam/range_data_inserter_interface.cc
   slam/ray_to_pixel_mask.cc
   slam/real_time_correlative_scan_matcher_2d.cc
   slam/spa_cost_function_2d.cc

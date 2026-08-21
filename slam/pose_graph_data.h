@@ -23,12 +23,17 @@
 
 #include "cartographer/slam/optimization_problem_2d.h"
 #include "cartographer/slam/trajectory_connectivity_state.h"
-#include "cartographer/slam/pose_graph.h"
 #include "cartographer/slam/pose_graph_interface.h"
 #include "cartographer/slam/submaps.h"
 
 namespace cartographer {
 namespace mapping {
+
+struct InitialTrajectoryPoseState {
+  int to_trajectory_id;
+  transform::Rigid3d relative_pose;
+  common::Time time;
+};
 
 // The current state of the submap in the background threads. After this
 // transitions to 'kFinished', all nodes are tried to match
@@ -79,7 +84,7 @@ struct PoseGraphData {
   std::map<int, InternalTrajectoryState> trajectories_state;
 
   // Set of all initial trajectory poses.
-  std::map<int, PoseGraph::InitialTrajectoryPose> initial_trajectory_poses;
+  std::map<int, InitialTrajectoryPoseState> initial_trajectory_poses;
 
   std::vector<PoseGraphInterface::Constraint> constraints;
 };

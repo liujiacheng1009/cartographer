@@ -25,7 +25,7 @@
 #include "cartographer/slam/grid_2d.h"
 #include "cartographer/slam/map_limits.h"
 #include "cartographer/slam/options.h"
-#include "cartographer/slam/range_data_inserter_interface.h"
+#include "cartographer/slam/probability_grid_range_data_inserter_2d.h"
 #include "cartographer/slam/submaps.h"
 #include "cartographer/slam/trajectory_node.h"
 #include "cartographer/slam/value_conversion_tables.h"
@@ -55,7 +55,7 @@ class Submap2D : public Submap {
   // Insert 'range_data' into this submap using 'range_data_inserter'. The
   // submap must not be finished yet.
   void InsertRangeData(const sensor::RangeData& range_data,
-                       const RangeDataInserterInterface* range_data_inserter);
+                       const ProbabilityGridRangeDataInserter2D* range_data_inserter);
   void Finish();
 
  private:
@@ -87,14 +87,13 @@ class ActiveSubmaps2D {
   std::vector<std::shared_ptr<const Submap2D>> submaps() const;
 
  private:
-  std::unique_ptr<RangeDataInserterInterface> CreateRangeDataInserter();
-  std::unique_ptr<GridInterface> CreateGrid(const Eigen::Vector2f& origin);
+  std::unique_ptr<ProbabilityGrid> CreateGrid(const Eigen::Vector2f& origin);
   void FinishSubmap();
   void AddSubmap(const Eigen::Vector2f& origin);
 
   const SubmapsOptions2D options_;
   std::vector<std::shared_ptr<Submap2D>> submaps_;
-  std::unique_ptr<RangeDataInserterInterface> range_data_inserter_;
+  std::unique_ptr<ProbabilityGridRangeDataInserter2D> range_data_inserter_;
   ValueConversionTables conversion_tables_;
 };
 

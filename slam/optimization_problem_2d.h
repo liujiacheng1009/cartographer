@@ -28,7 +28,6 @@
 #include "cartographer/core/port.h"
 #include "cartographer/core/time.h"
 #include "cartographer/slam/id.h"
-#include "cartographer/slam/optimization_problem_interface.h"
 #include "cartographer/slam/pose_graph_interface.h"
 #include "cartographer/slam/options.h"
 #include "cartographer/core/sensor_data.h"
@@ -51,10 +50,10 @@ struct SubmapSpec2D {
   transform::Rigid2d global_pose;
 };
 
-class OptimizationProblem2D
-    : public OptimizationProblemInterface<NodeSpec2D, SubmapSpec2D,
-                                          transform::Rigid2d> {
+class OptimizationProblem2D {
  public:
+  using Constraint = PoseGraphInterface::Constraint;
+  using LandmarkNode = PoseGraphInterface::LandmarkNode;
   explicit OptimizationProblem2D(
       const OptimizationProblemOptions& options);
   ~OptimizationProblem2D();
@@ -62,42 +61,42 @@ class OptimizationProblem2D
   OptimizationProblem2D(const OptimizationProblem2D&) = delete;
   OptimizationProblem2D& operator=(const OptimizationProblem2D&) = delete;
 
-  void AddImuData(int trajectory_id, const sensor::ImuData& imu_data) override;
+  void AddImuData(int trajectory_id, const sensor::ImuData& imu_data);
   void AddOdometryData(int trajectory_id,
-                       const sensor::OdometryData& odometry_data) override;
+                       const sensor::OdometryData& odometry_data);
   void AddTrajectoryNode(int trajectory_id,
-                         const NodeSpec2D& node_data) override;
+                         const NodeSpec2D& node_data);
   void InsertTrajectoryNode(const NodeId& node_id,
-                            const NodeSpec2D& node_data) override;
-  void TrimTrajectoryNode(const NodeId& node_id) override;
+                            const NodeSpec2D& node_data);
+  void TrimTrajectoryNode(const NodeId& node_id);
   void AddSubmap(int trajectory_id,
-                 const transform::Rigid2d& global_submap_pose) override;
+                 const transform::Rigid2d& global_submap_pose);
   void InsertSubmap(const SubmapId& submap_id,
-                    const transform::Rigid2d& global_submap_pose) override;
-  void TrimSubmap(const SubmapId& submap_id) override;
-  void SetMaxNumIterations(int32 max_num_iterations) override;
+                    const transform::Rigid2d& global_submap_pose);
+  void TrimSubmap(const SubmapId& submap_id);
+  void SetMaxNumIterations(int32 max_num_iterations);
 
   void Solve(
       const std::vector<Constraint>& constraints,
       const std::map<int, PoseGraphInterface::TrajectoryState>&
           trajectories_state,
-      const std::map<std::string, LandmarkNode>& landmark_nodes) override;
+      const std::map<std::string, LandmarkNode>& landmark_nodes);
 
-  const MapById<NodeId, NodeSpec2D>& node_data() const override {
+  const MapById<NodeId, NodeSpec2D>& node_data() const {
     return node_data_;
   }
-  const MapById<SubmapId, SubmapSpec2D>& submap_data() const override {
+  const MapById<SubmapId, SubmapSpec2D>& submap_data() const {
     return submap_data_;
   }
   const std::map<std::string, transform::Rigid3d>& landmark_data()
-      const override {
+      const {
     return landmark_data_;
   }
-  const sensor::MapByTime<sensor::ImuData>& imu_data() const override {
+  const sensor::MapByTime<sensor::ImuData>& imu_data() const {
     return empty_imu_data_;
   }
   const sensor::MapByTime<sensor::OdometryData>& odometry_data()
-      const override {
+      const {
     return odometry_data_;
   }
 

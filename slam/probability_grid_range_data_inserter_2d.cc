@@ -113,6 +113,21 @@ CreateProbabilityGridRangeDataInserterOptions2D(
   return options;
 }
 
+RangeDataInserterOptions CreateRangeDataInserterOptions(
+    common::ParameterDictionary* const parameter_dictionary) {
+  CHECK_EQ(parameter_dictionary->GetString("range_data_inserter_type"),
+           "PROBABILITY_GRID_INSERTER_2D");
+  RangeDataInserterOptions options;
+  options.set_range_data_inserter_type(
+      RangeDataInserterOptions::PROBABILITY_GRID_INSERTER_2D);
+  *options.mutable_probability_grid_range_data_inserter_options_2d() =
+      CreateProbabilityGridRangeDataInserterOptions2D(
+          parameter_dictionary
+              ->GetDictionary("probability_grid_range_data_inserter")
+              .get());
+  return options;
+}
+
 ProbabilityGridRangeDataInserter2D::ProbabilityGridRangeDataInserter2D(
     const ProbabilityGridRangeDataInserterOptions2D& options)
     : options_(options),
@@ -122,8 +137,8 @@ ProbabilityGridRangeDataInserter2D::ProbabilityGridRangeDataInserter2D(
           Odds(options.miss_probability()))) {}
 
 void ProbabilityGridRangeDataInserter2D::Insert(
-    const sensor::RangeData& range_data, GridInterface* const grid) const {
-  ProbabilityGrid* const probability_grid = static_cast<ProbabilityGrid*>(grid);
+    const sensor::RangeData& range_data,
+    ProbabilityGrid* const probability_grid) const {
   CHECK(probability_grid != nullptr);
   // By not finishing the update after hits are inserted, we give hits priority
   // (i.e. no hits will be ignored because of a miss in the same cell).

@@ -20,7 +20,7 @@
 #include <memory>
 
 #include "cartographer/slam/local_trajectory_builder_2d.h"
-#include "cartographer/slam/pose_graph_2d.h"
+#include "cartographer/slam/pose_graph.h"
 #include "cartographer/slam/trajectory_builder_interface.h"
 #include "cartographer/core/metrics.h"
 
@@ -29,7 +29,7 @@ namespace mapping {
 
 std::unique_ptr<TrajectoryBuilderInterface> CreateGlobalTrajectoryBuilder2D(
     std::unique_ptr<LocalTrajectoryBuilder2D> local_trajectory_builder,
-    const int trajectory_id, mapping::PoseGraph2D* const pose_graph,
+    const int trajectory_id, mapping::PoseGraph* const pose_graph,
     const TrajectoryBuilderInterface::LocalSlamResultCallback&
         local_slam_result_callback,
     const absl::optional<MotionFilter>& pose_graph_odometry_motion_filter);

@@ -20,7 +20,6 @@
 #include <vector>
 
 #include "cartographer/slam/map_limits.h"
-#include "cartographer/slam/grid_interface.h"
 #include "cartographer/slam/probability_values.h"
 #include "cartographer/slam/submap_texture.h"
 #include "cartographer/slam/options.h"
@@ -34,7 +33,7 @@ GridOptions2D CreateGridOptions2D(
 
 enum class GridType { PROBABILITY_GRID };
 
-class Grid2D : public GridInterface {
+class Grid2D {
  public:
   Grid2D(const MapLimits& limits, float min_correspondence_cost,
          float max_correspondence_cost,

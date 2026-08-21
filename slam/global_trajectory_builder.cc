@@ -138,12 +138,12 @@ class GlobalTrajectoryBuilder : public mapping::TrajectoryBuilderInterface {
 
 std::unique_ptr<TrajectoryBuilderInterface> CreateGlobalTrajectoryBuilder2D(
     std::unique_ptr<LocalTrajectoryBuilder2D> local_trajectory_builder,
-    const int trajectory_id, mapping::PoseGraph2D* const pose_graph,
+    const int trajectory_id, mapping::PoseGraph* const pose_graph,
     const TrajectoryBuilderInterface::LocalSlamResultCallback&
         local_slam_result_callback,
     const absl::optional<MotionFilter>& pose_graph_odometry_motion_filter) {
   return absl::make_unique<
-      GlobalTrajectoryBuilder<LocalTrajectoryBuilder2D, mapping::PoseGraph2D>>(
+      GlobalTrajectoryBuilder<LocalTrajectoryBuilder2D, mapping::PoseGraph>>(
       std::move(local_trajectory_builder), trajectory_id, pose_graph,
       local_slam_result_callback, pose_graph_odometry_motion_filter);
 }

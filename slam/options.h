@@ -313,6 +313,8 @@ struct TrajectoryBuilderOptions {
 
 LocalTrajectoryBuilderOptions2D CreateLocalTrajectoryBuilderOptions2D(
     common::ParameterDictionary* parameter_dictionary);
+PoseGraphOptions CreatePoseGraphOptions(
+    common::ParameterDictionary* parameter_dictionary);
 
 namespace optimization {
 OptimizationProblemOptions CreateOptimizationProblemOptions(
