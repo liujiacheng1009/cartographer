@@ -23,7 +23,6 @@
 #include "Eigen/Core"
 #include "absl/types/optional.h"
 #include "cartographer/core/time.h"
-#include "cartographer/proto/trajectory_node_data.pb.h"
 #include "cartographer/core/range_data.h"
 #include "cartographer/core/rigid_transform.h"
 
@@ -71,9 +70,6 @@ struct TrajectoryNode {
   // The node pose in the global SLAM frame.
   transform::Rigid3d global_pose;
 };
-
-proto::TrajectoryNodeData ToProto(const TrajectoryNode::Data& constant_data);
-TrajectoryNode::Data FromProto(const proto::TrajectoryNodeData& proto);
 
 }  // namespace mapping
 }  // namespace cartographer

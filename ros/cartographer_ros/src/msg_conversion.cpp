@@ -22,7 +22,6 @@
 #include "cartographer/core/port.h"
 #include "cartographer/core/time.h"
 #include "cartographer/state/submap_painter.h"
-#include "cartographer/proto/transform.pb.h"
 #include "cartographer/core/transform.h"
 #include "cartographer_ros/time_conversion.h"
 #include "geometry_msgs/msg/pose.hpp"

@@ -20,9 +20,7 @@
 #include "Eigen/Geometry"
 #include "cairo/cairo.h"
 #include "cartographer/state/image.h"
-#include "cartographer/state/proto_stream_deserializer.h"
 #include "cartographer/slam/id.h"
-#include "cartographer/proto/serialization.pb.h"
 #include "cartographer/slam/value_conversion_tables.h"
 #include "cartographer/core/rigid_transform.h"
 
@@ -78,17 +76,6 @@ struct SubmapTextures {
 PaintSubmapSlicesResult PaintSubmapSlices(
     const std::map<::cartographer::mapping::SubmapId, SubmapSlice>& submaps,
     double resolution);
-
-void FillSubmapSlice(
-    const ::cartographer::transform::Rigid3d& global_submap_pose,
-    const ::cartographer::mapping::proto::Submap& proto,
-    SubmapSlice* const submap_slice,
-    mapping::ValueConversionTables* conversion_tables);
-
-void DeserializeAndFillSubmapSlices(
-    ProtoStreamDeserializer* deserializer,
-    std::map<::cartographer::mapping::SubmapId, SubmapSlice>* submap_slices,
-    mapping::ValueConversionTables* conversion_tables);
 
 // Unpacks cell data as provided by the backend into 'intensity' and 'alpha'.
 SubmapTexture::Pixels UnpackTextureData(const std::string& compressed_cells,

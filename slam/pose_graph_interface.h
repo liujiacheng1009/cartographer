@@ -151,7 +151,6 @@ class PoseGraphInterface {
   // 'include_unfinished_submaps' is set to 'true', unfinished submaps, i.e.
   // submaps that have not yet received all rangefinder data insertions, will
   // be included, otherwise not.
-  virtual proto::PoseGraph ToProto(bool include_unfinished_submaps) const = 0;
 
   // Sets the callback function that is invoked whenever the global optimization
   // problem is solved.

@@ -18,9 +18,7 @@
 #define CARTOGRAPHER_SENSOR_RANGE_DATA_H_
 
 #include "cartographer/core/port.h"
-#include "cartographer/core/compressed_point_cloud.h"
 #include "cartographer/core/point_cloud.h"
-#include "cartographer/proto/sensor.pb.h"
 
 namespace cartographer {
 namespace sensor {
@@ -40,12 +38,6 @@ RangeData TransformRangeData(const RangeData& range_data,
 
 // Crops 'range_data' according to the region defined by 'min_z' and 'max_z'.
 RangeData CropRangeData(const RangeData& range_data, float min_z, float max_z);
-
-// Converts 'range_data' to a proto::RangeData.
-proto::RangeData ToProto(const RangeData& range_data);
-
-// Converts 'proto' to RangeData.
-RangeData FromProto(const proto::RangeData& proto);
 
 }  // namespace sensor
 }  // namespace cartographer

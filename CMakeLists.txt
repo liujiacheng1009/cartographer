@@ -40,14 +40,6 @@ find_package(Ceres REQUIRED COMPONENTS SuiteSparse)
 find_package(Eigen3 REQUIRED)
 find_package(yaml-cpp REQUIRED)
 find_package(SQLite3 REQUIRED)
-if(WIN32)
-  # On Windows, Protobuf is incorrectly found by the bundled CMake module, so prefer native CMake config.
-  set(protobuf_MODULE_COMPATIBLE TRUE CACHE INTERNAL "")
-  find_package(Protobuf 3.0.0 CONFIG)
-else()
-  find_package(Protobuf 3.0.0 REQUIRED)
-endif()
-
 if(${BUILD_PROMETHEUS})
   find_package( ZLIB REQUIRED )
 endif()
@@ -80,36 +72,6 @@ if (ALL_DOTFILES)
 endif()
 list(REMOVE_ITEM ALL_LIBRARY_SRCS ${ALL_EXECUTABLES})
 set(INSTALL_SOURCE_HDRS ${ALL_LIBRARY_HDRS})
-
-file(GLOB ALL_PROTOS "proto/*.proto")
-
-# TODO(cschuet): Move proto compilation to separate function.
-set(ALL_PROTO_SRCS)
-set(ALL_PROTO_HDRS)
-foreach(ABS_FIL ${ALL_PROTOS})
-  file(RELATIVE_PATH REL_FIL ${CARTOGRAPHER_SOURCE_PARENT} ${ABS_FIL})
-  get_filename_component(DIR ${REL_FIL} DIRECTORY)
-  get_filename_component(FIL_WE ${REL_FIL} NAME_WE)
-
-  list(APPEND ALL_PROTO_SRCS "${PROJECT_BINARY_DIR}/${DIR}/${FIL_WE}.pb.cc")
-  list(APPEND ALL_PROTO_HDRS "${PROJECT_BINARY_DIR}/${DIR}/${FIL_WE}.pb.h")
-
-  add_custom_command(
-    OUTPUT "${PROJECT_BINARY_DIR}/${DIR}/${FIL_WE}.pb.cc"
-           "${PROJECT_BINARY_DIR}/${DIR}/${FIL_WE}.pb.h"
-    COMMAND  ${PROTOBUF_PROTOC_EXECUTABLE}
-    ARGS --cpp_out ${PROJECT_BINARY_DIR} -I
-      ${CARTOGRAPHER_SOURCE_PARENT} ${ABS_FIL}
-    DEPENDS ${ABS_FIL}
-    COMMENT "Running C++ protocol buffer compiler on ${ABS_FIL}"
-    VERBATIM
-  )
-endforeach()
-set_source_files_properties(${ALL_PROTO_SRCS} ${ALL_PROTO_HDRS} PROPERTIES GENERATED TRUE)
-list(APPEND ALL_LIBRARY_HDRS ${ALL_PROTO_HDRS})
-list(APPEND ALL_LIBRARY_SRCS ${ALL_PROTO_SRCS})
-
-set(INSTALL_GENERATED_HDRS ${ALL_PROTO_HDRS})
 
 add_library(${PROJECT_NAME} STATIC ${ALL_LIBRARY_HDRS} ${ALL_LIBRARY_SRCS})
 
@@ -155,11 +117,7 @@ if("${CAIRO_INCLUDE_DIRS}")
 endif()
 target_link_libraries(${PROJECT_NAME} PUBLIC ${CAIRO_LIBRARIES})
 
-target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
-  ${PROTOBUF_INCLUDE_DIR})
-# TODO(hrapp): This should not explicitly list pthread and use
-# PROTOBUF_LIBRARIES, but that failed on first try.
-target_link_libraries(${PROJECT_NAME} PUBLIC ${PROTOBUF_LIBRARY} sqlite3
+target_link_libraries(${PROJECT_NAME} PUBLIC sqlite3
   absl::algorithm
   absl::base
   absl::debugging
@@ -209,15 +167,6 @@ foreach(HDR ${INSTALL_SOURCE_HDRS})
   install(
     FILES ${HDR}
     DESTINATION include/cartographer/${DIR}
-  )
-endforeach()
-
-foreach(HDR ${INSTALL_GENERATED_HDRS})
-  file(RELATIVE_PATH REL_FIL ${PROJECT_BINARY_DIR} ${HDR})
-  get_filename_component(DIR ${REL_FIL} DIRECTORY)
-  install(
-    FILES ${HDR}
-    DESTINATION include/${DIR}
   )
 endforeach()
 

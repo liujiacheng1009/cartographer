@@ -21,7 +21,6 @@
 
 #include "absl/container/flat_hash_map.h"
 #include "absl/synchronization/mutex.h"
-#include "cartographer/proto/connected_components.pb.h"
 #include "cartographer/slam/submaps.h"
 
 namespace cartographer {
@@ -81,10 +80,6 @@ class ConnectedComponents {
   // Tracks the number of direct connections between a pair of trajectories.
   std::map<std::pair<int, int>, int> connection_map_ GUARDED_BY(lock_);
 };
-
-// Returns a proto encoding connected components.
-proto::ConnectedComponents ToProto(
-    std::vector<std::vector<int>> connected_components);
 
 }  // namespace mapping
 }  // namespace cartographer

@@ -34,7 +34,6 @@
 #include "cartographer/core/math.h"
 #include "cartographer/slam/overlapping_submaps_trimmer_2d.h"
 #include "cartographer/slam/options.h"
-#include "cartographer/core/compressed_point_cloud.h"
 #include "cartographer/core/voxel_filter.h"
 #include "cartographer/core/transform.h"
 #include "glog/logging.h"
@@ -685,103 +684,6 @@ bool PoseGraph2D::IsTrajectoryFrozen(const int trajectory_id) const {
   return data_.trajectories_state.count(trajectory_id) != 0 &&
          data_.trajectories_state.at(trajectory_id).state ==
              TrajectoryState::FROZEN;
-}
-
-void PoseGraph2D::AddSubmapFromProto(
-    const transform::Rigid3d& global_submap_pose, const proto::Submap& submap) {
-  if (!submap.has_submap_2d()) {
-    return;
-  }
-
-  const SubmapId submap_id = {submap.submap_id().trajectory_id(),
-                              submap.submap_id().submap_index()};
-
-  const transform::Rigid2d global_submap_pose_2d =
-      transform::Project2D(global_submap_pose);
-  {
-    absl::MutexLock locker(&mutex_);
-    const std::shared_ptr<const Submap2D> submap_ptr =
-        std::make_shared<const Submap2D>(submap.submap_2d(),
-                                         &conversion_tables_);
-    AddTrajectoryIfNeeded(submap_id.trajectory_id);
-    if (!CanAddWorkItemModifying(submap_id.trajectory_id)) return;
-    data_.submap_data.Insert(submap_id, InternalSubmapData());
-    data_.submap_data.at(submap_id).submap = submap_ptr;
-    // Immediately show the submap at the 'global_submap_pose'.
-    data_.global_submap_poses_2d.Insert(
-        submap_id, optimization::SubmapSpec2D{global_submap_pose_2d});
-  }
-
-  // TODO(MichaelGrupp): MapBuilder does freezing before deserializing submaps,
-  // so this should be fine.
-  if (IsTrajectoryFrozen(submap_id.trajectory_id)) {
-    kFrozenSubmapsMetric->Increment();
-  } else {
-    kActiveSubmapsMetric->Increment();
-  }
-
-  AddWorkItem(
-      [this, submap_id, global_submap_pose_2d]() LOCKS_EXCLUDED(mutex_) {
-        absl::MutexLock locker(&mutex_);
-        data_.submap_data.at(submap_id).state = SubmapState::kFinished;
-        optimization_problem_->InsertSubmap(submap_id, global_submap_pose_2d);
-        return WorkItem::Result::kDoNotRunOptimization;
-      });
-}
-
-void PoseGraph2D::AddNodeFromProto(const transform::Rigid3d& global_pose,
-                                   const proto::Node& node) {
-  const NodeId node_id = {node.node_id().trajectory_id(),
-                          node.node_id().node_index()};
-  std::shared_ptr<const TrajectoryNode::Data> constant_data =
-      std::make_shared<const TrajectoryNode::Data>(FromProto(node.node_data()));
-
-  {
-    absl::MutexLock locker(&mutex_);
-    AddTrajectoryIfNeeded(node_id.trajectory_id);
-    if (!CanAddWorkItemModifying(node_id.trajectory_id)) return;
-    data_.trajectory_nodes.Insert(node_id,
-                                  TrajectoryNode{constant_data, global_pose});
-  }
-
-  AddWorkItem([this, node_id, global_pose]() LOCKS_EXCLUDED(mutex_) {
-    absl::MutexLock locker(&mutex_);
-    const auto& constant_data =
-        data_.trajectory_nodes.at(node_id).constant_data;
-    const auto gravity_alignment_inverse = transform::Rigid3d::Rotation(
-        constant_data->gravity_alignment.inverse());
-    optimization_problem_->InsertTrajectoryNode(
-        node_id,
-        optimization::NodeSpec2D{
-            constant_data->time,
-            transform::Project2D(constant_data->local_pose *
-                                 gravity_alignment_inverse),
-            transform::Project2D(global_pose * gravity_alignment_inverse),
-            constant_data->gravity_alignment});
-    return WorkItem::Result::kDoNotRunOptimization;
-  });
-}
-
-void PoseGraph2D::SetTrajectoryDataFromProto(
-    const proto::TrajectoryData& data) {
-  TrajectoryData trajectory_data;
-  // gravity_constant and imu_calibration are omitted as its not used in 2d
-
-  if (data.has_fixed_frame_origin_in_map()) {
-    trajectory_data.fixed_frame_origin_in_map =
-        transform::ToRigid3(data.fixed_frame_origin_in_map());
-
-    const int trajectory_id = data.trajectory_id();
-    AddWorkItem([this, trajectory_id, trajectory_data]()
-                    LOCKS_EXCLUDED(mutex_) {
-                      absl::MutexLock locker(&mutex_);
-                      if (CanAddWorkItemModifying(trajectory_id)) {
-                        optimization_problem_->SetTrajectoryData(
-                            trajectory_id, trajectory_data);
-                      }
-                      return WorkItem::Result::kDoNotRunOptimization;
-                    });
-  }
 }
 
 void PoseGraph2D::AddSerializedSubmap(const io::SerializedSubmap2D& value) {

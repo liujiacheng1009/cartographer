@@ -213,12 +213,6 @@ ament_export_dependencies(
 )
 ament_package()
 
-# Non converted bin:
-#google_binary(cartographer_dev_pbstream_trajectories_to_rosbag
-#  SRCS
-#  dev/pbstream_trajectories_to_rosbag_main.cc
-#)
-
 #google_binary(cartographer_dev_rosbag_publisher
 #  SRCS
 #  dev/rosbag_publisher_main.cc

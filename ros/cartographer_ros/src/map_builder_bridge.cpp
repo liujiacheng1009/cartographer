@@ -18,7 +18,6 @@
 
 #include "absl/memory/memory.h"
 #include "cartographer/state/color.h"
-#include "cartographer/state/proto_stream.h"
 #include "cartographer_ros/msg_conversion.h"
 #include "cartographer_ros/time_conversion.h"
 #include "cartographer_ros_msgs/msg/status_code.hpp"
@@ -170,11 +169,11 @@ bool MapBuilderBridge::SerializeState(const std::string& filename,
 void MapBuilderBridge::HandleSubmapQuery(
     const cartographer_ros_msgs::srv::SubmapQuery::Request::SharedPtr request,
     cartographer_ros_msgs::srv::SubmapQuery::Response::SharedPtr response) {
-  cartographer::mapping::proto::SubmapQuery::Response response_proto;
+  cartographer::mapping::SubmapTextureResponse texture_response;
   cartographer::mapping::SubmapId submap_id{request->trajectory_id,
                                             request->submap_index};
   const std::string error =
-      map_builder_->SubmapToProto(submap_id, &response_proto);
+      map_builder_->GetSubmapTexture(submap_id, &texture_response);
   if (!error.empty()) {
     LOG(ERROR) << error;
     response->status.code = cartographer_ros_msgs::msg::StatusCode::NOT_FOUND;
@@ -182,17 +181,16 @@ void MapBuilderBridge::HandleSubmapQuery(
     return;
   }
 
-  response->submap_version = response_proto.submap_version();
-  for (const auto& texture_proto : response_proto.textures()) {
+  response->submap_version = texture_response.submap_version;
+  for (const auto& source_texture : texture_response.textures) {
     response->textures.emplace_back();
     auto& texture = response->textures.back();
-    texture.cells.insert(texture.cells.begin(), texture_proto.cells().begin(),
-                         texture_proto.cells().end());
-    texture.width = texture_proto.width();
-    texture.height = texture_proto.height();
-    texture.resolution = texture_proto.resolution();
-    texture.slice_pose = ToGeometryMsgPose(
-        cartographer::transform::ToRigid3(texture_proto.slice_pose()));
+    texture.cells.insert(texture.cells.begin(), source_texture.cells.begin(),
+                         source_texture.cells.end());
+    texture.width = source_texture.width;
+    texture.height = source_texture.height;
+    texture.resolution = source_texture.resolution;
+    texture.slice_pose = ToGeometryMsgPose(source_texture.slice_pose);
   }
   response->status.message = "Success.";
   response->status.code = cartographer_ros_msgs::msg::StatusCode::OK;

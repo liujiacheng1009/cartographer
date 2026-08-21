@@ -22,8 +22,7 @@
 #include "cartographer/slam/map_limits.h"
 #include "cartographer/slam/grid_interface.h"
 #include "cartographer/slam/probability_values.h"
-#include "cartographer/proto/grid_2d.pb.h"
-#include "cartographer/proto/submap_visualization.pb.h"
+#include "cartographer/slam/submap_texture.h"
 #include "cartographer/slam/options.h"
 #include "cartographer/slam/value_conversion_tables.h"
 
@@ -44,8 +43,6 @@ class Grid2D : public GridInterface {
          const Eigen::AlignedBox2i& known_cells_box,
          float min_correspondence_cost, float max_correspondence_cost,
          ValueConversionTables* conversion_tables);
-  explicit Grid2D(const proto::Grid2D& proto,
-                  ValueConversionTables* conversion_tables);
 
   // Returns the limits of this Grid2D.
   const MapLimits& limits() const { return limits_; }
@@ -94,10 +91,8 @@ class Grid2D : public GridInterface {
 
   virtual std::unique_ptr<Grid2D> ComputeCroppedGrid() const = 0;
 
-  virtual proto::Grid2D ToProto() const;
-
   virtual bool DrawToSubmapTexture(
-      proto::SubmapQuery::Response::SubmapTexture* const texture,
+      SubmapTexture* const texture,
       transform::Rigid3d local_pose) const = 0;
 
  protected:

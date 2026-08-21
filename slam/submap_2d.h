@@ -24,8 +24,6 @@
 #include "cartographer/core/parameter_dictionary.h"
 #include "cartographer/slam/grid_2d.h"
 #include "cartographer/slam/map_limits.h"
-#include "cartographer/proto/serialization.pb.h"
-#include "cartographer/proto/submap_visualization.pb.h"
 #include "cartographer/slam/options.h"
 #include "cartographer/slam/range_data_inserter_interface.h"
 #include "cartographer/slam/submaps.h"
@@ -47,14 +45,10 @@ class Submap2D : public Submap {
   Submap2D(const transform::Rigid3d& local_pose, int num_range_data,
            bool finished, std::unique_ptr<Grid2D> grid,
            ValueConversionTables* conversion_tables);
-  explicit Submap2D(const proto::Submap2D& proto,
-                    ValueConversionTables* conversion_tables);
 
-  proto::Submap ToProto(bool include_grid_data) const override;
-  void UpdateFromProto(const proto::Submap& proto) override;
-
-  void ToResponseProto(const transform::Rigid3d& global_submap_pose,
-                       proto::SubmapQuery::Response* response) const override;
+  void ToSubmapTextureResponse(
+      const transform::Rigid3d& global_submap_pose,
+      SubmapTextureResponse* response) const override;
 
   const Grid2D* grid() const { return grid_.get(); }
 

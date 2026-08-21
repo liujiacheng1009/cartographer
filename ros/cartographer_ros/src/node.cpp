@@ -29,7 +29,6 @@
 #include "cartographer/core/port.h"
 #include "cartographer/core/time.h"
 #include "cartographer/slam/pose_graph_interface.h"
-#include "cartographer/proto/submap_visualization.pb.h"
 #include "cartographer/core/point_cloud.h"
 #include "cartographer/core/rigid_transform.h"
 #include "cartographer/core/transform.h"

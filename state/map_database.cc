@@ -105,8 +105,8 @@ sensor::PointCloud DecodePointCloud(const void* bytes, int size) {
   const std::string data(static_cast<const char*>(bytes), size);
   size_t offset = 0;
   std::vector<sensor::RangefinderPoint> points;
-  points.reserve(ReadU32(data, &offset));
-  const size_t point_count = points.capacity();
+  const uint32 point_count = ReadU32(data, &offset);
+  points.reserve(point_count);
   for (size_t i = 0; i != point_count; ++i) {
     points.push_back({Eigen::Vector3f(ReadFloat(data, &offset),
                                      ReadFloat(data, &offset),

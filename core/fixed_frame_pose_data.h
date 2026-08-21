@@ -21,7 +21,6 @@
 
 #include "absl/types/optional.h"
 #include "cartographer/core/time.h"
-#include "cartographer/proto/sensor.pb.h"
 #include "cartographer/core/rigid_transform.h"
 
 namespace cartographer {
@@ -33,12 +32,6 @@ struct FixedFramePoseData {
   common::Time time;
   absl::optional<transform::Rigid3d> pose;
 };
-
-// Converts 'pose_data' to a proto::FixedFramePoseData.
-proto::FixedFramePoseData ToProto(const FixedFramePoseData& pose_data);
-
-// Converts 'proto' to an FixedFramePoseData.
-FixedFramePoseData FromProto(const proto::FixedFramePoseData& proto);
 
 }  // namespace sensor
 }  // namespace cartographer

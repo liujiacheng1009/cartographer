@@ -41,12 +41,6 @@ ProbabilityGrid::ProbabilityGrid(const MapLimits& limits,
              conversion_tables),
       conversion_tables_(conversion_tables) {}
 
-ProbabilityGrid::ProbabilityGrid(const proto::Grid2D& proto,
-                                 ValueConversionTables* conversion_tables)
-    : Grid2D(proto, conversion_tables), conversion_tables_(conversion_tables) {
-  CHECK(proto.has_probability_grid_2d());
-}
-
 // Sets the probability of the cell at 'cell_index' to the given
 // 'probability'. Only allowed if the cell was unknown before.
 void ProbabilityGrid::SetProbability(const Eigen::Array2i& cell_index,
@@ -92,13 +86,6 @@ float ProbabilityGrid::GetProbability(const Eigen::Array2i& cell_index) const {
       correspondence_cost_cells()[ToFlatIndex(cell_index)]));
 }
 
-proto::Grid2D ProbabilityGrid::ToProto() const {
-  proto::Grid2D result;
-  result = Grid2D::ToProto();
-  result.mutable_probability_grid_2d();
-  return result;
-}
-
 std::unique_ptr<Grid2D> ProbabilityGrid::ComputeCroppedGrid() const {
   Eigen::Array2i offset;
   CellLimits cell_limits;
@@ -118,7 +105,7 @@ std::unique_ptr<Grid2D> ProbabilityGrid::ComputeCroppedGrid() const {
 }
 
 bool ProbabilityGrid::DrawToSubmapTexture(
-    proto::SubmapQuery::Response::SubmapTexture* const texture,
+    SubmapTexture* const texture,
     transform::Rigid3d local_pose) const {
   Eigen::Array2i offset;
   CellLimits cell_limits;
@@ -145,16 +132,15 @@ bool ProbabilityGrid::DrawToSubmapTexture(
     cells.push_back((value || alpha) ? alpha : 1);
   }
 
-  common::FastGzipString(cells, texture->mutable_cells());
-  texture->set_width(cell_limits.num_x_cells);
-  texture->set_height(cell_limits.num_y_cells);
+  common::FastGzipString(cells, &texture->cells);
+  texture->width = cell_limits.num_x_cells;
+  texture->height = cell_limits.num_y_cells;
   const double resolution = limits().resolution();
-  texture->set_resolution(resolution);
+  texture->resolution = resolution;
   const double max_x = limits().max().x() - resolution * offset.y();
   const double max_y = limits().max().y() - resolution * offset.x();
-  *texture->mutable_slice_pose() = transform::ToProto(
-      local_pose.inverse() *
-      transform::Rigid3d::Translation(Eigen::Vector3d(max_x, max_y, 0.)));
+  texture->slice_pose = local_pose.inverse() *
+      transform::Rigid3d::Translation(Eigen::Vector3d(max_x, max_y, 0.));
 
   return true;
 }

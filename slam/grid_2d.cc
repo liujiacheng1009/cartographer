@@ -17,33 +17,6 @@
 
 namespace cartographer {
 namespace mapping {
-namespace {
-
-float MinCorrespondenceCostFromProto(const proto::Grid2D& proto) {
-  if (proto.min_correspondence_cost() == 0.f &&
-      proto.max_correspondence_cost() == 0.f) {
-    LOG(WARNING) << "proto::Grid2D: min_correspondence_cost "
-                    "is initialized with 0 indicating an older version of the "
-                    "protobuf format. Loading default values.";
-    return kMinCorrespondenceCost;
-  } else {
-    return proto.min_correspondence_cost();
-  }
-}
-
-float MaxCorrespondenceCostFromProto(const proto::Grid2D& proto) {
-  if (proto.min_correspondence_cost() == 0.f &&
-      proto.max_correspondence_cost() == 0.f) {
-    LOG(WARNING) << "proto::Grid2D: max_correspondence_cost "
-                    "is initialized with 0 indicating an older version of the "
-                    "protobuf format. Loading default values.";
-    return kMaxCorrespondenceCost;
-  } else {
-    return proto.max_correspondence_cost();
-  }
-}
-}  // namespace
-
 GridOptions2D CreateGridOptions2D(
     common::ParameterDictionary* const parameter_dictionary) {
   GridOptions2D options;
@@ -86,29 +59,6 @@ Grid2D::Grid2D(const MapLimits& limits, std::vector<uint16> cells,
   CHECK_EQ(correspondence_cost_cells_.size(),
            limits.cell_limits().num_x_cells * limits.cell_limits().num_y_cells);
   CHECK_LT(min_correspondence_cost_, max_correspondence_cost_);
-}
-
-Grid2D::Grid2D(const proto::Grid2D& proto,
-               ValueConversionTables* conversion_tables)
-    : limits_(proto.limits()),
-      correspondence_cost_cells_(),
-      min_correspondence_cost_(MinCorrespondenceCostFromProto(proto)),
-      max_correspondence_cost_(MaxCorrespondenceCostFromProto(proto)),
-      value_to_correspondence_cost_table_(conversion_tables->GetConversionTable(
-          max_correspondence_cost_, min_correspondence_cost_,
-          max_correspondence_cost_)) {
-  CHECK_LT(min_correspondence_cost_, max_correspondence_cost_);
-  if (proto.has_known_cells_box()) {
-    const auto& box = proto.known_cells_box();
-    known_cells_box_ =
-        Eigen::AlignedBox2i(Eigen::Vector2i(box.min_x(), box.min_y()),
-                            Eigen::Vector2i(box.max_x(), box.max_y()));
-  }
-  correspondence_cost_cells_.reserve(proto.cells_size());
-  for (const auto& cell : proto.cells()) {
-    CHECK_LE(cell, std::numeric_limits<uint16>::max());
-    correspondence_cost_cells_.push_back(cell);
-  }
 }
 
 // Finishes the update sequence.
@@ -177,25 +127,6 @@ void Grid2D::GrowLimits(const Eigen::Vector2f& point,
       known_cells_box_.translate(Eigen::Vector2i(x_offset, y_offset));
     }
   }
-}
-
-proto::Grid2D Grid2D::ToProto() const {
-  proto::Grid2D result;
-  *result.mutable_limits() = mapping::ToProto(limits_);
-  *result.mutable_cells() = {correspondence_cost_cells_.begin(),
-                             correspondence_cost_cells_.end()};
-  CHECK(update_indices().empty()) << "Serializing a grid during an update is "
-                                     "not supported. Finish the update first.";
-  if (!known_cells_box().isEmpty()) {
-    auto* const box = result.mutable_known_cells_box();
-    box->set_max_x(known_cells_box().max().x());
-    box->set_max_y(known_cells_box().max().y());
-    box->set_min_x(known_cells_box().min().x());
-    box->set_min_y(known_cells_box().min().y());
-  }
-  result.set_min_correspondence_cost(min_correspondence_cost_);
-  result.set_max_correspondence_cost(max_correspondence_cost_);
-  return result;
 }
 
 }  // namespace mapping

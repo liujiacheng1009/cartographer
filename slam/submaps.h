@@ -25,8 +25,7 @@
 #include "cartographer/core/port.h"
 #include "cartographer/slam/id.h"
 #include "cartographer/slam/probability_values.h"
-#include "cartographer/proto/serialization.pb.h"
-#include "cartographer/proto/submap_visualization.pb.h"
+#include "cartographer/slam/submap_texture.h"
 #include "cartographer/slam/trajectory_node.h"
 #include "glog/logging.h"
 
@@ -62,13 +61,10 @@ class Submap {
       : local_pose_(local_submap_pose) {}
   virtual ~Submap() {}
 
-  virtual proto::Submap ToProto(bool include_grid_data) const = 0;
-  virtual void UpdateFromProto(const proto::Submap& proto) = 0;
-
   // Fills data into the 'response'.
-  virtual void ToResponseProto(
+  virtual void ToSubmapTextureResponse(
       const transform::Rigid3d& global_submap_pose,
-      proto::SubmapQuery::Response* response) const = 0;
+      SubmapTextureResponse* response) const = 0;
 
   // Pose of this submap in the local map frame.
   transform::Rigid3d local_pose() const { return local_pose_; }

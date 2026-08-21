@@ -30,7 +30,6 @@
 #include "absl/memory/memory.h"
 #include "cartographer/core/port.h"
 #include "cartographer/core/time.h"
-#include "cartographer/proto/pose_graph.pb.h"
 #include "glog/logging.h"
 
 namespace cartographer {
@@ -72,11 +71,6 @@ struct NodeId {
     return std::forward_as_tuple(trajectory_id, node_index) <
            std::forward_as_tuple(other.trajectory_id, other.node_index);
   }
-
-  void ToProto(proto::NodeId* proto) const {
-    proto->set_trajectory_id(trajectory_id);
-    proto->set_node_index(node_index);
-  }
 };
 
 inline std::ostream& operator<<(std::ostream& os, const NodeId& v) {
@@ -102,11 +96,6 @@ struct SubmapId {
   bool operator<(const SubmapId& other) const {
     return std::forward_as_tuple(trajectory_id, submap_index) <
            std::forward_as_tuple(other.trajectory_id, other.submap_index);
-  }
-
-  void ToProto(proto::SubmapId* proto) const {
-    proto->set_trajectory_id(trajectory_id);
-    proto->set_submap_index(submap_index);
   }
 };
 

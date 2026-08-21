@@ -20,7 +20,6 @@
 #include <vector>
 
 #include "Eigen/Core"
-#include "cartographer/proto/sensor.pb.h"
 #include "cartographer/core/transform.h"
 #include "glog/logging.h"
 
@@ -63,33 +62,6 @@ inline bool operator==(const RangefinderPoint& lhs,
 inline bool operator==(const TimedRangefinderPoint& lhs,
                        const TimedRangefinderPoint& rhs) {
   return lhs.position == rhs.position && lhs.time == rhs.time;
-}
-
-inline RangefinderPoint FromProto(
-    const proto::RangefinderPoint& rangefinder_point_proto) {
-  return {transform::ToEigen(rangefinder_point_proto.position())};
-}
-
-inline proto::RangefinderPoint ToProto(
-    const RangefinderPoint& rangefinder_point) {
-  proto::RangefinderPoint proto;
-  *proto.mutable_position() = transform::ToProto(rangefinder_point.position);
-  return proto;
-}
-
-inline TimedRangefinderPoint FromProto(
-    const proto::TimedRangefinderPoint& timed_rangefinder_point_proto) {
-  return {transform::ToEigen(timed_rangefinder_point_proto.position()),
-          timed_rangefinder_point_proto.time()};
-}
-
-inline proto::TimedRangefinderPoint ToProto(
-    const TimedRangefinderPoint& timed_rangefinder_point) {
-  proto::TimedRangefinderPoint proto;
-  *proto.mutable_position() =
-      transform::ToProto(timed_rangefinder_point.position);
-  proto.set_time(timed_rangefinder_point.time);
-  return proto;
 }
 
 inline RangefinderPoint ToRangefinderPoint(

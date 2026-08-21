@@ -24,11 +24,10 @@
 #include "Eigen/Geometry"
 #include "cartographer/core/parameter_dictionary.h"
 #include "cartographer/core/port.h"
-#include "cartographer/state/proto_stream_interface.h"
 #include "cartographer/slam/id.h"
 #include "cartographer/slam/pose_graph_interface.h"
 #include "cartographer/slam/options.h"
-#include "cartographer/proto/submap_visualization.pb.h"
+#include "cartographer/slam/submap_texture.h"
 #include "cartographer/slam/options.h"
 #include "cartographer/slam/submaps.h"
 #include "cartographer/slam/trajectory_builder_interface.h"
@@ -76,17 +75,10 @@ class MapBuilderInterface {
 
   // Fills the SubmapQuery::Response corresponding to 'submap_id'. Returns an
   // error string on failure, or an empty string on success.
-  virtual std::string SubmapToProto(const SubmapId& submap_id,
-                                    proto::SubmapQuery::Response* response) = 0;
+  virtual std::string GetSubmapTexture(
+      const SubmapId& submap_id, SubmapTextureResponse* response) = 0;
 
-  // Serializes the current state to a proto stream. If
-  // 'include_unfinished_submaps' is set to true, unfinished submaps, i.e.
-  // submaps that have not yet received all rangefinder data insertions, will
-  // be included in the serialized state.
-  virtual void SerializeState(bool include_unfinished_submaps,
-                              io::ProtoStreamWriterInterface* writer) = 0;
-
-  // Serializes the current state to a proto stream file on the host system. If
+  // Serializes the current state to a .swmap database. If
   // 'include_unfinished_submaps' is set to true, unfinished submaps, i.e.
   // submaps that have not yet received all rangefinder data insertions, will
   // be included in the serialized state.
@@ -94,14 +86,8 @@ class MapBuilderInterface {
   virtual bool SerializeStateToFile(bool include_unfinished_submaps,
                                     const std::string& filename) = 0;
 
-  // Loads the SLAM state from a proto stream. Returns the remapping of new
-  // trajectory_ids.
-  virtual std::map<int /* trajectory id in proto */, int /* trajectory id */>
-  LoadState(io::ProtoStreamReaderInterface* reader, bool load_frozen_state) = 0;
-
-  // Loads the SLAM state from a pbstream file. Returns the remapping of new
-  // trajectory_ids.
-  virtual std::map<int /* trajectory id in proto */, int /* trajectory id */>
+  // Loads frozen SLAM state from a .swmap database.
+  virtual std::map<int /* stored trajectory id */, int /* runtime id */>
   LoadStateFromFile(const std::string& filename, bool load_frozen_state) = 0;
 
   virtual int num_trajectory_builders() const = 0;

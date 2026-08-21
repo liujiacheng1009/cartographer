@@ -79,57 +79,13 @@ Submap2D::Submap2D(const transform::Rigid3d& local_pose, int num_range_data,
   set_insertion_finished(finished);
 }
 
-Submap2D::Submap2D(const proto::Submap2D& proto,
-                   ValueConversionTables* conversion_tables)
-    : Submap(transform::ToRigid3(proto.local_pose())),
-      conversion_tables_(conversion_tables) {
-  if (proto.has_grid()) {
-    if (proto.grid().has_probability_grid_2d()) {
-      grid_ =
-          absl::make_unique<ProbabilityGrid>(proto.grid(), conversion_tables_);
-    } else {
-      LOG(FATAL) << "proto::Submap2D has grid with unknown type.";
-    }
-  }
-  set_num_range_data(proto.num_range_data());
-  set_insertion_finished(proto.finished());
-}
-
-proto::Submap Submap2D::ToProto(const bool include_grid_data) const {
-  proto::Submap proto;
-  auto* const submap_2d = proto.mutable_submap_2d();
-  *submap_2d->mutable_local_pose() = transform::ToProto(local_pose());
-  submap_2d->set_num_range_data(num_range_data());
-  submap_2d->set_finished(insertion_finished());
-  if (include_grid_data) {
-    CHECK(grid_);
-    *submap_2d->mutable_grid() = grid_->ToProto();
-  }
-  return proto;
-}
-
-void Submap2D::UpdateFromProto(const proto::Submap& proto) {
-  CHECK(proto.has_submap_2d());
-  const auto& submap_2d = proto.submap_2d();
-  set_num_range_data(submap_2d.num_range_data());
-  set_insertion_finished(submap_2d.finished());
-  if (proto.submap_2d().has_grid()) {
-    if (proto.submap_2d().grid().has_probability_grid_2d()) {
-      grid_ = absl::make_unique<ProbabilityGrid>(proto.submap_2d().grid(),
-                                                 conversion_tables_);
-    } else {
-      LOG(FATAL) << "proto::Submap2D has grid with unknown type.";
-    }
-  }
-}
-
-void Submap2D::ToResponseProto(
+void Submap2D::ToSubmapTextureResponse(
     const transform::Rigid3d&,
-    proto::SubmapQuery::Response* const response) const {
+    SubmapTextureResponse* const response) const {
   if (!grid_) return;
-  response->set_submap_version(num_range_data());
-  proto::SubmapQuery::Response::SubmapTexture* const texture =
-      response->add_textures();
+  response->submap_version = num_range_data();
+  response->textures.emplace_back();
+  SubmapTexture* const texture = &response->textures.back();
   grid()->DrawToSubmapTexture(texture, local_pose());
 }
 

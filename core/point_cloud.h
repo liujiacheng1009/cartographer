@@ -20,7 +20,6 @@
 #include <vector>
 
 #include "Eigen/Core"
-#include "cartographer/proto/sensor.pb.h"
 #include "cartographer/core/rangefinder_point.h"
 #include "cartographer/core/rigid_transform.h"
 #include "glog/logging.h"

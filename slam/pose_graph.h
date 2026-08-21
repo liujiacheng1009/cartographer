@@ -27,9 +27,7 @@
 #include "cartographer/slam/id.h"
 #include "cartographer/slam/pose_graph_interface.h"
 #include "cartographer/slam/pose_graph_trimmer.h"
-#include "cartographer/proto/pose_graph.pb.h"
 #include "cartographer/slam/options.h"
-#include "cartographer/proto/serialization.pb.h"
 #include "cartographer/slam/submaps.h"
 #include "cartographer/slam/trajectory_node.h"
 #include "cartographer/core/fixed_frame_pose_data.h"
@@ -82,20 +80,7 @@ class PoseGraph : public PoseGraphInterface {
   // Freezes a trajectory. Poses in this trajectory will not be optimized.
   virtual void FreezeTrajectory(int trajectory_id) = 0;
 
-  // Adds a 'submap' from a proto with the given 'global_pose' to the
-  // appropriate trajectory.
-  virtual void AddSubmapFromProto(const transform::Rigid3d& global_pose,
-                                  const proto::Submap& submap) = 0;
-
-  // Adds a 'node' from a proto with the given 'global_pose' to the
-  // appropriate trajectory.
-  virtual void AddNodeFromProto(const transform::Rigid3d& global_pose,
-                                const proto::Node& node) = 0;
-
-  // Sets the trajectory data from a proto.
-  virtual void SetTrajectoryDataFromProto(
-      const mapping::proto::TrajectoryData& data) = 0;
-
+  // Restores native mapping state from a .swmap database.
   virtual void AddSerializedSubmap(const io::SerializedSubmap2D& submap) = 0;
   virtual void AddSerializedNode(const io::SerializedNode& node) = 0;
   virtual void SetSerializedTrajectoryData(
@@ -106,8 +91,8 @@ class PoseGraph : public PoseGraphInterface {
   virtual void AddNodeToSubmap(const NodeId& node_id,
                                const SubmapId& submap_id) = 0;
 
-  // Adds serialized constraints. The corresponding trajectory nodes and submaps
-  // have to be deserialized before calling this function.
+  // Adds serialized constraints. The corresponding trajectory nodes and
+  // submaps have to be restored first.
   virtual void AddSerializedConstraints(
       const std::vector<Constraint>& constraints) = 0;
 
@@ -117,8 +102,6 @@ class PoseGraph : public PoseGraphInterface {
 
   // Gets the current trajectory clusters.
   virtual std::vector<std::vector<int>> GetConnectedTrajectories() const = 0;
-
-  proto::PoseGraph ToProto(bool include_unfinished_submaps) const override;
 
   // Returns the IMU data.
   virtual sensor::MapByTime<sensor::ImuData> GetImuData() const = 0;
@@ -141,12 +124,6 @@ class PoseGraph : public PoseGraphInterface {
                                         const transform::Rigid3d& pose,
                                         const common::Time time) = 0;
 };
-
-std::vector<PoseGraph::Constraint> FromProto(
-    const ::google::protobuf::RepeatedPtrField<
-        ::cartographer::mapping::proto::PoseGraph::Constraint>&
-        constraint_protos);
-proto::PoseGraph::Constraint ToProto(const PoseGraph::Constraint& constraint);
 
 }  // namespace mapping
 }  // namespace cartographer

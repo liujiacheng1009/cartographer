@@ -19,7 +19,6 @@
 
 #include "Eigen/Core"
 #include "cartographer/core/time.h"
-#include "cartographer/proto/sensor.pb.h"
 
 namespace cartographer {
 namespace sensor {
@@ -29,12 +28,6 @@ struct ImuData {
   Eigen::Vector3d linear_acceleration;
   Eigen::Vector3d angular_velocity;
 };
-
-// Converts 'imu_data' to a proto::ImuData.
-proto::ImuData ToProto(const ImuData& imu_data);
-
-// Converts 'proto' to an ImuData.
-ImuData FromProto(const proto::ImuData& proto);
 
 }  // namespace sensor
 }  // namespace cartographer

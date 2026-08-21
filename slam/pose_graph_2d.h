@@ -103,11 +103,6 @@ class PoseGraph2D : public PoseGraph {
   void FreezeTrajectory(int trajectory_id) override;
   bool IsTrajectoryFrozen(int trajectory_id) const override
       EXCLUSIVE_LOCKS_REQUIRED(mutex_);
-  void AddSubmapFromProto(const transform::Rigid3d& global_submap_pose,
-                          const proto::Submap& submap) override;
-  void AddNodeFromProto(const transform::Rigid3d& global_pose,
-                        const proto::Node& node) override;
-  void SetTrajectoryDataFromProto(const proto::TrajectoryData& data) override;
   void AddSerializedSubmap(const io::SerializedSubmap2D& submap) override;
   void AddSerializedNode(const io::SerializedNode& node) override;
   void SetSerializedTrajectoryData(int trajectory_id,

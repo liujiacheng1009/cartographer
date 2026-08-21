@@ -25,7 +25,6 @@
 #include "Eigen/Core"
 #include "cartographer/core/math.h"
 #include "cartographer/core/port.h"
-#include "cartographer/proto/cell_limits_2d.pb.h"
 #include "glog/logging.h"
 
 namespace cartographer {
@@ -35,21 +34,9 @@ struct CellLimits {
   CellLimits() = default;
   CellLimits(int init_num_x_cells, int init_num_y_cells)
       : num_x_cells(init_num_x_cells), num_y_cells(init_num_y_cells) {}
-
-  explicit CellLimits(const proto::CellLimits& cell_limits)
-      : num_x_cells(cell_limits.num_x_cells()),
-        num_y_cells(cell_limits.num_y_cells()) {}
-
   int num_x_cells = 0;
   int num_y_cells = 0;
 };
-
-inline proto::CellLimits ToProto(const CellLimits& cell_limits) {
-  proto::CellLimits result;
-  result.set_num_x_cells(cell_limits.num_x_cells);
-  result.set_num_y_cells(cell_limits.num_y_cells);
-  return result;
-}
 
 // Iterates in row-major order through a range of xy-indices.
 class XYIndexRangeIterator
