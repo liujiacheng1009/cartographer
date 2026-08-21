@@ -61,7 +61,7 @@ DEFINE_string(urdf_filenames, "",
 DEFINE_bool(use_bag_transforms, true,
             "Whether to read, use and republish transforms from bags.");
 DEFINE_string(load_state_filename, "",
-              "If non-empty, filename of a .pbstream file to load, containing "
+              "If non-empty, filename of a .swmap file to load, containing "
               "a saved SLAM state.");
 DEFINE_bool(load_frozen_state, true,
             "Load the saved state as frozen (non-optimized) trajectories.");
@@ -69,7 +69,7 @@ DEFINE_string(save_state_filename, "",
               "Explicit name of the file to which the serialized state will be "
               "written before shutdown. If left empty, the filename will be "
               "inferred from the first bagfile's name as: "
-              "<bag_filenames[0]>.pbstream");
+              "<bag_filenames[0]>.swmap");
 DEFINE_bool(keep_running, false,
             "Keep running the offline node after all messages from the bag "
             "have been processed.");
@@ -467,7 +467,7 @@ void RunOfflineNode(const MapBuilderFactory& map_builder_factory,
       !(bag_filenames.empty() && FLAGS_save_state_filename.empty())) {
     const std::string state_output_filename =
         FLAGS_save_state_filename.empty()
-            ? bag_filenames.front() + ".pbstream"
+            ? bag_filenames.front() + ".swmap"
             : FLAGS_save_state_filename;
     LOG(INFO) << "Writing state to '" << state_output_filename << "'...";
     node.SerializeState(state_output_filename,

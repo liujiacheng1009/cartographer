@@ -17,11 +17,12 @@
 #ifndef CARTOGRAPHER_IO_PROTO_STREAM_H_
 #define CARTOGRAPHER_IO_PROTO_STREAM_H_
 
-#include <fstream>
-
 #include "cartographer/core/port.h"
 #include "cartographer/state/proto_stream_interface.h"
 #include "google/protobuf/message.h"
+
+struct sqlite3;
+struct sqlite3_stmt;
 
 namespace cartographer {
 namespace io {
@@ -44,9 +45,9 @@ class ProtoStreamWriter : public ProtoStreamWriterInterface {
   bool Close() override;
 
  private:
-  void Write(const std::string& uncompressed_data);
-
-  std::ofstream out_;
+  sqlite3* database_ = nullptr;
+  sqlite3_stmt* insert_ = nullptr;
+  bool ok_ = true;
 };
 
 // A reader of the format produced by ProtoStreamWriter.
@@ -62,9 +63,9 @@ class ProtoStreamReader : public ProtoStreamReaderInterface {
   bool eof() const override;
 
  private:
-  bool Read(std::string* decompressed_data);
-
-  std::ifstream in_;
+  sqlite3* database_ = nullptr;
+  sqlite3_stmt* select_ = nullptr;
+  bool eof_ = false;
 };
 
 }  // namespace io

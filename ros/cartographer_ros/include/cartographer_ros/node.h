@@ -118,7 +118,7 @@ class Node {
   // Writes optimized trajectory nodes without ROS playback or subscribers.
   void WriteTrajectoryCsv(const std::string& filename, int trajectory_id);
 
-  // Loads a serialized SLAM state from a .pbstream file.
+  // Loads a serialized SLAM state from a .swmap file.
   void LoadState(const std::string& state_filename, bool load_frozen_state);
 
  private:

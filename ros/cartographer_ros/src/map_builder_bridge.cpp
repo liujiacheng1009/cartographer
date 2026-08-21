@@ -107,13 +107,13 @@ MapBuilderBridge::MapBuilderBridge(
 
 void MapBuilderBridge::LoadState(const std::string& state_filename,
                                  bool load_frozen_state) {
-  // Check if suffix of the state file is ".pbstream".
-  const std::string suffix = ".pbstream";
+  // Check if suffix of the state file is ".swmap".
+  const std::string suffix = ".swmap";
   CHECK_EQ(state_filename.substr(
                std::max<int>(state_filename.size() - suffix.size(), 0)),
            suffix)
       << "The file containing the state to be loaded must be a "
-         ".pbstream file.";
+         ".swmap file.";
   LOG(INFO) << "Loading saved state '" << state_filename << "'...";
   cartographer::io::ProtoStreamReader stream(state_filename);
   map_builder_->LoadState(&stream, load_frozen_state);

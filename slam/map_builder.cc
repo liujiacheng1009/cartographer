@@ -321,11 +321,10 @@ std::map<int, int> MapBuilder::LoadState(
 
 std::map<int, int> MapBuilder::LoadStateFromFile(
     const std::string& state_filename, const bool load_frozen_state) {
-  const std::string suffix = ".pbstream";
+  const std::string suffix = ".swmap";
   if (state_filename.substr(
           std::max<int>(state_filename.size() - suffix.size(), 0)) != suffix) {
-    LOG(WARNING) << "The file containing the state should be a "
-                    ".pbstream file.";
+    LOG(WARNING) << "The file containing the state should be a .swmap file.";
   }
   LOG(INFO) << "Loading saved state '" << state_filename << "'...";
   io::ProtoStreamReader stream(state_filename);

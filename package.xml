@@ -46,6 +46,7 @@
   <depend>libgflags-dev</depend>
   <depend>libgoogle-glog-dev</depend>
   <depend>yaml-cpp</depend>
+  <depend>libsqlite3-dev</depend>
   <depend>protobuf-dev</depend>
 
   <export>

@@ -31,7 +31,7 @@ DEFINE_string(configuration_basename, "",
               "Basename, i.e. not containing any directory prefix, of the "
               "configuration file.");
 DEFINE_string(load_state_filename, "",
-              "If non-empty, filename of a .pbstream file to load, containing "
+              "If non-empty, filename of a .swmap file to load, containing "
               "a saved SLAM state.");
 DEFINE_bool(load_frozen_state, true,
             "Load the saved state as frozen (non-optimized) trajectories.");
