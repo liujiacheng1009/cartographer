@@ -53,7 +53,8 @@ message SensorId {
     ODOMETRY = 2;
     FIXED_FRAME_POSE = 3;
     LANDMARK = 4;
-    LOCAL_SLAM_RESULT = 5;
+    reserved 5;
+    reserved "LOCAL_SLAM_RESULT";
   }
 
   SensorType type = 1;

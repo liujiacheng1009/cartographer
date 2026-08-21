@@ -39,8 +39,6 @@ namespace mapping {
 proto::TrajectoryBuilderOptions CreateTrajectoryBuilderOptions(
     common::LuaParameterDictionary* const parameter_dictionary);
 
-class LocalSlamResultData;
-
 // This interface is used for both 2D and 3D SLAM. Implementations wire up a
 // global SLAM stack, i.e. local SLAM for initial pose estimates, scan matching
 // to detect loop closure, and a sparse pose graph optimization to compute
@@ -68,8 +66,7 @@ class TrajectoryBuilderInterface {
       IMU,
       ODOMETRY,
       FIXED_FRAME_POSE,
-      LANDMARK,
-      LOCAL_SLAM_RESULT
+      LANDMARK
     };
 
     SensorType type;
@@ -105,11 +102,6 @@ class TrajectoryBuilderInterface {
       const sensor::FixedFramePoseData& fixed_frame_pose) = 0;
   virtual void AddSensorData(const std::string& sensor_id,
                              const sensor::LandmarkData& landmark_data) = 0;
-  // Allows to directly add local SLAM results to the 'PoseGraph'. Note that it
-  // is invalid to add local SLAM results for a trajectory that has a
-  // 'LocalTrajectoryBuilder2D/3D'.
-  virtual void AddLocalSlamResultData(
-      std::unique_ptr<mapping::LocalSlamResultData> local_slam_result_data) = 0;
 };
 
 proto::SensorId ToProto(const TrajectoryBuilderInterface::SensorId& sensor_id);
