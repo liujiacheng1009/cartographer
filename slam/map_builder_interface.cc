@@ -26,9 +26,6 @@ proto::MapBuilderOptions CreateMapBuilderOptions(
   proto::MapBuilderOptions options;
   options.set_use_trajectory_builder_2d(
       parameter_dictionary->GetBool("use_trajectory_builder_2d"));
-  CHECK(!parameter_dictionary->GetBool("use_trajectory_builder_3d"))
-      << "This build supports 2D SLAM only.";
-  options.set_use_trajectory_builder_3d(false);
   options.set_num_background_threads(
       parameter_dictionary->GetNonNegativeInt("num_background_threads"));
   options.set_collate_by_trajectory(
