@@ -20,7 +20,7 @@
 #include <string>
 #include <tuple>
 
-#include "cartographer/core/lua_parameter_dictionary.h"
+#include "cartographer/core/parameter_dictionary.h"
 #include "cartographer/core/port.h"
 #include "cartographer/proto/map_builder_options.pb.h"
 #include "cartographer_ros/trajectory_options.h"
@@ -41,7 +41,7 @@ struct NodeOptions {
 };
 
 NodeOptions CreateNodeOptions(
-    ::cartographer::common::LuaParameterDictionary* lua_parameter_dictionary);
+    ::cartographer::common::ParameterDictionary* parameter_dictionary);
 
 std::tuple<NodeOptions, TrajectoryOptions> LoadOptions(
     const std::string& configuration_directory,

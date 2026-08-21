@@ -22,7 +22,7 @@
 #include <limits>
 
 #include "Eigen/Geometry"
-#include "cartographer/core/lua_parameter_dictionary.h"
+#include "cartographer/core/parameter_dictionary.h"
 #include "cartographer/core/math.h"
 #include "cartographer/slam/probability_grid.h"
 #include "cartographer/core/point_cloud.h"

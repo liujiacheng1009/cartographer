@@ -98,7 +98,7 @@ void CastRays(const sensor::RangeData& range_data,
 
 proto::ProbabilityGridRangeDataInserterOptions2D
 CreateProbabilityGridRangeDataInserterOptions2D(
-    common::LuaParameterDictionary* parameter_dictionary) {
+    common::ParameterDictionary* parameter_dictionary) {
   proto::ProbabilityGridRangeDataInserterOptions2D options;
   options.set_hit_probability(
       parameter_dictionary->GetDouble("hit_probability"));

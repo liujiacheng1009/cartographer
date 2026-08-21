@@ -17,7 +17,7 @@
 #ifndef CARTOGRAPHER_MAPPING_INTERNAL_CONSTRAINTS_CONSTRAINT_BUILDER_H_
 #define CARTOGRAPHER_MAPPING_INTERNAL_CONSTRAINTS_CONSTRAINT_BUILDER_H_
 
-#include "cartographer/core/lua_parameter_dictionary.h"
+#include "cartographer/core/parameter_dictionary.h"
 #include "cartographer/proto/constraint_builder_options.pb.h"
 
 namespace cartographer {
@@ -25,7 +25,7 @@ namespace mapping {
 namespace constraints {
 
 proto::ConstraintBuilderOptions CreateConstraintBuilderOptions(
-    common::LuaParameterDictionary* parameter_dictionary);
+    common::ParameterDictionary* parameter_dictionary);
 
 }  // namespace constraints
 }  // namespace mapping

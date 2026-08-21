@@ -21,7 +21,7 @@
 
 #include "Eigen/Core"
 #include "cartographer/core/ceres_solver_options.h"
-#include "cartographer/core/lua_parameter_dictionary.h"
+#include "cartographer/core/parameter_dictionary.h"
 #include "cartographer/slam/grid_2d.h"
 #include "cartographer/slam/occupied_space_cost_function_2d.h"
 #include "cartographer/slam/rotation_delta_cost_functor_2d.h"
@@ -35,7 +35,7 @@ namespace mapping {
 namespace scan_matching {
 
 proto::CeresScanMatcherOptions2D CreateCeresScanMatcherOptions2D(
-    common::LuaParameterDictionary* const parameter_dictionary) {
+    common::ParameterDictionary* const parameter_dictionary) {
   proto::CeresScanMatcherOptions2D options;
   options.set_occupied_space_weight(
       parameter_dictionary->GetDouble("occupied_space_weight"));

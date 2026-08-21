@@ -25,8 +25,7 @@
 
 #include "Eigen/Core"
 #include "absl/memory/memory.h"
-#include "cartographer/core/configuration_file_resolver.h"
-#include "cartographer/core/lua_parameter_dictionary.h"
+#include "cartographer/core/parameter_dictionary.h"
 #include "cartographer/core/port.h"
 #include "cartographer/core/time.h"
 #include "cartographer/slam/pose_graph_interface.h"

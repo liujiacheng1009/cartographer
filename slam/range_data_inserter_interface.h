@@ -28,7 +28,7 @@ namespace cartographer {
 namespace mapping {
 
 proto::RangeDataInserterOptions CreateRangeDataInserterOptions(
-    common::LuaParameterDictionary* const parameter_dictionary);
+    common::ParameterDictionary* const parameter_dictionary);
 
 class RangeDataInserterInterface {
  public:

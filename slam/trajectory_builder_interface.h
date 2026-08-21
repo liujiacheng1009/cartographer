@@ -22,7 +22,7 @@
 #include <string>
 
 #include "absl/memory/memory.h"
-#include "cartographer/core/lua_parameter_dictionary.h"
+#include "cartographer/core/parameter_dictionary.h"
 #include "cartographer/core/port.h"
 #include "cartographer/core/time.h"
 #include "cartographer/proto/trajectory_builder_options.pb.h"
@@ -37,7 +37,7 @@ namespace cartographer {
 namespace mapping {
 
 proto::TrajectoryBuilderOptions CreateTrajectoryBuilderOptions(
-    common::LuaParameterDictionary* const parameter_dictionary);
+    common::ParameterDictionary* const parameter_dictionary);
 
 // This interface is used for both 2D and 3D SLAM. Implementations wire up a
 // global SLAM stack, i.e. local SLAM for initial pose estimates, scan matching

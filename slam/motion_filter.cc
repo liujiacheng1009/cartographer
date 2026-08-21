@@ -23,7 +23,7 @@ namespace cartographer {
 namespace mapping {
 
 proto::MotionFilterOptions CreateMotionFilterOptions(
-    common::LuaParameterDictionary* const parameter_dictionary) {
+    common::ParameterDictionary* const parameter_dictionary) {
   proto::MotionFilterOptions options;
   options.set_max_time_seconds(
       parameter_dictionary->GetDouble("max_time_seconds"));

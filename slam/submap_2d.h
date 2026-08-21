@@ -21,7 +21,7 @@
 #include <vector>
 
 #include "Eigen/Core"
-#include "cartographer/core/lua_parameter_dictionary.h"
+#include "cartographer/core/parameter_dictionary.h"
 #include "cartographer/slam/grid_2d.h"
 #include "cartographer/slam/map_limits.h"
 #include "cartographer/proto/serialization.pb.h"
@@ -38,7 +38,7 @@ namespace cartographer {
 namespace mapping {
 
 proto::SubmapsOptions2D CreateSubmapsOptions2D(
-    common::LuaParameterDictionary* parameter_dictionary);
+    common::ParameterDictionary* parameter_dictionary);
 
 class Submap2D : public Submap {
  public:

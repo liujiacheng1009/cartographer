@@ -22,7 +22,7 @@
 #include <vector>
 
 #include "Eigen/Geometry"
-#include "cartographer/core/lua_parameter_dictionary.h"
+#include "cartographer/core/parameter_dictionary.h"
 #include "cartographer/core/port.h"
 #include "cartographer/state/proto_stream_interface.h"
 #include "cartographer/slam/id.h"
@@ -37,7 +37,7 @@ namespace cartographer {
 namespace mapping {
 
 proto::MapBuilderOptions CreateMapBuilderOptions(
-    common::LuaParameterDictionary* const parameter_dictionary);
+    common::ParameterDictionary* const parameter_dictionary);
 
 // This interface is used for both library and RPC implementations.
 // Implementations wire up the complete SLAM stack.

@@ -6,7 +6,7 @@ namespace scan_matching {
 
 proto::RealTimeCorrelativeScanMatcherOptions
 CreateRealTimeCorrelativeScanMatcherOptions(
-    common::LuaParameterDictionary* const parameter_dictionary) {
+    common::ParameterDictionary* const parameter_dictionary) {
   proto::RealTimeCorrelativeScanMatcherOptions options;
   options.set_linear_search_window(
       parameter_dictionary->GetDouble("linear_search_window"));

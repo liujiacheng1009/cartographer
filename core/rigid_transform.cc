@@ -20,7 +20,7 @@
 
 #include "Eigen/Core"
 #include "Eigen/Geometry"
-#include "cartographer/core/lua_parameter_dictionary.h"
+#include "cartographer/core/parameter_dictionary.h"
 #include "glog/logging.h"
 
 namespace cartographer {
@@ -29,7 +29,7 @@ namespace transform {
 namespace {
 
 Eigen::Vector3d TranslationFromDictionary(
-    common::LuaParameterDictionary* dictionary) {
+    common::ParameterDictionary* dictionary) {
   const std::vector<double> translation = dictionary->GetArrayValuesAsDoubles();
   CHECK_EQ(3, translation.size()) << "Need (x, y, z) for translation.";
   return Eigen::Vector3d(translation[0], translation[1], translation[2]);
@@ -45,7 +45,7 @@ Eigen::Quaterniond RollPitchYaw(const double roll, const double pitch,
   return yaw_angle * pitch_angle * roll_angle;
 }
 
-transform::Rigid3d FromDictionary(common::LuaParameterDictionary* dictionary) {
+transform::Rigid3d FromDictionary(common::ParameterDictionary* dictionary) {
   const Eigen::Vector3d translation =
       TranslationFromDictionary(dictionary->GetDictionary("translation").get());
 

@@ -180,7 +180,7 @@ std::vector<sensor::TimedPointCloudOriginData::RangeMeasurement> VoxelFilter(
 }
 
 proto::AdaptiveVoxelFilterOptions CreateAdaptiveVoxelFilterOptions(
-    common::LuaParameterDictionary* const parameter_dictionary) {
+    common::ParameterDictionary* const parameter_dictionary) {
   proto::AdaptiveVoxelFilterOptions options;
   options.set_max_length(parameter_dictionary->GetDouble("max_length"));
   options.set_min_num_points(

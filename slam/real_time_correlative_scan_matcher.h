@@ -18,7 +18,7 @@
 #ifndef CARTOGRAPHER_MAPPING_INTERNAL_SCAN_MATCHING_REAL_TIME_CORRELATIVE_SCAN_MATCHER_H_
 #define CARTOGRAPHER_MAPPING_INTERNAL_SCAN_MATCHING_REAL_TIME_CORRELATIVE_SCAN_MATCHER_H_
 
-#include "cartographer/core/lua_parameter_dictionary.h"
+#include "cartographer/core/parameter_dictionary.h"
 #include "cartographer/proto/real_time_correlative_scan_matcher_options.pb.h"
 
 namespace cartographer {
@@ -27,7 +27,7 @@ namespace scan_matching {
 
 proto::RealTimeCorrelativeScanMatcherOptions
 CreateRealTimeCorrelativeScanMatcherOptions(
-    common::LuaParameterDictionary* const parameter_dictionary);
+    common::ParameterDictionary* const parameter_dictionary);
 
 }  // namespace scan_matching
 }  // namespace mapping

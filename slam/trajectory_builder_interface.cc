@@ -24,7 +24,7 @@ namespace {
 
 void PopulatePureLocalizationTrimmerOptions(
     proto::TrajectoryBuilderOptions* const trajectory_builder_options,
-    common::LuaParameterDictionary* const parameter_dictionary) {
+    common::ParameterDictionary* const parameter_dictionary) {
   constexpr char kDictionaryKey[] = "pure_localization_trimmer";
   if (!parameter_dictionary->HasKey(kDictionaryKey)) return;
 
@@ -37,7 +37,7 @@ void PopulatePureLocalizationTrimmerOptions(
 
 void PopulatePoseGraphOdometryMotionFilterOptions(
     proto::TrajectoryBuilderOptions* const trajectory_builder_options,
-    common::LuaParameterDictionary* const parameter_dictionary) {
+    common::ParameterDictionary* const parameter_dictionary) {
   constexpr char kDictionaryKey[] = "pose_graph_odometry_motion_filter";
   if (!parameter_dictionary->HasKey(kDictionaryKey)) return;
 
@@ -55,7 +55,7 @@ void PopulatePoseGraphOdometryMotionFilterOptions(
 }  // namespace
 
 proto::TrajectoryBuilderOptions CreateTrajectoryBuilderOptions(
-    common::LuaParameterDictionary* const parameter_dictionary) {
+    common::ParameterDictionary* const parameter_dictionary) {
   proto::TrajectoryBuilderOptions options;
   *options.mutable_trajectory_builder_2d_options() =
       CreateLocalTrajectoryBuilderOptions2D(

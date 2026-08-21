@@ -20,7 +20,7 @@ namespace cartographer {
 namespace common {
 
 proto::CeresSolverOptions CreateCeresSolverOptionsProto(
-    common::LuaParameterDictionary* parameter_dictionary) {
+    common::ParameterDictionary* parameter_dictionary) {
   proto::CeresSolverOptions proto;
   proto.set_use_nonmonotonic_steps(
       parameter_dictionary->GetBool("use_nonmonotonic_steps"));

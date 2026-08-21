@@ -19,7 +19,7 @@
 
 #include <limits>
 
-#include "cartographer/core/lua_parameter_dictionary.h"
+#include "cartographer/core/parameter_dictionary.h"
 #include "cartographer/core/time.h"
 #include "cartographer/proto/motion_filter_options.pb.h"
 #include "cartographer/core/rigid_transform.h"
@@ -28,7 +28,7 @@ namespace cartographer {
 namespace mapping {
 
 proto::MotionFilterOptions CreateMotionFilterOptions(
-    common::LuaParameterDictionary* parameter_dictionary);
+    common::ParameterDictionary* parameter_dictionary);
 
 // Takes poses as input and filters them to get fewer poses.
 class MotionFilter {

@@ -25,7 +25,7 @@ namespace mapping {
 namespace constraints {
 
 proto::ConstraintBuilderOptions CreateConstraintBuilderOptions(
-    common::LuaParameterDictionary* const parameter_dictionary) {
+    common::ParameterDictionary* const parameter_dictionary) {
   proto::ConstraintBuilderOptions options;
   options.set_sampling_ratio(parameter_dictionary->GetDouble("sampling_ratio"));
   options.set_max_constraint_distance(

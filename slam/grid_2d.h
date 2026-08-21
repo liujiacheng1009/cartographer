@@ -31,7 +31,7 @@ namespace cartographer {
 namespace mapping {
 
 proto::GridOptions2D CreateGridOptions2D(
-    common::LuaParameterDictionary* const parameter_dictionary);
+    common::ParameterDictionary* const parameter_dictionary);
 
 enum class GridType { PROBABILITY_GRID };
 

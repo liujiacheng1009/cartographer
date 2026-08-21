@@ -23,7 +23,7 @@ namespace mapping {
 namespace optimization {
 
 proto::OptimizationProblemOptions CreateOptimizationProblemOptions(
-    common::LuaParameterDictionary* const parameter_dictionary) {
+    common::ParameterDictionary* const parameter_dictionary) {
   proto::OptimizationProblemOptions options;
   options.set_huber_scale(parameter_dictionary->GetDouble("huber_scale"));
   options.set_odometry_translation_weight(

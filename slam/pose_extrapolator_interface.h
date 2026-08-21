@@ -31,7 +31,7 @@ namespace cartographer {
 namespace mapping {
 
 proto::PoseExtrapolatorOptions CreatePoseExtrapolatorOptions(
-    common::LuaParameterDictionary* const parameter_dictionary);
+    common::ParameterDictionary* const parameter_dictionary);
 
 class PoseExtrapolatorInterface {
  public:

@@ -20,7 +20,7 @@
 #include <vector>
 
 #include "Eigen/Core"
-#include "cartographer/core/lua_parameter_dictionary.h"
+#include "cartographer/core/parameter_dictionary.h"
 #include "cartographer/slam/map_limits.h"
 #include "cartographer/slam/xy_index.h"
 #include "cartographer/core/point_cloud.h"

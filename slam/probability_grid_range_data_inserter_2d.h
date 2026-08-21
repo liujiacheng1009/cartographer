@@ -20,7 +20,7 @@
 #include <utility>
 #include <vector>
 
-#include "cartographer/core/lua_parameter_dictionary.h"
+#include "cartographer/core/parameter_dictionary.h"
 #include "cartographer/core/port.h"
 #include "cartographer/slam/probability_grid.h"
 #include "cartographer/slam/xy_index.h"
@@ -34,7 +34,7 @@ namespace mapping {
 
 proto::ProbabilityGridRangeDataInserterOptions2D
 CreateProbabilityGridRangeDataInserterOptions2D(
-    common::LuaParameterDictionary* parameter_dictionary);
+    common::ParameterDictionary* parameter_dictionary);
 
 class ProbabilityGridRangeDataInserter2D : public RangeDataInserterInterface {
  public:

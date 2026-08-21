@@ -16,41 +16,40 @@
 
 #include "cartographer_ros/node_options.h"
 
-#include <vector>
+#include <filesystem>
 
-#include "cartographer/core/configuration_file_resolver.h"
 #include "cartographer/slam/map_builder_interface.h"
 #include "glog/logging.h"
 
 namespace cartographer_ros {
 
 NodeOptions CreateNodeOptions(
-    ::cartographer::common::LuaParameterDictionary* const
-        lua_parameter_dictionary) {
+    ::cartographer::common::ParameterDictionary* const
+        parameter_dictionary) {
   NodeOptions options;
   options.map_builder_options =
       ::cartographer::mapping::CreateMapBuilderOptions(
-          lua_parameter_dictionary->GetDictionary("map_builder").get());
-  options.map_frame = lua_parameter_dictionary->GetString("map_frame");
+          parameter_dictionary->GetDictionary("map_builder").get());
+  options.map_frame = parameter_dictionary->GetString("map_frame");
   options.lookup_transform_timeout_sec =
-      lua_parameter_dictionary->GetDouble("lookup_transform_timeout_sec");
+      parameter_dictionary->GetDouble("lookup_transform_timeout_sec");
   options.submap_publish_period_sec =
-      lua_parameter_dictionary->GetDouble("submap_publish_period_sec");
+      parameter_dictionary->GetDouble("submap_publish_period_sec");
   options.pose_publish_period_sec =
-      lua_parameter_dictionary->GetDouble("pose_publish_period_sec");
+      parameter_dictionary->GetDouble("pose_publish_period_sec");
   options.trajectory_publish_period_sec =
-      lua_parameter_dictionary->GetDouble("trajectory_publish_period_sec");
-  if (lua_parameter_dictionary->HasKey("publish_to_tf")) {
+      parameter_dictionary->GetDouble("trajectory_publish_period_sec");
+  if (parameter_dictionary->HasKey("publish_to_tf")) {
     options.publish_to_tf =
-        lua_parameter_dictionary->GetBool("publish_to_tf");
+        parameter_dictionary->GetBool("publish_to_tf");
   }
-  if (lua_parameter_dictionary->HasKey("publish_tracked_pose")) {
+  if (parameter_dictionary->HasKey("publish_tracked_pose")) {
     options.publish_tracked_pose =
-        lua_parameter_dictionary->GetBool("publish_tracked_pose");
+        parameter_dictionary->GetBool("publish_tracked_pose");
   }
-  if (lua_parameter_dictionary->HasKey("use_pose_extrapolator")) {
+  if (parameter_dictionary->HasKey("use_pose_extrapolator")) {
     options.use_pose_extrapolator =
-        lua_parameter_dictionary->GetBool("use_pose_extrapolator");
+        parameter_dictionary->GetBool("use_pose_extrapolator");
   }
   return options;
 }
@@ -58,16 +57,14 @@ NodeOptions CreateNodeOptions(
 std::tuple<NodeOptions, TrajectoryOptions> LoadOptions(
     const std::string& configuration_directory,
     const std::string& configuration_basename) {
-  auto file_resolver =
-      absl::make_unique<cartographer::common::ConfigurationFileResolver>(
-          std::vector<std::string>{configuration_directory});
-  const std::string code =
-      file_resolver->GetFileContentOrDie(configuration_basename);
-  cartographer::common::LuaParameterDictionary lua_parameter_dictionary(
-      code, std::move(file_resolver));
+  const std::string filename =
+      (std::filesystem::path(configuration_directory) /
+       configuration_basename).string();
+  auto parameter_dictionary =
+      cartographer::common::ParameterDictionary::LoadFile(filename);
 
-  return std::make_tuple(CreateNodeOptions(&lua_parameter_dictionary),
-                         CreateTrajectoryOptions(&lua_parameter_dictionary));
+  return std::make_tuple(CreateNodeOptions(parameter_dictionary.get()),
+                         CreateTrajectoryOptions(parameter_dictionary.get()));
 }
 
 }  // namespace cartographer_ros

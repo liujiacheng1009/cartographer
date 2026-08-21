@@ -17,7 +17,7 @@
 #ifndef CARTOGRAPHER_COMMON_CERES_SOLVER_OPTIONS_H_
 #define CARTOGRAPHER_COMMON_CERES_SOLVER_OPTIONS_H_
 
-#include "cartographer/core/lua_parameter_dictionary.h"
+#include "cartographer/core/parameter_dictionary.h"
 #include "cartographer/proto/ceres_solver_options.pb.h"
 #include "ceres/ceres.h"
 
@@ -25,7 +25,7 @@ namespace cartographer {
 namespace common {
 
 proto::CeresSolverOptions CreateCeresSolverOptionsProto(
-    common::LuaParameterDictionary* parameter_dictionary);
+    common::ParameterDictionary* parameter_dictionary);
 
 ceres::Solver::Options CreateCeresSolverOptions(
     const proto::CeresSolverOptions& proto);

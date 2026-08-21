@@ -23,7 +23,7 @@
 #include <vector>
 
 #include "absl/container/flat_hash_map.h"
-#include "cartographer/core/lua_parameter_dictionary.h"
+#include "cartographer/core/parameter_dictionary.h"
 #include "cartographer/slam/id.h"
 #include "cartographer/slam/pose_graph_interface.h"
 #include "cartographer/slam/pose_graph_trimmer.h"
@@ -42,7 +42,7 @@ namespace cartographer {
 namespace mapping {
 
 proto::PoseGraphOptions CreatePoseGraphOptions(
-    common::LuaParameterDictionary* const parameter_dictionary);
+    common::ParameterDictionary* const parameter_dictionary);
 
 class PoseGraph : public PoseGraphInterface {
  public:

@@ -45,7 +45,7 @@ float MaxCorrespondenceCostFromProto(const proto::Grid2D& proto) {
 }  // namespace
 
 proto::GridOptions2D CreateGridOptions2D(
-    common::LuaParameterDictionary* const parameter_dictionary) {
+    common::ParameterDictionary* const parameter_dictionary) {
   proto::GridOptions2D options;
   const std::string grid_type_string =
       parameter_dictionary->GetString("grid_type");

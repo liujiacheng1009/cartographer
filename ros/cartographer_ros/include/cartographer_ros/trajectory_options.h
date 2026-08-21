@@ -19,7 +19,7 @@
 
 #include <string>
 
-#include "cartographer/core/lua_parameter_dictionary.h"
+#include "cartographer/core/parameter_dictionary.h"
 #include "cartographer/core/port.h"
 #include "cartographer/proto/trajectory_builder_options.pb.h"
 
@@ -48,7 +48,7 @@ struct TrajectoryOptions {
 };
 
 TrajectoryOptions CreateTrajectoryOptions(
-    ::cartographer::common::LuaParameterDictionary* lua_parameter_dictionary);
+    ::cartographer::common::ParameterDictionary* parameter_dictionary);
 
 }  // namespace cartographer_ros
 

@@ -25,7 +25,7 @@ namespace {
 
 proto::ConstantVelocityPoseExtrapolatorOptions
 CreateConstantVelocityPoseExtrapolatorOptions(
-    common::LuaParameterDictionary* const parameter_dictionary) {
+    common::ParameterDictionary* const parameter_dictionary) {
   proto::ConstantVelocityPoseExtrapolatorOptions options;
   options.set_pose_queue_duration(
       parameter_dictionary->GetDouble("pose_queue_duration"));
@@ -37,7 +37,7 @@ CreateConstantVelocityPoseExtrapolatorOptions(
 }  // namespace
 
 proto::PoseExtrapolatorOptions CreatePoseExtrapolatorOptions(
-    common::LuaParameterDictionary* const parameter_dictionary) {
+    common::ParameterDictionary* const parameter_dictionary) {
   proto::PoseExtrapolatorOptions options;
   *options.mutable_constant_velocity() =
       CreateConstantVelocityPoseExtrapolatorOptions(

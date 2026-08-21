@@ -17,7 +17,7 @@
 #ifndef CARTOGRAPHER_MAPPING_INTERNAL_OPTIMIZATION_OPTIMIZATION_PROBLEM_OPTIONS_H_
 #define CARTOGRAPHER_MAPPING_INTERNAL_OPTIMIZATION_OPTIMIZATION_PROBLEM_OPTIONS_H_
 
-#include "cartographer/core/lua_parameter_dictionary.h"
+#include "cartographer/core/parameter_dictionary.h"
 #include "cartographer/proto/optimization_problem_options.pb.h"
 
 namespace cartographer {
@@ -25,7 +25,7 @@ namespace mapping {
 namespace optimization {
 
 proto::OptimizationProblemOptions CreateOptimizationProblemOptions(
-    common::LuaParameterDictionary* parameter_dictionary);
+    common::ParameterDictionary* parameter_dictionary);
 
 }  // namespace optimization
 }  // namespace mapping

@@ -33,7 +33,7 @@ namespace cartographer {
 namespace mapping {
 
 proto::SubmapsOptions2D CreateSubmapsOptions2D(
-    common::LuaParameterDictionary* const parameter_dictionary) {
+    common::ParameterDictionary* const parameter_dictionary) {
   proto::SubmapsOptions2D options;
   options.set_num_range_data(
       parameter_dictionary->GetNonNegativeInt("num_range_data"));

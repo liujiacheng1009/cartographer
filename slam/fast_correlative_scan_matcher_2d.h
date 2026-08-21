@@ -41,7 +41,7 @@ namespace scan_matching {
 
 proto::FastCorrelativeScanMatcherOptions2D
 CreateFastCorrelativeScanMatcherOptions2D(
-    common::LuaParameterDictionary* parameter_dictionary);
+    common::ParameterDictionary* parameter_dictionary);
 
 // A precomputed grid that contains in each cell (x0, y0) the maximum
 // probability in the width x width area defined by x0 <= x < x0 + width and

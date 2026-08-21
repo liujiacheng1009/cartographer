@@ -21,7 +21,7 @@
 #include <vector>
 
 #include "Eigen/Core"
-#include "cartographer/core/lua_parameter_dictionary.h"
+#include "cartographer/core/parameter_dictionary.h"
 #include "cartographer/slam/grid_2d.h"
 #include "cartographer/proto/ceres_scan_matcher_options_2d.pb.h"
 #include "cartographer/core/point_cloud.h"
@@ -32,7 +32,7 @@ namespace mapping {
 namespace scan_matching {
 
 proto::CeresScanMatcherOptions2D CreateCeresScanMatcherOptions2D(
-    common::LuaParameterDictionary* parameter_dictionary);
+    common::ParameterDictionary* parameter_dictionary);
 
 // Align scans with an existing map using Ceres.
 class CeresScanMatcher2D {
