@@ -9,7 +9,7 @@
 - 单条新建轨迹；
 - 一个 `sensor_msgs/msg/LaserScan` 类型的 `/scan`；
 - 一个 `nav_msgs/msg/Odometry` 类型的 `/odom`；
-- `/tf` 和 `/tf_static` 提供的坐标变换；
+- bag 同目录 `calibration.yaml` 提供的传感器外参；
 - 2D 建图，或加载冻结 `.swmap` 后定位。
 
 入口是 `application/bag_runner.cc`，配置入口是
@@ -22,8 +22,8 @@ landmark、fixed-frame 数据和外部 IMU 输入。
 flowchart LR
     BAG[(ROS 2 bag)]
     CFG[YAML 配置]
-    TF[TF 预加载<br/>tf2_ros::Buffer]
-    READ[bag 第二遍读取]
+    TF[calibration.yaml<br/>固定外参与时间偏移]
+    READ[bag 单遍读取]
     CONVERT[反序列化与坐标转换]
     COLLATE[Collator<br/>按时间排序 scan/odom]
     LOCAL[LocalTrajectoryBuilder2D<br/>局部 SLAM]
@@ -86,30 +86,31 @@ MapBuilder
 6. 为 `scan` 和 `odom` 注册一条新轨迹；
 7. 创建 `CollatedTrajectoryBuilder → GlobalTrajectoryBuilder →
    LocalTrajectoryBuilder2D` 链路；
-8. 预载 TF，再开始传感器数据回放。
+8. 加载标定文件，单遍回放传感器数据。
 
 传给 `AddTrajectoryBuilder()` 的 sensor ID 是内部稳定名称 `scan` 和 `odom`。
 它们同时也是 Collator 的队列键，不是从 bag 中动态发现的任意话题名称。
 
-## 4. Bag 两遍读取
+## 4. Bag 单遍读取
 
-### 4.1 第一遍：预载坐标变换
+benchmark worker 会生成只包含 `/scan` 和 `/odom` 的规范化 `native_input` bag，
+并在同目录生成 `calibration.yaml`。预处理阶段从源数据的静态标定中解析
+`T_tracking_lidar`，运行时不再读取 `/tf` 或 `/tf_static`。IILABS3D 的 odometry child
+frame 已经是配置的 `tracking_frame`（`eve/base_footprint`），因此对应外参为单位矩阵。
 
-`PreloadTransforms()` 只读取 `/tf` 和 `/tf_static`，统一去掉 frame 名开头的
-`/`，然后写入 `tf2_ros::Buffer`。之所以先完整预载，是为了让第二遍处理任意时间戳
-的 scan 和 odometry 时都能同步查询传感器坐标系到 `tracking_frame` 的变换。
-
-这一遍不向 SLAM 栈提交传感器数据。
-
-### 4.2 第二遍：回放传感器数据
-
-第二个 `rosbag2_cpp::Reader` 按 bag 顺序读取消息：
+`bag_runner` 启动时读取一次标定文件，然后只打开一个 `rosbag2_cpp::Reader`：
 
 - `/scan`：反序列化 LaserScan，过滤非有限值和量程外点，把极坐标转为带点内相对
-  时间的点云，再变换到 `tracking_frame`，形成 `TimedPointCloudData`；
-- `/odom`：反序列化 Odometry，用 `child_frame_id → tracking_frame` 的 TF 修正
-  pose，形成 `OdometryData`；
+  时间的点云，再用 `T_tracking_sensor` 变换到 `tracking_frame`，形成
+  `TimedPointCloudData`；
+- `/odom`：校验 reference/child frame，再用 `T_tracking_child` 把 pose 统一到
+  tracking frame，形成 `OdometryData`；
 - 其他话题：忽略。
+
+标定文件采用 `T_parent_child` 约定，即矩阵把 child 坐标表达转换为 parent 坐标表达；
+同时记录 schema、单位、topic、消息类型、frame、pose 约定及传感器时间偏移。矩阵使用
+OpenVINS 风格的 4×4 齐次形式。runner 会检查矩阵末行、旋转正交性、行列式和消息中的
+frame，避免方向写反或标定与 bag 不匹配。
 
 LaserScan 的数据时间定义为最后一个有效扫描点所在时刻；各点的时间改写为相对该时刻
 的非正偏移。这是后续运动补偿和 pose extrapolation 的时间基准。
@@ -215,7 +216,7 @@ bag 读完后的顺序不可交换：
 
 | 目录 | 在 bag 链路中的职责 |
 |---|---|
-| `application/` | 参数、bag 两遍读取、ROS 消息转换、生命周期控制 |
+| `application/` | 参数、bag 单遍读取、ROS 消息转换、生命周期控制 |
 | `core/` | 时间、传感器数据、Collator、点云、变换、线程池和指标 |
 | `trajectory/` | 数据排序外壳以及局部/全局轨迹编排边界 |
 | `local/` | 局部 SLAM、姿态预测、运动过滤和 range 汇聚 |

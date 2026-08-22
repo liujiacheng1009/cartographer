@@ -32,9 +32,6 @@ find_package(rclcpp REQUIRED)
 find_package(rosbag2_cpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(SQLite3 REQUIRED)
-find_package(tf2 REQUIRED)
-find_package(tf2_msgs REQUIRED)
-find_package(tf2_ros REQUIRED)
 find_package(yaml-cpp REQUIRED)
 find_package(ZLIB REQUIRED)
 
@@ -147,9 +144,6 @@ target_link_libraries(cartographer_bag_runner PRIVATE
   rclcpp::rclcpp
   rosbag2_cpp::rosbag2_cpp
   ${sensor_msgs_TARGETS}
-  tf2::tf2
-  ${tf2_msgs_TARGETS}
-  tf2_ros::tf2_ros
 )
 
 install(TARGETS cartographer_bag_runner RUNTIME DESTINATION bin)

@@ -22,12 +22,12 @@
 #include "rclcpp/rclcpp.hpp"
 #include "rosbag2_cpp/reader.hpp"
 #include "sensor_msgs/msg/laser_scan.hpp"
-#include "tf2_msgs/msg/tf_message.hpp"
-#include "tf2_ros/buffer.h"
+#include "yaml-cpp/yaml.h"
 
 DEFINE_string(offline_configuration_directory, "", "Configuration directory");
 DEFINE_string(configuration_basenames, "", "Single YAML configuration basename");
 DEFINE_string(bag_filenames, "", "Single ROS 2 bag directory");
+DEFINE_string(calibration_filename, "", "Sensor calibration YAML");
 DEFINE_string(offline_load_state_filename, "", "Frozen .swmap input");
 DEFINE_bool(offline_load_frozen_state, true, "Load map as frozen");
 DEFINE_string(offline_save_state_filename, "", ".swmap output");
@@ -48,14 +48,6 @@ double ToUnixSeconds(carto::common::Time time) {
   return (carto::common::ToUniversal(time) -
           carto::common::kUtsEpochOffsetFromUnixEpochInSeconds * 10000000ll) *
          1e-7;
-}
-
-carto::transform::Rigid3d ToRigid3d(
-    const geometry_msgs::msg::Transform& transform) {
-  return {{transform.translation.x, transform.translation.y,
-           transform.translation.z},
-          {transform.rotation.w, transform.rotation.x, transform.rotation.y,
-           transform.rotation.z}};
 }
 
 carto::transform::Rigid3d ToRigid3d(const geometry_msgs::msg::Pose& pose) {
@@ -85,30 +77,80 @@ std::map<std::string, std::string> TopicTypes(rosbag2_cpp::Reader* reader) {
   return result;
 }
 
-void PreloadTransforms(const std::string& bag, tf2_ros::Buffer* buffer) {
-  rosbag2_cpp::Reader reader;
-  reader.open(bag);
-  const auto types = TopicTypes(&reader);
-  while (reader.has_next()) {
-    const auto message = reader.read_next();
-    if (message->topic_name != "/tf" &&
-        message->topic_name != "/tf_static") {
-      continue;
-    }
-    CHECK_EQ(types.at(message->topic_name), "tf2_msgs/msg/TFMessage");
-    const auto tf = Deserialize<tf2_msgs::msg::TFMessage>(*message);
-    for (auto transform : tf.transforms) {
-      transform.header.frame_id = NormalizeFrame(transform.header.frame_id);
-      transform.child_frame_id = NormalizeFrame(transform.child_frame_id);
-      buffer->setTransform(transform, "bag",
-                           message->topic_name == "/tf_static");
+struct Calibration {
+  std::string tracking_frame;
+  std::string lidar_topic;
+  std::string lidar_frame;
+  double lidar_time_offset_seconds;
+  carto::transform::Rigid3d tracking_from_lidar;
+  std::string odometry_topic;
+  std::string odometry_reference_frame;
+  std::string odometry_child_frame;
+  double odometry_time_offset_seconds;
+  carto::transform::Rigid3d tracking_from_odometry_child;
+};
+
+carto::transform::Rigid3d ReadRigidTransform(const YAML::Node& node,
+                                             const std::string& name) {
+  CHECK(node.IsSequence() && node.size() == 4)
+      << name << " must be a 4x4 matrix.";
+  Eigen::Matrix4d matrix;
+  for (int row = 0; row != 4; ++row) {
+    CHECK(node[row].IsSequence() && node[row].size() == 4)
+        << name << " must be a 4x4 matrix.";
+    for (int column = 0; column != 4; ++column) {
+      matrix(row, column) = node[row][column].as<double>();
+      CHECK(std::isfinite(matrix(row, column))) << name << " is not finite.";
     }
   }
+  CHECK(matrix.row(3).isApprox(Eigen::RowVector4d(0., 0., 0., 1.), 1e-9))
+      << name << " must have homogeneous last row [0, 0, 0, 1].";
+  const Eigen::Matrix3d rotation = matrix.topLeftCorner<3, 3>();
+  CHECK((rotation.transpose() * rotation).isApprox(Eigen::Matrix3d::Identity(),
+                                                    1e-6))
+      << name << " rotation is not orthonormal.";
+  CHECK_LE(std::abs(rotation.determinant() - 1.), 1e-6)
+      << name << " rotation determinant must be +1.";
+  return {matrix.topRightCorner<3, 1>(), Eigen::Quaterniond(rotation)};
+}
+
+Calibration LoadCalibration(const std::string& filename) {
+  YAML::Node root;
+  try {
+    root = YAML::LoadFile(filename);
+  } catch (const std::exception& error) {
+    LOG(FATAL) << "Failed to load calibration '" << filename
+               << "': " << error.what();
+  }
+  CHECK_EQ(root["schema_version"].as<int>(), 1);
+  CHECK_EQ(root["convention"].as<std::string>(), "T_parent_child");
+  CHECK_EQ(root["units"]["translation"].as<std::string>(), "meter");
+  CHECK_EQ(root["units"]["rotation"].as<std::string>(), "unitless");
+  const auto lidar = root["lidar"];
+  const auto odometry = root["odometry"];
+  CHECK_EQ(lidar["message_type"].as<std::string>(),
+           "sensor_msgs/msg/LaserScan");
+  CHECK_EQ(odometry["message_type"].as<std::string>(),
+           "nav_msgs/msg/Odometry");
+  CHECK_EQ(odometry["pose_convention"].as<std::string>(),
+           "T_reference_child");
+  return {
+      NormalizeFrame(root["tracking_frame"].as<std::string>()),
+      lidar["topic"].as<std::string>(),
+      NormalizeFrame(lidar["frame"].as<std::string>()),
+      lidar["time_offset_seconds"].as<double>(),
+      ReadRigidTransform(lidar["T_tracking_sensor"], "T_tracking_sensor"),
+      odometry["topic"].as<std::string>(),
+      NormalizeFrame(odometry["reference_frame"].as<std::string>()),
+      NormalizeFrame(odometry["child_frame"].as<std::string>()),
+      odometry["time_offset_seconds"].as<double>(),
+      ReadRigidTransform(odometry["T_tracking_child"], "T_tracking_child")};
 }
 
 carto::sensor::TimedPointCloudData ConvertScan(
-    const sensor_msgs::msg::LaserScan& scan, const std::string& tracking_frame,
-    const tf2_ros::Buffer& buffer) {
+    const sensor_msgs::msg::LaserScan& scan,
+    const Calibration& calibration) {
+  CHECK_EQ(NormalizeFrame(scan.header.frame_id), calibration.lidar_frame);
   carto::sensor::TimedPointCloud points;
   points.reserve(scan.ranges.size());
   float angle = scan.angle_min;
@@ -121,29 +163,30 @@ carto::sensor::TimedPointCloudData ConvertScan(
     }
   }
   auto time = FromRos(scan.header.stamp);
+  time += carto::common::FromSeconds(calibration.lidar_time_offset_seconds);
   if (!points.empty()) {
     const float duration = points.back().time;
     time += carto::common::FromSeconds(duration);
     for (auto& point : points) point.time -= duration;
   }
-  const auto transform = buffer.lookupTransform(
-      tracking_frame, NormalizeFrame(scan.header.frame_id),
-      rclcpp::Time(scan.header.stamp));
-  const auto sensor_to_tracking = ToRigid3d(transform.transform).cast<float>();
+  const auto sensor_to_tracking = calibration.tracking_from_lidar.cast<float>();
   return {time, sensor_to_tracking.translation(),
           carto::sensor::TransformTimedPointCloud(points, sensor_to_tracking),
           {}};
 }
 
 carto::sensor::OdometryData ConvertOdometry(
-    const nav_msgs::msg::Odometry& odometry, const std::string& tracking_frame,
-    const tf2_ros::Buffer& buffer) {
-  const auto transform = buffer.lookupTransform(
-      tracking_frame, NormalizeFrame(odometry.child_frame_id),
-      rclcpp::Time(odometry.header.stamp));
-  return {FromRos(odometry.header.stamp),
+    const nav_msgs::msg::Odometry& odometry,
+    const Calibration& calibration) {
+  CHECK_EQ(NormalizeFrame(odometry.header.frame_id),
+           calibration.odometry_reference_frame);
+  CHECK_EQ(NormalizeFrame(odometry.child_frame_id),
+           calibration.odometry_child_frame);
+  return {FromRos(odometry.header.stamp) +
+              carto::common::FromSeconds(
+                  calibration.odometry_time_offset_seconds),
           ToRigid3d(odometry.pose.pose) *
-              ToRigid3d(transform.transform).inverse()};
+              calibration.tracking_from_odometry_child.inverse()};
 }
 
 void ValidateBagOnlyConfig(
@@ -192,6 +235,7 @@ int main(int argc, char** argv) {
   CHECK(!FLAGS_offline_configuration_directory.empty());
   CHECK(!FLAGS_configuration_basenames.empty());
   CHECK(!FLAGS_bag_filenames.empty());
+  CHECK(!FLAGS_calibration_filename.empty());
   CHECK_EQ(FLAGS_bag_filenames.find(','), std::string::npos)
       << "Only one bag is supported.";
 
@@ -200,6 +244,10 @@ int main(int argc, char** argv) {
       FLAGS_configuration_basenames);
   const std::string tracking_frame =
       NormalizeFrame(dictionary->GetString("tracking_frame"));
+  const Calibration calibration = LoadCalibration(FLAGS_calibration_filename);
+  CHECK_EQ(calibration.tracking_frame, tracking_frame);
+  CHECK_EQ(calibration.lidar_topic, "/scan");
+  CHECK_EQ(calibration.odometry_topic, "/odom");
   const auto map_options = carto::mapping::CreateMapBuilderOptions(
       dictionary->GetDictionary("map_builder").get());
   const auto trajectory_options = carto::mapping::CreateTrajectoryBuilderOptions(
@@ -220,11 +268,6 @@ int main(int argc, char** argv) {
       sensors, trajectory_options, nullptr);
   LOG(INFO) << "Added trajectory with ID '" << trajectory_id << "'";
 
-  auto node = rclcpp::Node::make_shared("cartographer_bag_runner");
-  tf2_ros::Buffer tf_buffer(node->get_clock(), tf2::durationFromSec(3600.), node);
-  tf_buffer.setUsingDedicatedThread(true);
-  PreloadTransforms(FLAGS_bag_filenames, &tf_buffer);
-
   const auto started = std::chrono::steady_clock::now();
   rosbag2_cpp::Reader reader;
   reader.open(FLAGS_bag_filenames);
@@ -232,16 +275,16 @@ int main(int argc, char** argv) {
   auto* trajectory = map_builder->GetTrajectoryBuilder(trajectory_id);
   while (reader.has_next()) {
     const auto message = reader.read_next();
-    if (message->topic_name == "/scan") {
+    if (message->topic_name == calibration.lidar_topic) {
       CHECK_EQ(types.at("/scan"), "sensor_msgs/msg/LaserScan");
       trajectory->AddSensorData(
           "scan", ConvertScan(Deserialize<sensor_msgs::msg::LaserScan>(*message),
-                              tracking_frame, tf_buffer));
-    } else if (message->topic_name == "/odom") {
+                              calibration));
+    } else if (message->topic_name == calibration.odometry_topic) {
       CHECK_EQ(types.at("/odom"), "nav_msgs/msg/Odometry");
       trajectory->AddSensorData(
           "odom", ConvertOdometry(Deserialize<nav_msgs::msg::Odometry>(*message),
-                                  tracking_frame, tf_buffer));
+                                  calibration));
     }
   }
   map_builder->FinishTrajectory(trajectory_id);
