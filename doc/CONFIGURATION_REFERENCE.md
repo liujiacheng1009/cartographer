@@ -1,0 +1,164 @@
+# YAML 配置参考
+
+## 适用范围
+
+本文描述 `application/slam_options.*` 当前实际消费的 bag-only 2D 配置。完整可运行样例是
+`config/iilabs3d_offline.yaml`。解析器不支持 include、表达式、环境变量替换或 Lua。
+
+## 顶层结构
+
+```yaml
+map_builder:       # 系统和后端
+trajectory_builder: # 单条活动轨迹的前端
+tracking_frame: eve/base_footprint
+```
+
+`tracking_frame` 必须与 calibration 中同名字段一致。frame 会去掉开头的 `/`，除此之外
+不做别名解析。
+
+## `map_builder`
+
+| 参数 | 类型 | 基线 | 作用 |
+|---|---:|---:|---|
+| `use_trajectory_builder_2d` | bool | `true` | 必须启用 2D 前端 |
+| `num_background_threads` | int | `4` | constraint 索引和匹配任务工作线程数 |
+| `collate_by_trajectory` | bool | `false` | 保留配置语义；当前单轨迹输入不产生差异 |
+
+线程数必须为正。它不是“前端线程数”，也不等于 PGO 的 Ceres 线程数。
+
+## `map_builder.pose_graph`
+
+| 参数 | 基线 | 作用与权衡 |
+|---|---:|---|
+| `optimize_every_n_nodes` | 20 | 每新增多少 node 触发一次 PGO；越小修正越及时但 CPU 越高 |
+| `matcher_translation_weight` | 500 | 局部 SLAM 平移约束权重 |
+| `matcher_rotation_weight` | 1600 | 局部 SLAM 旋转约束权重 |
+| `max_num_final_iterations` | 200 | 轨迹结束时最大优化迭代数 |
+| `global_sampling_ratio` | 0.003 | 全局定位约束采样比例 |
+| `log_residual_histograms` | true | 输出优化残差分布 |
+| `global_constraint_search_after_n_seconds` | 10.0 | 未连接轨迹多久后尝试全局约束 |
+
+把 `optimize_every_n_nodes` 设为较小值会频繁形成同步屏障。离线吞吐优先时应结合回环密度
+和最终优化评估，不要只追求更频繁的 PGO。
+
+## `pose_graph.constraint_builder`
+
+| 参数 | 基线 | 说明 |
+|---|---:|---|
+| `sampling_ratio` | 0.15 | 普通 node-submap 候选采样比例 |
+| `max_constraint_distance` | 15.0 m | 局部候选最大距离 |
+| `min_score` | 0.65 | 普通相关匹配接受阈值 |
+| `global_localization_min_score` | 0.7 | 全局候选接受阈值 |
+| `loop_closure_translation_weight` | 11000 | 回环平移残差权重 |
+| `loop_closure_rotation_weight` | 100000 | 回环旋转残差权重 |
+| `log_matches` | true | 输出接受/拒绝日志 |
+
+降低 score 阈值会同时增加真回环和假回环，不能仅依据“回环数量更多”判断效果。权重决定
+被接受约束进入 PGO 后的影响，不会提高粗匹配的接受概率。
+
+### `fast_correlative_scan_matcher`
+
+| 参数 | 基线 | 说明 |
+|---|---:|---|
+| `linear_search_window` | 7.0 m | 回环平移搜索半径 |
+| `angular_search_window` | 0.5236 rad | 回环角度搜索半径 |
+| `branch_and_bound_depth` | 7 | 多分辨率搜索深度 |
+
+窗口和深度主要影响 constraint worker CPU。搜索索引按 submap 构建一次，多组候选共享。
+
+### 后端 `ceres_scan_matcher`
+
+用于精化已通过快速相关搜索的回环相对位姿。`occupied_space_weight`、
+`translation_weight`、`rotation_weight` 分别控制栅格占据残差和初值先验。其
+`ceres_solver_options.num_threads` 基线为 1，避免大量并行候选内部再次展开线程。
+
+## `pose_graph.optimization_problem`
+
+| 参数 | 基线 | 说明 |
+|---|---:|---|
+| `huber_scale` | 10 | 约束鲁棒损失尺度 |
+| `local_slam_pose_translation_weight` | 100000 | 连续局部位姿平移权重 |
+| `local_slam_pose_rotation_weight` | 100000 | 连续局部位姿旋转权重 |
+| `odometry_translation_weight` | 100 | odometry 平移权重 |
+| `odometry_rotation_weight` | 10 | odometry 旋转权重 |
+| `log_solver_summary` | false | 输出 Ceres 完整摘要 |
+
+PGO 的 `ceres_solver_options.max_num_iterations` 基线为 50，`num_threads` 为 7。它与
+`num_background_threads` 是两个并发层；资源受限设备应联合限制。
+
+## `trajectory_builder.trajectory_builder_2d`
+
+### 输入裁剪与累积
+
+| 参数 | 基线 | 说明 |
+|---|---:|---|
+| `min_range` | 0.05 m | 小于此距离的 return 丢弃 |
+| `max_range` | 30.0 m | 超出此距离按 missing ray 处理 |
+| `min_z` / `max_z` | -0.8 / 2.0 m | tracking frame 中高度裁剪 |
+| `missing_data_ray_length` | 15.0 m | 无回波 ray 的自由空间长度 |
+| `num_accumulated_range_data` | 1 | 累积多少帧后匹配一次 |
+| `voxel_filter_size` | 0.025 m | 固定体素滤波尺寸 |
+
+严格 2D 仍保留 z 裁剪，因为雷达外参可能带 z 和轻微倾角；算法最终优化 x/y/yaw。
+
+### 自适应体素滤波
+
+普通匹配和回环各有一组 `max_length`、`min_num_points`、`max_range`。滤波器在点数足够的
+前提下尽量使用较大体素；回环通常允许更粗的点云以降低候选计算量。
+
+### 前端 scan matching
+
+`use_online_correlative_scan_matching=false` 时，直接用外推 pose 作为 Ceres 初值；设为
+true 时先运行 `real_time_correlative_scan_matcher`。这会提高较差初值下的鲁棒性，也会
+显著增加每帧 CPU。
+
+前端 `ceres_scan_matcher`：
+
+- `occupied_space_weight`：scan 与概率栅格一致性；
+- `translation_weight`：偏离预测平移的代价；
+- `rotation_weight`：偏离预测 yaw 的代价；
+- solver 基线 20 次迭代、1 线程。
+
+### `motion_filter`
+
+只有时间、距离、角度三个变化都低于门限时才丢弃 node。基线是 5 秒、0.06 米、3 度。
+门限增大可减少 node 和后端负载，但会降低 submap 约束密度。
+
+### `pose_extrapolator.constant_velocity`
+
+| 参数 | 基线 | 当前含义 |
+|---|---:|---|
+| `pose_queue_duration` | 0.001 s | 估计速度使用的最短 pose 历史窗口 |
+| `imu_gravity_time_constant` | 10 s | 旧二维重力对齐内部参数 |
+
+当前没有外部 IMU 输入。产品假设严格二维运动，roll/pitch 不从真实惯导观测恢复；未来若
+里程计提供 IMU 姿态，应先定义新的输入与标定契约，不能把角速度伪装成现有 IMU。
+
+### `submaps`
+
+| 参数 | 基线 | 说明 |
+|---|---:|---|
+| `num_range_data` | 35 | 单个 submap 接收的 range data 数量尺度 |
+| `grid_options_2d.grid_type` | `PROBABILITY_GRID` | 当前唯一支持网格 |
+| `grid_options_2d.resolution` | 0.03 m | 栅格分辨率 |
+| `insert_free_space` | true | 是否写入 miss ray |
+| `hit_probability` | 0.55 | 命中单元更新概率 |
+| `miss_probability` | 0.49 | 穿越单元更新概率 |
+
+分辨率越小，内存、插入和匹配成本越高。`hit_probability` 应大于 0.5，
+`miss_probability` 应小于 0.5；极端值会让地图过快饱和。
+
+## 调参顺序
+
+1. 先固定并验证标定、时间偏移和量程；
+2. 再调前端滤波、预测和 scan matcher；
+3. 再调 submap 尺寸与分辨率；
+4. 最后调回环阈值、采样率和 PGO 权重；
+5. 每一步同时观察完整轨迹和短窗口，不跨多组参数建立无法归因的新基线。
+
+## 配置错误策略
+
+`ParameterDictionary` 会跟踪字段消费。配置文件不是“可带多余字段的模板”：拼写错误、
+上游遗留选项或未支持功能字段可能直接失败。这一策略用于防止用户以为某个参数生效，
+实际却被程序忽略。
+
