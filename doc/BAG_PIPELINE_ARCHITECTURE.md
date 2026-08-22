@@ -91,6 +91,36 @@ MapBuilder
 传给 `AddTrajectoryBuilder()` 的 sensor ID 是内部稳定名称 `scan` 和 `odom`。
 它们同时也是 Collator 的队列键，不是从 bag 中动态发现的任意话题名称。
 
+### 3.1 MapBuilder、PoseGraph 和线程池的职责
+
+`MapBuilder` 是装配和生命周期入口，本身不执行具体 SLAM 算法。它持有线程池、
+`PoseGraph`、`DataDispatcher` 以及各条 trajectory builder 链，负责创建轨迹、结束轨迹、
+加载/保存 `.swmap`。当前虽然只有一条轨迹，仍由它统一保证这些对象的析构顺序：必须先
+等待图计算完成，才能销毁被后台任务引用的 submap、node 和 scan matcher。
+
+`PoseGraph` 保存全局状态，包括 trajectory node、submap、约束和优化后的全局位姿。
+局部 SLAM 每产生一个 node，`PoseGraph` 就为它寻找可匹配的 submap、生成约束，并按
+`optimize_every_n_nodes` 触发一次全局优化。局部 scan matching 负责“当前扫描放在哪里”，
+PoseGraph 则负责“历史 node/submap 整体怎样保持一致并闭环”。
+
+线程池只服务于 PoseGraph 后台工作，不用于并行读取 bag，也不改变 `scan/odom` 的时间
+顺序。当前配置 `map_builder.num_background_threads: 4`，主要执行：
+
+- 构建每个 submap 的 `FastCorrelativeScanMatcher2D` 搜索结构；
+- 并行计算不同 node-submap 候选的局部约束和全局闭环约束；
+- 按依赖关系汇总一个 node 的约束，随后串行更新 PoseGraph 工作队列；
+- 等约束全部完成后执行全局优化回调。
+
+之所以保留线程池，是因为约束搜索通常比单帧局部 SLAM昂贵，而且不同候选彼此独立。
+如果全部放到 bag 回放线程同步执行，每插入一个 node 都可能阻塞后续 scan，离线回放时间
+会显著增加。这里的 `Task` 还表达了“先建立 submap scan matcher，再计算约束；所有约束
+完成后才能优化”的依赖关系，并非单纯封装 `std::thread`。
+
+线程池不是 SLAM 数学上的必要条件：可以重写成单线程同步流水线，但不能只删除
+`ThreadPool`。那样需要同时改写 `ConstraintBuilder2D::WhenDone()`、PoseGraph 工作队列和
+`WaitForAllComputations()` 的完成协议。当前保留它的核心理由是约束计算吞吐和已有任务依赖
+语义，而不是因为 bag 输入本身需要多线程。
+
 ## 4. Bag 单遍读取
 
 每个源 bag 目录固定保存自己的 `calibration.yaml`。benchmark worker 生成只包含
