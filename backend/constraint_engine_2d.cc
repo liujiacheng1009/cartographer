@@ -33,22 +33,12 @@
 #include "cartographer/backend/task_executor.h"
 #include "cartographer/application/slam_options.h"
 #include "cartographer/application/slam_options.h"
-#include "cartographer/foundation/runtime_stats.h"
 #include "cartographer/foundation/transform.h"
 #include "glog/logging.h"
 
 namespace cartographer {
 namespace mapping {
 namespace constraints {
-
-static auto* kConstraintsSearchedMetric = metrics::Counter::Null();
-static auto* kConstraintsFoundMetric = metrics::Counter::Null();
-static auto* kGlobalConstraintsSearchedMetric = metrics::Counter::Null();
-static auto* kGlobalConstraintsFoundMetric = metrics::Counter::Null();
-static auto* kQueueLengthMetric = metrics::Gauge::Null();
-static auto* kConstraintScoresMetric = metrics::Histogram::Null();
-static auto* kGlobalConstraintScoresMetric = metrics::Histogram::Null();
-static auto* kNumSubmapScanMatchersMetric = metrics::Gauge::Null();
 
 transform::Rigid2d ComputeSubmapPose(const Submap2D& submap) {
   return transform::Project2D(submap.local_pose());
@@ -93,7 +83,6 @@ void ConstraintEngine2D::MaybeAddConstraint(
         << "MaybeAddConstraint was called while WhenDone was scheduled.";
   }
   constraints_.emplace_back();
-  kQueueLengthMetric->Set(constraints_.size());
   auto* const constraint = &constraints_.back();
   const auto* scan_matcher =
       DispatchScanMatcherConstruction(submap_id, submap->grid());
@@ -118,7 +107,6 @@ void ConstraintEngine2D::MaybeAddGlobalConstraint(
         << "MaybeAddGlobalConstraint was called while WhenDone was scheduled.";
   }
   constraints_.emplace_back();
-  kQueueLengthMetric->Set(constraints_.size());
   auto* const constraint = &constraints_.back();
   const auto* scan_matcher =
       DispatchScanMatcherConstruction(submap_id, submap->grid());
@@ -168,7 +156,6 @@ ConstraintEngine2D::DispatchScanMatcherConstruction(const SubmapId& submap_id,
     return &submap_scan_matchers_.at(submap_id);
   }
   auto& submap_scan_matcher = submap_scan_matchers_[submap_id];
-  kNumSubmapScanMatchersMetric->Set(submap_scan_matchers_.size());
   submap_scan_matcher.grid = grid;
   auto& scan_matcher_options = options_.fast_correlative_scan_matcher_options();
   auto scan_matcher_task = absl::make_unique<common::Task>();
@@ -207,36 +194,25 @@ void ConstraintEngine2D::ComputeConstraint(
   // 2. Prune if the score is too low.
   // 3. Refine.
   if (match_full_submap) {
-    kGlobalConstraintsSearchedMetric->Increment();
     if (submap_scan_matcher.fast_correlative_scan_matcher->MatchFullSubmap(
             constant_data->filtered_gravity_aligned_point_cloud,
             options_.global_localization_min_score(), &score, &pose_estimate)) {
       CHECK_GT(score, options_.global_localization_min_score());
       CHECK_GE(node_id.trajectory_id, 0);
       CHECK_GE(submap_id.trajectory_id, 0);
-      kGlobalConstraintsFoundMetric->Increment();
-      kGlobalConstraintScoresMetric->Observe(score);
     } else {
       return;
     }
   } else {
-    kConstraintsSearchedMetric->Increment();
     if (submap_scan_matcher.fast_correlative_scan_matcher->Match(
             initial_pose, constant_data->filtered_gravity_aligned_point_cloud,
             options_.min_score(), &score, &pose_estimate)) {
       // We've reported a successful local match.
       CHECK_GT(score, options_.min_score());
-      kConstraintsFoundMetric->Increment();
-      kConstraintScoresMetric->Observe(score);
     } else {
       return;
     }
   }
-  {
-    absl::MutexLock locker(&mutex_);
-    score_histogram_.Add(score);
-  }
-
   // Use the CSM estimate as both the initial and previous pose. This has the
   // effect that, in the absence of better information, we prefer the original
   // CSM estimate.
@@ -287,12 +263,10 @@ void ConstraintEngine2D::RunWhenDoneCallback() {
     if (options_.log_matches()) {
       LOG(INFO) << constraints_.size() << " computations resulted in "
                 << result.size() << " additional constraints.";
-      LOG(INFO) << "Score histogram:\n" << score_histogram_.ToString(10);
     }
     constraints_.clear();
     callback = std::move(when_done_);
     when_done_.reset();
-    kQueueLengthMetric->Set(constraints_.size());
   }
   (*callback)(result);
 }
@@ -310,34 +284,6 @@ void ConstraintEngine2D::DeleteScanMatcher(const SubmapId& submap_id) {
   }
   submap_scan_matchers_.erase(submap_id);
   per_submap_sampler_.erase(submap_id);
-  kNumSubmapScanMatchersMetric->Set(submap_scan_matchers_.size());
-}
-
-void ConstraintEngine2D::RegisterMetrics(metrics::FamilyFactory* factory) {
-  auto* counts = factory->NewCounterFamily(
-      "mapping_constraints_constraint_builder_2d_constraints",
-      "Constraints computed");
-  kConstraintsSearchedMetric =
-      counts->Add({{"search_region", "local"}, {"matcher", "searched"}});
-  kConstraintsFoundMetric =
-      counts->Add({{"search_region", "local"}, {"matcher", "found"}});
-  kGlobalConstraintsSearchedMetric =
-      counts->Add({{"search_region", "global"}, {"matcher", "searched"}});
-  kGlobalConstraintsFoundMetric =
-      counts->Add({{"search_region", "global"}, {"matcher", "found"}});
-  auto* queue_length = factory->NewGaugeFamily(
-      "mapping_constraints_constraint_builder_2d_queue_length", "Queue length");
-  kQueueLengthMetric = queue_length->Add({});
-  auto boundaries = metrics::Histogram::FixedWidth(0.05, 20);
-  auto* scores = factory->NewHistogramFamily(
-      "mapping_constraints_constraint_builder_2d_scores",
-      "Constraint scores built", boundaries);
-  kConstraintScoresMetric = scores->Add({{"search_region", "local"}});
-  kGlobalConstraintScoresMetric = scores->Add({{"search_region", "global"}});
-  auto* num_matchers = factory->NewGaugeFamily(
-      "mapping_constraints_constraint_builder_2d_num_submap_scan_matchers",
-      "Current number of constructed submap scan matchers");
-  kNumSubmapScanMatchersMetric = num_matchers->Add({});
 }
 
 }  // namespace constraints

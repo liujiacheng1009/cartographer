@@ -28,7 +28,6 @@
 #include "Eigen/Geometry"
 #include "absl/synchronization/mutex.h"
 #include "cartographer/foundation/sampling.h"
-#include "cartographer/foundation/runtime_stats.h"
 #include "cartographer/foundation/math.h"
 #include "cartographer/backend/task_executor.h"
 #include "cartographer/backend/task_executor.h"
@@ -37,7 +36,6 @@
 #include "cartographer/scan_matching/fast_correlative_scan_matcher_2d.h"
 #include "cartographer/backend/backend_types.h"
 #include "cartographer/application/slam_options.h"
-#include "cartographer/foundation/runtime_stats.h"
 #include "cartographer/foundation/voxel_filter.h"
 #include "cartographer/foundation/sensor_data.h"
 
@@ -104,8 +102,6 @@ class ConstraintEngine2D {
   // Delete data related to 'submap_id'.
   void DeleteScanMatcher(const SubmapId& submap_id);
 
-  static void RegisterMetrics(metrics::FamilyFactory* family_factory);
-
  private:
   struct SubmapScanMatcher {
     const Grid2D* grid = nullptr;
@@ -165,8 +161,6 @@ class ConstraintEngine2D {
 
   scan_matching::CeresScanMatcher2D ceres_scan_matcher_;
 
-  // Histogram of scan matcher scores.
-  common::Histogram score_histogram_ GUARDED_BY(mutex_);
 };
 
 }  // namespace constraints
