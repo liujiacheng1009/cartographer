@@ -81,7 +81,8 @@ MapBuilder
 1. 解析命令行参数并读取 YAML；
 2. 生成 `MapBuilderOptions` 和 `TrajectoryBuilderOptions`；
 3. 校验配置只声明当前支持的输入；
-4. 创建 `MapBuilder`、后台线程池和 `PoseGraph`；
+4. 创建 `MapBuilder`；其内部持有后台线程池，并将线程池作为执行资源注入
+   `PoseGraph → ConstraintBuilder2D`；
 5. 如果指定 `--offline_load_state_filename`，先读取并冻结旧地图；
 6. 为 `scan` 和 `odom` 注册一条新轨迹；
 7. 创建 `CollatedTrajectoryBuilder → GlobalTrajectoryBuilder →
@@ -92,6 +93,24 @@ MapBuilder
 它们同时也是 Collator 的队列键，不是从 bag 中动态发现的任意话题名称。
 
 ### 3.1 MapBuilder、PoseGraph 和线程池的职责
+
+三者不是平行的 SLAM 模块，前后端边界和所有权关系如下：
+
+```text
+MapBuilder（装配与生命周期容器）
+├── DataDispatcher
+├── CollatedTrajectoryBuilder
+│   └── GlobalTrajectoryBuilder
+│       └── LocalTrajectoryBuilder2D       ← SLAM 前端
+├── PoseGraph                              ← SLAM 后端
+│   └── ConstraintBuilder2D
+└── ThreadPool                             ← 后端执行资源
+     └── 注入 PoseGraph / ConstraintBuilder2D
+```
+
+因此，前后端并行指的是 bag 回放和 `LocalTrajectoryBuilder2D` 继续处理 scan 时，
+`PoseGraph` 可以在后台推进已提交 node 的约束工作；不是说 `MapBuilder`、`PoseGraph` 和
+`ThreadPool` 分别代表三个同级模块。
 
 `MapBuilder` 是装配和生命周期入口，本身不执行具体 SLAM 算法。它持有线程池、
 `PoseGraph`、`DataDispatcher` 以及各条 trajectory builder 链，负责创建轨迹、结束轨迹、
