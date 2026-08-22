@@ -71,15 +71,12 @@ set(ALL_LIBRARY_SRCS
   slam/pose_graph_workflow.cc
   slam/pose_graph_query.cc
   slam/pose_graph_trimmer.cc
-  slam/probability_grid.cc
   slam/probability_grid_range_data_inserter_2d.cc
-  slam/probability_values.cc
   slam/range_data_collator.cc
   slam/real_time_correlative_scan_matcher_2d.cc
   slam/submap_2d.cc
   slam/trajectory_builder_interface.cc
   slam/trajectory_connectivity_state.cc
-  slam/value_conversion_tables.cc
   state/swmap.cc
 )
 

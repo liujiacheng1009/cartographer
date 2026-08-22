@@ -8,7 +8,7 @@
 #include "cartographer/slam/id.h"
 #include "cartographer/slam/pose_graph_types.h"
 #include "cartographer/slam/trajectory_node.h"
-#include "cartographer/slam/xy_index.h"
+#include "cartographer/slam/grid_2d.h"
 
 namespace cartographer {
 namespace mapping {

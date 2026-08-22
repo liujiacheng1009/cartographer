@@ -20,7 +20,7 @@
 
 #include "Eigen/Core"
 #include "Eigen/Geometry"
-#include "cartographer/slam/xy_index.h"
+#include "cartographer/slam/grid_2d.h"
 /*
  * Copyright 2016 The Cartographer Authors
  *
@@ -217,7 +217,7 @@ std::vector<Eigen::Array2i> RayToPixelMask(const Eigen::Array2i& scaled_begin,
 
 }  // namespace mapping
 }  // namespace cartographer
-#include "cartographer/slam/probability_values.h"
+#include "cartographer/slam/grid_2d.h"
 #include "glog/logging.h"
 
 namespace cartographer {

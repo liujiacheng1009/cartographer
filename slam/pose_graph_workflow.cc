@@ -15,7 +15,7 @@
  */
 
 #include "cartographer/slam/pose_graph.h"
-#include "cartographer/slam/probability_grid.h"
+#include "cartographer/slam/grid_2d.h"
 
 #include <algorithm>
 #include <cmath>

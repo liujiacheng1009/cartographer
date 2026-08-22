@@ -24,7 +24,7 @@
 #include "cartographer/core/math.h"
 #include "cartographer/core/port.h"
 #include "cartographer/slam/id.h"
-#include "cartographer/slam/probability_values.h"
+#include "cartographer/slam/grid_2d.h"
 #include "cartographer/slam/submap_texture.h"
 #include "cartographer/slam/trajectory_node.h"
 #include "glog/logging.h"

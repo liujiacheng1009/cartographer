@@ -40,7 +40,7 @@
 #include "cartographer/slam/work_queue.h"
 #include "cartographer/slam/pose_graph_types.h"
 #include "cartographer/slam/pose_graph_trimmer.h"
-#include "cartographer/slam/value_conversion_tables.h"
+#include "cartographer/slam/grid_2d.h"
 #include "cartographer/state/swmap.h"
 #include "cartographer/core/metrics.h"
 #include "cartographer/core/sensor_data.h"

@@ -24,7 +24,7 @@
 #include "Eigen/Geometry"
 #include "cartographer/core/parameter_dictionary.h"
 #include "cartographer/core/math.h"
-#include "cartographer/slam/probability_grid.h"
+#include "cartographer/slam/grid_2d.h"
 #include "cartographer/core/point_cloud.h"
 #include "cartographer/core/transform.h"
 #include "glog/logging.h"

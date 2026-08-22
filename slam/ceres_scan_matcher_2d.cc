@@ -79,7 +79,7 @@ ceres::CostFunction* CreateOccupiedSpaceCostFunction2D(
  */
 
 
-#include "cartographer/slam/probability_values.h"
+#include "cartographer/slam/grid_2d.h"
 #include "ceres/cubic_interpolation.h"
 
 namespace cartographer {

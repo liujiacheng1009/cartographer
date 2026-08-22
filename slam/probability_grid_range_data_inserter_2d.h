@@ -22,8 +22,8 @@
 
 #include "cartographer/core/parameter_dictionary.h"
 #include "cartographer/core/port.h"
-#include "cartographer/slam/probability_grid.h"
-#include "cartographer/slam/xy_index.h"
+#include "cartographer/slam/grid_2d.h"
+#include "cartographer/slam/grid_2d.h"
 #include "cartographer/slam/options.h"
 #include "cartographer/core/point_cloud.h"
 #include "cartographer/core/range_data.h"

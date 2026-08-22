@@ -21,8 +21,8 @@
 
 #include "Eigen/Core"
 #include "cartographer/core/parameter_dictionary.h"
-#include "cartographer/slam/map_limits.h"
-#include "cartographer/slam/xy_index.h"
+#include "cartographer/slam/grid_2d.h"
+#include "cartographer/slam/grid_2d.h"
 #include "cartographer/core/point_cloud.h"
 
 namespace cartographer {
