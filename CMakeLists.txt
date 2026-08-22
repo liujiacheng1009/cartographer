@@ -12,45 +12,32 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-cmake_minimum_required(VERSION 3.2)
+cmake_minimum_required(VERSION 3.16)
 
-project(cartographer)
+project(cartographer_bag_application LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 get_filename_component(CARTOGRAPHER_SOURCE_PARENT
   "${PROJECT_SOURCE_DIR}/.." ABSOLUTE)
 
-set(CARTOGRAPHER_MAJOR_VERSION 1)
-set(CARTOGRAPHER_MINOR_VERSION 0)
-set(CARTOGRAPHER_PATCH_VERSION 0)
-set(CARTOGRAPHER_VERSION ${CARTOGRAPHER_MAJOR_VERSION}.${CARTOGRAPHER_MINOR_VERSION}.${CARTOGRAPHER_PATCH_VERSION})
-set(CARTOGRAPHER_SOVERSION ${CARTOGRAPHER_MAJOR_VERSION}.${CARTOGRAPHER_MINOR_VERSION})
-option(BUILD_PROMETHEUS "build Prometheus monitoring support" false)
-
-include("${PROJECT_SOURCE_DIR}/cmake/functions.cmake")
-google_initialize_cartographer_project()
-
 find_package(absl REQUIRED)
-set(BOOST_COMPONENTS iostreams)
-if(WIN32)
-  list(APPEND BOOST_COMPONENTS zlib)
-  set(Boost_USE_STATIC_LIBS FALSE)
-endif()
-find_package(Boost REQUIRED COMPONENTS ${BOOST_COMPONENTS})
 find_package(Ceres REQUIRED COMPONENTS SuiteSparse)
 find_package(Eigen3 REQUIRED)
-find_package(yaml-cpp REQUIRED)
+find_package(gflags REQUIRED)
+find_package(nav_msgs REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(rosbag2_cpp REQUIRED)
+find_package(sensor_msgs REQUIRED)
 find_package(SQLite3 REQUIRED)
-if(${BUILD_PROMETHEUS})
-  find_package( ZLIB REQUIRED )
-endif()
+find_package(tf2 REQUIRED)
+find_package(tf2_msgs REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(yaml-cpp REQUIRED)
+find_package(ZLIB REQUIRED)
 
-# Install catkin package.xml
-install(FILES package.xml DESTINATION share/cartographer)
-
-install(DIRECTORY cmake DESTINATION share/cartographer/)
-
-file(GLOB_RECURSE ALL_LIBRARY_HDRS
-  "core/*.h" "slam/*.h" "state/*.h")
 set(ALL_LIBRARY_SRCS
   core/collator.cc
   core/fixed_ratio_sampler.cc
@@ -106,18 +93,7 @@ set(ALL_LIBRARY_SRCS
   state/swmap.cc
 )
 
-# Remove dotfiles/-folders that could potentially pollute the build.
-file(GLOB_RECURSE ALL_DOTFILES ".*/*")
-if (ALL_DOTFILES)
-  list(REMOVE_ITEM ALL_LIBRARY_HDRS ${ALL_DOTFILES})
-endif()
-set(INSTALL_SOURCE_HDRS ${ALL_LIBRARY_HDRS})
-
-add_library(cartographer_offline_core STATIC ${ALL_LIBRARY_HDRS} ${ALL_LIBRARY_SRCS})
-
-configure_file(
-  ${PROJECT_SOURCE_DIR}/core/config.h.cmake
-  ${PROJECT_BINARY_DIR}/cartographer/core/config.h)
+add_library(cartographer_offline_core STATIC ${ALL_LIBRARY_SRCS})
 
 target_include_directories(cartographer_offline_core SYSTEM PUBLIC
   "${EIGEN3_INCLUDE_DIR}")
@@ -128,10 +104,6 @@ target_include_directories(cartographer_offline_core SYSTEM PUBLIC
 target_link_libraries(cartographer_offline_core PUBLIC ${CERES_LIBRARIES})
 
 target_link_libraries(cartographer_offline_core PUBLIC yaml-cpp)
-
-target_include_directories(cartographer_offline_core SYSTEM PUBLIC
-  "${Boost_INCLUDE_DIRS}")
-target_link_libraries(cartographer_offline_core PUBLIC ${Boost_LIBRARIES})
 
 if (WIN32)
   find_package(glog REQUIRED)
@@ -151,7 +123,7 @@ if(MSVC)
   target_compile_definitions(cartographer_offline_core PUBLIC -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_USE_MATH_DEFINES)
 endif()
 
-target_link_libraries(cartographer_offline_core PUBLIC sqlite3
+target_link_libraries(cartographer_offline_core PUBLIC sqlite3 ZLIB::ZLIB
   absl::algorithm
   absl::base
   absl::debugging
@@ -168,58 +140,33 @@ target_link_libraries(cartographer_offline_core PUBLIC sqlite3
 if (NOT WIN32)
   target_link_libraries(cartographer_offline_core PUBLIC pthread)
 endif()
-if(${BUILD_PROMETHEUS})
-  target_link_libraries(cartographer_offline_core PUBLIC ${ZLIB_LIBRARIES})
-  target_link_libraries(cartographer_offline_core PUBLIC prometheus-cpp-core)
-  target_link_libraries(cartographer_offline_core PUBLIC prometheus-cpp-pull)
-  target_compile_definitions(cartographer_offline_core PUBLIC USE_PROMETHEUS=1)
+target_include_directories(cartographer_offline_core PUBLIC
+  "${CARTOGRAPHER_SOURCE_PARENT}"
+)
+
+if(NOT WIN32)
+  target_compile_options(cartographer_offline_core PRIVATE
+    -fPIC -Wall -Wpedantic
+    -Werror=format-security
+    -Werror=missing-braces
+    -Werror=reorder
+    -Werror=return-type
+    -Werror=switch
+    -Werror=uninitialized
+  )
 endif()
 
-set(TARGET_COMPILE_FLAGS "${TARGET_COMPILE_FLAGS} ${GOOG_CXX_FLAGS}")
-set_target_properties(cartographer_offline_core PROPERTIES
-  COMPILE_FLAGS ${TARGET_COMPILE_FLAGS})
-
-# Add the binary directory first, so that port.h is included after it has
-# been generated.
-target_include_directories(cartographer_offline_core PUBLIC
-    $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>
-    $<BUILD_INTERFACE:${CARTOGRAPHER_SOURCE_PARENT}>
-    $<INSTALL_INTERFACE:include>
+add_executable(cartographer_bag_runner application/bag_runner.cc)
+target_link_libraries(cartographer_bag_runner PRIVATE
+  cartographer_offline_core
+  gflags
+  ${nav_msgs_TARGETS}
+  rclcpp::rclcpp
+  rosbag2_cpp::rosbag2_cpp
+  ${sensor_msgs_TARGETS}
+  tf2::tf2
+  ${tf2_msgs_TARGETS}
+  tf2_ros::tf2_ros
 )
 
-install(
-  TARGETS cartographer_offline_core
-  EXPORT CartographerExport
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib
-  RUNTIME DESTINATION bin
-)
-
-foreach(HDR ${INSTALL_SOURCE_HDRS})
-  file(RELATIVE_PATH REL_FIL ${PROJECT_SOURCE_DIR} ${HDR})
-  get_filename_component(DIR ${REL_FIL} DIRECTORY)
-  install(
-    FILES ${HDR}
-    DESTINATION include/cartographer/${DIR}
-  )
-endforeach()
-
-set(CARTOGRAPHER_CMAKE_DIR share/cartographer/cmake)
-include(CMakePackageConfigHelpers)
-configure_package_config_file(
-  cartographer-config.cmake.in
-  ${PROJECT_BINARY_DIR}/cmake/cartographer/cartographer-config.cmake
-  PATH_VARS CARTOGRAPHER_CMAKE_DIR
-  INSTALL_DESTINATION ${CMAKE_INSTALL_PREFIX}/share/cartographer
-)
-
-install(
-  EXPORT CartographerExport
-  DESTINATION share/cartographer/cmake/
-  FILE CartographerTargets.cmake
-)
-
-install(
-  FILES ${PROJECT_BINARY_DIR}/cmake/cartographer/cartographer-config.cmake
-  DESTINATION share/cartographer/
-)
+install(TARGETS cartographer_bag_runner RUNTIME DESTINATION bin)

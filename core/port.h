@@ -17,12 +17,12 @@
 #ifndef CARTOGRAPHER_COMMON_PORT_H_
 #define CARTOGRAPHER_COMMON_PORT_H_
 
-#include <boost/iostreams/device/back_inserter.hpp>
-#include <boost/iostreams/filter/gzip.hpp>
-#include <boost/iostreams/filtering_stream.hpp>
+#include <array>
 #include <cinttypes>
 #include <cmath>
+#include <stdexcept>
 #include <string>
+#include <zlib.h>
 
 namespace cartographer {
 
@@ -47,22 +47,51 @@ inline int64 RoundToInt64(const double x) { return std::lround(x); }
 
 inline void FastGzipString(const std::string& uncompressed,
                            std::string* compressed) {
-  boost::iostreams::filtering_ostream out;
-  out.push(
-      boost::iostreams::gzip_compressor(boost::iostreams::zlib::best_speed));
-  out.push(boost::iostreams::back_inserter(*compressed));
-  boost::iostreams::write(out,
-                          reinterpret_cast<const char*>(uncompressed.data()),
-                          uncompressed.size());
+  z_stream stream{};
+  if (deflateInit2(&stream, Z_BEST_SPEED, Z_DEFLATED, MAX_WBITS + 16, 8,
+                   Z_DEFAULT_STRATEGY) != Z_OK) {
+    throw std::runtime_error("Failed to initialize gzip compressor.");
+  }
+  compressed->clear();
+  stream.next_in = reinterpret_cast<Bytef*>(
+      const_cast<char*>(uncompressed.data()));
+  stream.avail_in = static_cast<uInt>(uncompressed.size());
+  std::array<char, 16384> buffer;
+  int result = Z_OK;
+  while (result == Z_OK) {
+    stream.next_out = reinterpret_cast<Bytef*>(buffer.data());
+    stream.avail_out = static_cast<uInt>(buffer.size());
+    result = deflate(&stream, Z_FINISH);
+    compressed->append(buffer.data(), buffer.size() - stream.avail_out);
+  }
+  deflateEnd(&stream);
+  if (result != Z_STREAM_END) {
+    throw std::runtime_error("Failed to compress gzip stream.");
+  }
 }
 
 inline void FastGunzipString(const std::string& compressed,
                              std::string* decompressed) {
-  boost::iostreams::filtering_ostream out;
-  out.push(boost::iostreams::gzip_decompressor());
-  out.push(boost::iostreams::back_inserter(*decompressed));
-  boost::iostreams::write(out, reinterpret_cast<const char*>(compressed.data()),
-                          compressed.size());
+  z_stream stream{};
+  if (inflateInit2(&stream, MAX_WBITS + 16) != Z_OK) {
+    throw std::runtime_error("Failed to initialize gzip decompressor.");
+  }
+  decompressed->clear();
+  stream.next_in =
+      reinterpret_cast<Bytef*>(const_cast<char*>(compressed.data()));
+  stream.avail_in = static_cast<uInt>(compressed.size());
+  std::array<char, 16384> buffer;
+  int result = Z_OK;
+  while (result == Z_OK) {
+    stream.next_out = reinterpret_cast<Bytef*>(buffer.data());
+    stream.avail_out = static_cast<uInt>(buffer.size());
+    result = inflate(&stream, Z_NO_FLUSH);
+    decompressed->append(buffer.data(), buffer.size() - stream.avail_out);
+  }
+  inflateEnd(&stream);
+  if (result != Z_STREAM_END) {
+    throw std::runtime_error("Failed to decompress gzip stream.");
+  }
 }
 
 }  // namespace common
