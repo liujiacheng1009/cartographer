@@ -13,7 +13,7 @@
 #include <string>
 
 #include "cartographer/core/parameter_dictionary.h"
-#include "cartographer/core/time.h"
+#include "cartographer/core/rigid_transform.h"
 #include "cartographer/core/transform.h"
 #include "cartographer/slam/map_builder.h"
 #include "gflags/gflags.h"

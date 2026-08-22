@@ -21,7 +21,7 @@
 #include <vector>
 
 #include "absl/synchronization/mutex.h"
-#include "cartographer/core/time.h"
+#include "cartographer/core/rigid_transform.h"
 
 namespace cartographer {
 namespace mapping {

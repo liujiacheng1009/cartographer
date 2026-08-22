@@ -24,7 +24,7 @@
 #include <vector>
 
 #include "cartographer/core/port.h"
-#include "cartographer/core/time.h"
+#include "cartographer/core/rigid_transform.h"
 #include "cartographer/slam/id.h"
 #include "glog/logging.h"
 

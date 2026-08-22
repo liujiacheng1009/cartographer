@@ -20,7 +20,7 @@
 #include <chrono>
 #include <memory>
 
-#include "cartographer/core/time.h"
+#include "cartographer/core/rigid_transform.h"
 #include "cartographer/slam/submap_2d.h"
 #include "cartographer/slam/ceres_scan_matcher_2d.h"
 #include "cartographer/slam/real_time_correlative_scan_matcher_2d.h"

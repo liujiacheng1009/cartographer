@@ -20,7 +20,7 @@
 
 #include "absl/memory/memory.h"
 #include "absl/types/optional.h"
-#include "cartographer/core/time.h"
+#include "cartographer/core/rigid_transform.h"
 #include "cartographer/slam/motion_filter.h"
 #include "cartographer/core/metrics.h"
 #include "glog/logging.h"

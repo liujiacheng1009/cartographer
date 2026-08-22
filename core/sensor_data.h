@@ -9,7 +9,7 @@
 #include "Eigen/Core"
 #include "cartographer/core/point_cloud.h"
 #include "cartographer/core/rigid_transform.h"
-#include "cartographer/core/time.h"
+#include "cartographer/core/rigid_transform.h"
 
 namespace cartographer {
 namespace sensor {

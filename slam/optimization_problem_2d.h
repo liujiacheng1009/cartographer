@@ -26,14 +26,14 @@
 #include "Eigen/Core"
 #include "Eigen/Geometry"
 #include "cartographer/core/port.h"
-#include "cartographer/core/time.h"
+#include "cartographer/core/rigid_transform.h"
 #include "cartographer/slam/id.h"
 #include "cartographer/slam/pose_graph_types.h"
 #include "cartographer/slam/options.h"
 #include "cartographer/core/sensor_data.h"
 #include "cartographer/core/map_by_time.h"
 #include "cartographer/core/sensor_data.h"
-#include "cartographer/core/timestamped_transform.h"
+#include "cartographer/core/rigid_transform.h"
 
 namespace cartographer {
 namespace mapping {

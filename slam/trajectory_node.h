@@ -22,7 +22,7 @@
 
 #include "Eigen/Core"
 #include "absl/types/optional.h"
-#include "cartographer/core/time.h"
+#include "cartographer/core/rigid_transform.h"
 #include "cartographer/core/range_data.h"
 #include "cartographer/core/rigid_transform.h"
 

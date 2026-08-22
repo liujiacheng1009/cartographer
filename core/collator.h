@@ -44,7 +44,7 @@
 #define CARTOGRAPHER_MAPPING_DATA_H_
 
 #include "absl/memory/memory.h"
-#include "cartographer/core/time.h"
+#include "cartographer/core/rigid_transform.h"
 #include "cartographer/core/rigid_transform.h"
 
 namespace cartographer {
@@ -149,7 +149,7 @@ std::unique_ptr<Dispatchable<DataType>> MakeDispatchable(
 
 #include "absl/synchronization/mutex.h"
 #include "cartographer/core/port.h"
-#include "cartographer/core/time.h"
+#include "cartographer/core/rigid_transform.h"
 #include "glog/logging.h"
 
 namespace cartographer {
@@ -310,7 +310,7 @@ class BlockingQueue {
 #include <tuple>
 
 #include "cartographer/core/port.h"
-#include "cartographer/core/time.h"
+#include "cartographer/core/rigid_transform.h"
 
 namespace cartographer {
 namespace sensor {

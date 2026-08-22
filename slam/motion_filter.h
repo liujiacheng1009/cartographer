@@ -20,7 +20,7 @@
 #include <limits>
 
 #include "cartographer/core/parameter_dictionary.h"
-#include "cartographer/core/time.h"
+#include "cartographer/core/rigid_transform.h"
 #include "cartographer/slam/options.h"
 #include "cartographer/core/rigid_transform.h"
 

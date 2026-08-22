@@ -31,7 +31,7 @@
 #include "absl/synchronization/mutex.h"
 #include "cartographer/core/fixed_ratio_sampler.h"
 #include "cartographer/core/thread_pool.h"
-#include "cartographer/core/time.h"
+#include "cartographer/core/rigid_transform.h"
 #include "cartographer/slam/submap_2d.h"
 #include "cartographer/slam/constraint_builder_2d.h"
 #include "cartographer/slam/optimization_problem_2d.h"

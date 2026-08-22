@@ -27,7 +27,7 @@
 
 #include "cartographer/core/math.h"
 #include "cartographer/core/port.h"
-#include "cartographer/core/time.h"
+#include "cartographer/core/rigid_transform.h"
 
 namespace cartographer {
 namespace common {

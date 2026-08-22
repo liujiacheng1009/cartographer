@@ -24,7 +24,7 @@
 #include "absl/memory/memory.h"
 #include "cartographer/core/parameter_dictionary.h"
 #include "cartographer/core/port.h"
-#include "cartographer/core/time.h"
+#include "cartographer/core/rigid_transform.h"
 #include "cartographer/slam/options.h"
 #include "cartographer/slam/submaps.h"
 #include "cartographer/core/sensor_data.h"

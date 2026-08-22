@@ -18,7 +18,7 @@
 #define CARTOGRAPHER_MAPPING_IMU_TRACKER_H_
 
 #include "Eigen/Geometry"
-#include "cartographer/core/time.h"
+#include "cartographer/core/rigid_transform.h"
 
 namespace cartographer {
 namespace mapping {

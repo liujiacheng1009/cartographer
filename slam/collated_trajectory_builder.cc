@@ -16,7 +16,7 @@
 
 #include "cartographer/slam/collated_trajectory_builder.h"
 
-#include "cartographer/core/time.h"
+#include "cartographer/core/rigid_transform.h"
 #include "glog/logging.h"
 
 namespace cartographer {

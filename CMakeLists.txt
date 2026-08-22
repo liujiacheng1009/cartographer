@@ -48,15 +48,12 @@ set(ALL_LIBRARY_SRCS
   core/range_data.cc
   core/rigid_transform.cc
   core/thread_pool.cc
-  core/time.cc
-  core/timestamped_transform.cc
   core/voxel_filter.cc
   slam/ceres_scan_matcher_2d.cc
   slam/collated_trajectory_builder.cc
   slam/constraint_builder_2d.cc
   slam/constraint_builder.cc
   slam/correlative_scan_matcher_2d.cc
-  slam/eigen_quaterniond_from_two_vectors.cc
   slam/fast_correlative_scan_matcher_2d.cc
   slam/global_trajectory_builder.cc
   slam/grid_2d.cc

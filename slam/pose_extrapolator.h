@@ -20,7 +20,7 @@
 #include <deque>
 #include <memory>
 
-#include "cartographer/core/time.h"
+#include "cartographer/core/rigid_transform.h"
 #include "cartographer/slam/options.h"
 #include "cartographer/slam/imu_tracker.h"
 #include "cartographer/core/sensor_data.h"

@@ -10,7 +10,7 @@
 
 #include "absl/types/optional.h"
 #include "cartographer/core/rigid_transform.h"
-#include "cartographer/core/time.h"
+#include "cartographer/core/rigid_transform.h"
 #include "cartographer/slam/id.h"
 #include "cartographer/slam/submaps.h"
 
