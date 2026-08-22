@@ -56,7 +56,6 @@ set(ALL_LIBRARY_SRCS
   slam/ceres_pose.cc
   slam/ceres_scan_matcher_2d.cc
   slam/collated_trajectory_builder.cc
-  slam/connected_components.cc
   slam/constraint_builder_2d.cc
   slam/constraint_builder.cc
   slam/correlative_scan_matcher_2d.cc

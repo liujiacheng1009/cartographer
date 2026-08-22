@@ -17,11 +17,39 @@
 #ifndef CARTOGRAPHER_MAPPING_INTERNAL_TRAJECTORY_CONNECTIVITY_STATE_H_
 #define CARTOGRAPHER_MAPPING_INTERNAL_TRAJECTORY_CONNECTIVITY_STATE_H_
 
+#include <map>
+#include <vector>
+
+#include "absl/synchronization/mutex.h"
 #include "cartographer/core/time.h"
-#include "cartographer/slam/connected_components.h"
 
 namespace cartographer {
 namespace mapping {
+
+// Union-find implementation kept with its sole owner.
+class ConnectedComponents {
+ public:
+  ConnectedComponents() = default;
+  ConnectedComponents(const ConnectedComponents&) = delete;
+  ConnectedComponents& operator=(const ConnectedComponents&) = delete;
+
+  void Add(int trajectory_id) LOCKS_EXCLUDED(lock_);
+  void Connect(int trajectory_id_a, int trajectory_id_b)
+      LOCKS_EXCLUDED(lock_);
+  bool TransitivelyConnected(int trajectory_id_a, int trajectory_id_b)
+      LOCKS_EXCLUDED(lock_);
+  std::vector<std::vector<int>> Components() LOCKS_EXCLUDED(lock_);
+  std::vector<int> GetComponent(int trajectory_id) LOCKS_EXCLUDED(lock_);
+
+ private:
+  int FindSet(int trajectory_id) EXCLUSIVE_LOCKS_REQUIRED(lock_);
+  void Union(int trajectory_id_a, int trajectory_id_b)
+      EXCLUSIVE_LOCKS_REQUIRED(lock_);
+
+  absl::Mutex lock_;
+  std::map<int, int> forest_ GUARDED_BY(lock_);
+  std::map<std::pair<int, int>, int> connection_map_ GUARDED_BY(lock_);
+};
 
 // A class that tracks the connectivity state between trajectories. Compared to
 // ConnectedComponents it tracks additionally the last time that a global
