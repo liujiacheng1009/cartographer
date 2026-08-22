@@ -41,14 +41,6 @@
 namespace cartographer {
 namespace mapping {
 
-static auto* kWorkQueueDelayMetric = metrics::Gauge::Null();
-static auto* kWorkQueueSizeMetric = metrics::Gauge::Null();
-static auto* kConstraintsSameTrajectoryMetric = metrics::Gauge::Null();
-static auto* kConstraintsDifferentTrajectoryMetric = metrics::Gauge::Null();
-static auto* kActiveSubmapsMetric = metrics::Gauge::Null();
-static auto* kFrozenSubmapsMetric = metrics::Gauge::Null();
-static auto* kDeletedSubmapsMetric = metrics::Gauge::Null();
-
 TrajectoryBackend2D::TrajectoryBackend2D(
     const PoseGraphOptions& options,
     std::unique_ptr<optimization::PoseOptimizer2D> optimization_problem,
@@ -146,7 +138,6 @@ NodeId TrajectoryBackend2D::AppendNode(
         data_.submap_data.Append(trajectory_id, InternalSubmapData());
     data_.submap_data.at(submap_id).submap = insertion_submaps.back();
     LOG(INFO) << "Inserted submap " << submap_id << ".";
-    kActiveSubmapsMetric->Increment();
   }
   return node_id;
 }
@@ -180,13 +171,7 @@ void TrajectoryBackend2D::AddWorkItem(
     task->SetWorkItem([this]() { DrainWorkQueue(); });
     task_executor_->Schedule(std::move(task));
   }
-  const auto now = std::chrono::steady_clock::now();
-  work_queue_->push_back({now, work_item});
-  kWorkQueueSizeMetric->Set(work_queue_->size());
-  kWorkQueueDelayMetric->Set(
-      std::chrono::duration_cast<std::chrono::duration<double>>(
-          now - work_queue_->front().time)
-          .count());
+  work_queue_->push_back({work_item});
 }
 
 void TrajectoryBackend2D::AddTrajectoryIfNeeded(const int trajectory_id) {
@@ -451,24 +436,6 @@ void TrajectoryBackend2D::HandleWorkQueue(
 
     num_nodes_since_last_loop_closure_ = 0;
 
-    // Update the gauges that count the current number of constraints.
-    double inter_constraints_same_trajectory = 0;
-    double inter_constraints_different_trajectory = 0;
-    for (const auto& constraint : data_.constraints) {
-      if (constraint.tag ==
-          cartographer::mapping::Constraint::INTRA_SUBMAP) {
-        continue;
-      }
-      if (constraint.node_id.trajectory_id ==
-          constraint.submap_id.trajectory_id) {
-        ++inter_constraints_same_trajectory;
-      } else {
-        ++inter_constraints_different_trajectory;
-      }
-    }
-    kConstraintsSameTrajectoryMetric->Set(inter_constraints_same_trajectory);
-    kConstraintsDifferentTrajectoryMetric->Set(
-        inter_constraints_different_trajectory);
   }
 
   DrainWorkQueue();
@@ -488,7 +455,6 @@ void TrajectoryBackend2D::DrainWorkQueue() {
       work_item = work_queue_->front().task;
       work_queue_->pop_front();
       work_queue_size = work_queue_->size();
-      kWorkQueueSizeMetric->Set(work_queue_size);
     }
     process_work_queue = work_item() == WorkItem::Result::kDoNotRunOptimization;
   }
@@ -662,11 +628,6 @@ void TrajectoryBackend2D::AddSerializedSubmap(const io::SerializedSubmap2D& valu
     data_.submap_data.at(value.id).submap = submap;
     data_.global_submap_poses_2d.Insert(
         value.id, optimization::SubmapSpec2D{global_pose});
-  }
-  if (IsTrajectoryFrozen(value.id.trajectory_id)) {
-    kFrozenSubmapsMetric->Increment();
-  } else {
-    kActiveSubmapsMetric->Increment();
   }
   AddWorkItem([this, id = value.id, global_pose]() LOCKS_EXCLUDED(mutex_) {
     absl::MutexLock locker(&mutex_);
@@ -996,14 +957,6 @@ void TrajectoryBackend2D::TrimmingHandle::TrimSubmap(const SubmapId& submap_id) 
   parent_->constraint_builder_.DeleteScanMatcher(submap_id);
   parent_->optimization_problem_->TrimSubmap(submap_id);
 
-  // We have one submap less, update the gauge metrics.
-  kDeletedSubmapsMetric->Increment();
-  if (parent_->IsTrajectoryFrozen(submap_id.trajectory_id)) {
-    kFrozenSubmapsMetric->Decrement();
-  } else {
-    kActiveSubmapsMetric->Decrement();
-  }
-
   // Remove the 'nodes_to_remove' from the pose graph and the optimization
   // problem.
   for (const NodeId& node_id : nodes_to_remove) {
@@ -1025,29 +978,6 @@ TrajectoryBackend2D::GetSubmapDataUnderLock() const {
 void TrajectoryBackend2D::SetGlobalSlamOptimizationCallback(
     GlobalSlamOptimizationCallback callback) {
   global_slam_optimization_callback_ = callback;
-}
-
-void TrajectoryBackend2D::RegisterMetrics(metrics::FamilyFactory* family_factory) {
-  auto* latency = family_factory->NewGaugeFamily(
-      "mapping_2d_pose_graph_work_queue_delay",
-      "Age of the oldest entry in the work queue in seconds");
-  kWorkQueueDelayMetric = latency->Add({});
-  auto* queue_size =
-      family_factory->NewGaugeFamily("mapping_2d_pose_graph_work_queue_size",
-                                     "Number of items in the work queue");
-  kWorkQueueSizeMetric = queue_size->Add({});
-  auto* constraints = family_factory->NewGaugeFamily(
-      "mapping_2d_pose_graph_constraints",
-      "Current number of constraints in the pose graph");
-  kConstraintsDifferentTrajectoryMetric =
-      constraints->Add({{"tag", "inter_submap"}, {"trajectory", "different"}});
-  kConstraintsSameTrajectoryMetric =
-      constraints->Add({{"tag", "inter_submap"}, {"trajectory", "same"}});
-  auto* submaps = family_factory->NewGaugeFamily(
-      "mapping_2d_pose_graph_submaps", "Number of submaps in the pose graph.");
-  kActiveSubmapsMetric = submaps->Add({{"state", "active"}});
-  kFrozenSubmapsMetric = submaps->Add({{"state", "frozen"}});
-  kDeletedSubmapsMetric = submaps->Add({{"state", "deleted"}});
 }
 
 }  // namespace mapping

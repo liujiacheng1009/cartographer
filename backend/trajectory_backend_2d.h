@@ -17,7 +17,6 @@
 #ifndef CARTOGRAPHER_BACKEND_TRAJECTORY_BACKEND_2D_H_
 #define CARTOGRAPHER_BACKEND_TRAJECTORY_BACKEND_2D_H_
 
-#include <chrono>
 #include <deque>
 #include <functional>
 #include <limits>
@@ -42,7 +41,6 @@
 #include "cartographer/backend/backend_trimmer.h"
 #include "cartographer/mapping/grid_2d.h"
 #include "cartographer/serialization/swmap.h"
-#include "cartographer/foundation/runtime_stats.h"
 #include "cartographer/foundation/sensor_data.h"
 #include "cartographer/foundation/sensor_data.h"
 #include "cartographer/foundation/geometry.h"
@@ -136,8 +134,6 @@ class TrajectoryBackend2D {
       int trajectory_id, const common::Time time) const
       EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
-  static void RegisterMetrics(metrics::FamilyFactory* family_factory);
-
  private:
   struct WorkItem {
     enum class Result {
@@ -145,7 +141,6 @@ class TrajectoryBackend2D {
       kRunOptimization,
     };
 
-    std::chrono::steady_clock::time_point time;
     std::function<Result()> task;
   };
 

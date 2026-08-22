@@ -21,20 +21,10 @@
 #include <memory>
 
 #include "absl/memory/memory.h"
-#include "cartographer/foundation/runtime_stats.h"
 #include "cartographer/foundation/sensor_data.h"
 
 namespace cartographer {
 namespace mapping {
-
-static auto* kLocalSlamLatencyMetric = metrics::Gauge::Null();
-static auto* kLocalSlamRealTimeRatio = metrics::Gauge::Null();
-static auto* kLocalSlamCpuRealTimeRatio = metrics::Gauge::Null();
-static auto* kRealTimeCorrelativeScanMatcherScoreMetric =
-    metrics::Histogram::Null();
-static auto* kCeresScanMatcherCostMetric = metrics::Histogram::Null();
-static auto* kScanMatcherResidualDistanceMetric = metrics::Histogram::Null();
-static auto* kScanMatcherResidualAngleMetric = metrics::Histogram::Null();
 
 LocalSlam2D::LocalSlam2D(
     const LocalTrajectoryBuilderOptions2D& options,
@@ -76,10 +66,9 @@ std::unique_ptr<transform::Rigid2d> LocalSlam2D::ScanMatch(
   transform::Rigid2d initial_ceres_pose = pose_prediction;
 
   if (options_.use_online_correlative_scan_matching()) {
-    const double score = real_time_correlative_scan_matcher_.Match(
+    real_time_correlative_scan_matcher_.Match(
         pose_prediction, filtered_gravity_aligned_point_cloud,
         *matching_submap->grid(), &initial_ceres_pose);
-    kRealTimeCorrelativeScanMatcherScoreMetric->Observe(score);
   }
 
   auto pose_observation = absl::make_unique<transform::Rigid2d>();
@@ -88,17 +77,6 @@ std::unique_ptr<transform::Rigid2d> LocalSlam2D::ScanMatch(
                             filtered_gravity_aligned_point_cloud,
                             *matching_submap->grid(), pose_observation.get(),
                             &summary);
-  if (pose_observation) {
-    kCeresScanMatcherCostMetric->Observe(summary.final_cost);
-    const double residual_distance =
-        (pose_observation->translation() - pose_prediction.translation())
-            .norm();
-    kScanMatcherResidualDistanceMetric->Observe(residual_distance);
-    const double residual_angle =
-        std::abs(pose_observation->rotation().angle() -
-                 pose_prediction.rotation().angle());
-    kScanMatcherResidualAngleMetric->Observe(residual_angle);
-  }
   return pose_observation;
 }
 
@@ -175,12 +153,6 @@ LocalSlam2D::AddRangeData(
   ++num_accumulated_;
 
   if (num_accumulated_ >= options_.num_accumulated_range_data()) {
-    const common::Time current_sensor_time = range_data.time;
-    absl::optional<common::Duration> sensor_duration;
-    if (last_sensor_time_.has_value()) {
-      sensor_duration = current_sensor_time - last_sensor_time_.value();
-    }
-    last_sensor_time_ = current_sensor_time;
     num_accumulated_ = 0;
     const transform::Rigid3d gravity_alignment = transform::Rigid3d::Rotation(
         extrapolator_->EstimateGravityOrientation(time));
@@ -192,7 +164,7 @@ LocalSlam2D::AddRangeData(
         TransformToGravityAlignedFrameAndFilter(
             gravity_alignment.cast<float>() * range_data_poses.back().inverse(),
             accumulated_range_data_),
-        gravity_alignment, sensor_duration);
+        gravity_alignment);
   }
   return nullptr;
 }
@@ -201,8 +173,7 @@ std::unique_ptr<LocalSlam2D::MatchingResult>
 LocalSlam2D::AddAccumulatedRangeData(
     const common::Time time,
     const sensor::RangeData& gravity_aligned_range_data,
-    const transform::Rigid3d& gravity_alignment,
-    const absl::optional<common::Duration>& sensor_duration) {
+    const transform::Rigid3d& gravity_alignment) {
   if (gravity_aligned_range_data.returns.empty()) {
     LOG(WARNING) << "Dropped empty horizontal range data.";
     return nullptr;
@@ -239,27 +210,6 @@ LocalSlam2D::AddAccumulatedRangeData(
       time, range_data_in_local, filtered_gravity_aligned_point_cloud,
       pose_estimate, gravity_alignment.rotation());
 
-  const auto wall_time = std::chrono::steady_clock::now();
-  if (last_wall_time_.has_value()) {
-    const auto wall_time_duration = wall_time - last_wall_time_.value();
-    kLocalSlamLatencyMetric->Set(common::ToSeconds(wall_time_duration));
-    if (sensor_duration.has_value()) {
-      kLocalSlamRealTimeRatio->Set(common::ToSeconds(sensor_duration.value()) /
-                                   common::ToSeconds(wall_time_duration));
-    }
-  }
-  const double thread_cpu_time_seconds = common::GetThreadCpuTimeSeconds();
-  if (last_thread_cpu_time_seconds_.has_value()) {
-    const double thread_cpu_duration_seconds =
-        thread_cpu_time_seconds - last_thread_cpu_time_seconds_.value();
-    if (sensor_duration.has_value()) {
-      kLocalSlamCpuRealTimeRatio->Set(
-          common::ToSeconds(sensor_duration.value()) /
-          thread_cpu_duration_seconds);
-    }
-  }
-  last_wall_time_ = wall_time;
-  last_thread_cpu_time_seconds_ = thread_cpu_time_seconds;
   return absl::make_unique<MatchingResult>(
       MatchingResult{time, pose_estimate, std::move(range_data_in_local),
                      std::move(insertion_result)});
@@ -310,42 +260,6 @@ void LocalSlam2D::InitializeExtrapolator(const common::Time time) {
           .constant_velocity()
           .imu_gravity_time_constant());
   extrapolator_->AddPose(time, transform::Rigid3d::Identity());
-}
-
-void LocalSlam2D::RegisterMetrics(
-    metrics::FamilyFactory* family_factory) {
-  auto* latency = family_factory->NewGaugeFamily(
-      "mapping_2d_local_trajectory_builder_latency",
-      "Duration from first incoming point cloud in accumulation to local slam "
-      "result");
-  kLocalSlamLatencyMetric = latency->Add({});
-  auto* real_time_ratio = family_factory->NewGaugeFamily(
-      "mapping_2d_local_trajectory_builder_real_time_ratio",
-      "sensor duration / wall clock duration.");
-  kLocalSlamRealTimeRatio = real_time_ratio->Add({});
-
-  auto* cpu_real_time_ratio = family_factory->NewGaugeFamily(
-      "mapping_2d_local_trajectory_builder_cpu_real_time_ratio",
-      "sensor duration / cpu duration.");
-  kLocalSlamCpuRealTimeRatio = cpu_real_time_ratio->Add({});
-  auto score_boundaries = metrics::Histogram::FixedWidth(0.05, 20);
-  auto* scores = family_factory->NewHistogramFamily(
-      "mapping_2d_local_trajectory_builder_scores", "Local scan matcher scores",
-      score_boundaries);
-  kRealTimeCorrelativeScanMatcherScoreMetric =
-      scores->Add({{"scan_matcher", "real_time_correlative"}});
-  auto cost_boundaries = metrics::Histogram::ScaledPowersOf(2, 0.01, 100);
-  auto* costs = family_factory->NewHistogramFamily(
-      "mapping_2d_local_trajectory_builder_costs", "Local scan matcher costs",
-      cost_boundaries);
-  kCeresScanMatcherCostMetric = costs->Add({{"scan_matcher", "ceres"}});
-  auto distance_boundaries = metrics::Histogram::ScaledPowersOf(2, 0.01, 10);
-  auto* residuals = family_factory->NewHistogramFamily(
-      "mapping_2d_local_trajectory_builder_residuals",
-      "Local scan matcher residuals", distance_boundaries);
-  kScanMatcherResidualDistanceMetric =
-      residuals->Add({{"component", "distance"}});
-  kScanMatcherResidualAngleMetric = residuals->Add({{"component", "angle"}});
 }
 
 }  // namespace mapping

@@ -17,7 +17,6 @@
 #ifndef CARTOGRAPHER_TRAJECTORY_LOCAL_SLAM_2D_H_
 #define CARTOGRAPHER_TRAJECTORY_LOCAL_SLAM_2D_H_
 
-#include <chrono>
 #include <memory>
 #include <string>
 
@@ -28,7 +27,6 @@
 #include "cartographer/frontend/motion_filter.h"
 #include "cartographer/frontend/pose_extrapolator.h"
 #include "cartographer/application/slam_options.h"
-#include "cartographer/foundation/runtime_stats.h"
 #include "cartographer/foundation/sensor_data.h"
 #include "cartographer/foundation/voxel_filter.h"
 #include "cartographer/foundation/sensor_data.h"
@@ -71,13 +69,10 @@ class LocalSlam2D {
       const sensor::TimedPointCloudData& range_data);
   void AddOdometryData(const sensor::OdometryData& odometry_data);
 
-  static void RegisterMetrics(metrics::FamilyFactory* family_factory);
-
  private:
   std::unique_ptr<MatchingResult> AddAccumulatedRangeData(
       common::Time time, const sensor::RangeData& gravity_aligned_range_data,
-      const transform::Rigid3d& gravity_alignment,
-      const absl::optional<common::Duration>& sensor_duration);
+      const transform::Rigid3d& gravity_alignment);
   sensor::RangeData TransformToGravityAlignedFrameAndFilter(
       const transform::Rigid3f& transform_to_gravity_aligned_frame,
       const sensor::RangeData& range_data) const;
@@ -108,10 +103,6 @@ class LocalSlam2D {
 
   int num_accumulated_ = 0;
   sensor::RangeData accumulated_range_data_;
-
-  absl::optional<std::chrono::steady_clock::time_point> last_wall_time_;
-  absl::optional<double> last_thread_cpu_time_seconds_;
-  absl::optional<common::Time> last_sensor_time_;
 
   const std::string expected_range_sensor_id_;
 };
