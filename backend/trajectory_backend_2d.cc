@@ -268,7 +268,8 @@ void TrajectoryBackend2D::ComputeConstraint(const NodeId& node_id,
   }
 }
 
-WorkItem::Result TrajectoryBackend2D::ComputeConstraintsForNode(
+TrajectoryBackend2D::WorkItem::Result
+TrajectoryBackend2D::ComputeConstraintsForNode(
     const NodeId& node_id,
     std::vector<std::shared_ptr<const Submap2D>> insertion_submaps,
     const bool newly_finished_submap) {

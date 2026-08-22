@@ -17,6 +17,7 @@
 #ifndef CARTOGRAPHER_BACKEND_TRAJECTORY_BACKEND_2D_H_
 #define CARTOGRAPHER_BACKEND_TRAJECTORY_BACKEND_2D_H_
 
+#include <chrono>
 #include <deque>
 #include <functional>
 #include <limits>
@@ -37,7 +38,6 @@
 #include "cartographer/backend/pose_optimizer_2d.h"
 #include "cartographer/backend/backend_state.h"
 #include "cartographer/backend/trajectory_connectivity_state.h"
-#include "cartographer/backend/backend_work_queue.h"
 #include "cartographer/backend/backend_types.h"
 #include "cartographer/backend/backend_trimmer.h"
 #include "cartographer/mapping/grid_2d.h"
@@ -139,6 +139,18 @@ class TrajectoryBackend2D {
   static void RegisterMetrics(metrics::FamilyFactory* family_factory);
 
  private:
+  struct WorkItem {
+    enum class Result {
+      kDoNotRunOptimization,
+      kRunOptimization,
+    };
+
+    std::chrono::steady_clock::time_point time;
+    std::function<Result()> task;
+  };
+
+  using WorkQueue = std::deque<WorkItem>;
+
   MapById<SubmapId, SubmapData> GetSubmapDataUnderLock()
       const EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
