@@ -29,7 +29,7 @@
 #include "cartographer/trajectory/options.h"
 #include "cartographer/pose_graph/pose_graph.h"
 #include "cartographer/mapping/submap_texture.h"
-#include "cartographer/trajectory/trajectory_builder_interface.h"
+#include "cartographer/trajectory/trajectory_frontend_2d.h"
 
 namespace cartographer {
 namespace mapping {
@@ -41,9 +41,8 @@ MapBuilderOptions CreateMapBuilderOptions(
 
 class MapBuilder {
  public:
-  using LocalSlamResultCallback =
-      TrajectoryBuilderInterface::LocalSlamResultCallback;
-  using SensorId = TrajectoryBuilderInterface::SensorId;
+  using LocalSlamResultCallback = TrajectoryFrontend2D::LocalSlamResultCallback;
+  using SensorId = TrajectoryFrontend2D::SensorId;
 
   explicit MapBuilder(const MapBuilderOptions &options);
   ~MapBuilder() = default;
@@ -75,7 +74,7 @@ class MapBuilder {
     return trajectory_builders_.size();
   }
 
-  mapping::TrajectoryBuilderInterface *GetTrajectoryBuilder(
+  TrajectoryFrontend2D *GetTrajectoryBuilder(
       int trajectory_id) const {
     return trajectory_builders_.at(trajectory_id).get();
   }
@@ -87,8 +86,7 @@ class MapBuilder {
   std::unique_ptr<PoseGraph> pose_graph_;
 
   std::unique_ptr<sensor::DataDispatcher> data_dispatcher_;
-  std::vector<std::unique_ptr<mapping::TrajectoryBuilderInterface>>
-      trajectory_builders_;
+  std::vector<std::unique_ptr<TrajectoryFrontend2D>> trajectory_builders_;
 };
 
 std::unique_ptr<MapBuilder> CreateMapBuilder(const MapBuilderOptions& options);

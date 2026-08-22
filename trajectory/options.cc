@@ -42,6 +42,28 @@ namespace mapping {
 
 namespace {
 
+void PopulatePureLocalizationTrimmerOptions(
+    TrajectoryBuilderOptions* const options,
+    common::ParameterDictionary* const dictionary) {
+  constexpr char kKey[] = "pure_localization_trimmer";
+  if (!dictionary->HasKey(kKey)) return;
+  auto values = dictionary->GetDictionary(kKey);
+  options->mutable_pure_localization_trimmer()->set_max_submaps_to_keep(
+      values->GetInt("max_submaps_to_keep"));
+}
+
+void PopulatePoseGraphOdometryMotionFilterOptions(
+    TrajectoryBuilderOptions* const options,
+    common::ParameterDictionary* const dictionary) {
+  constexpr char kKey[] = "pose_graph_odometry_motion_filter";
+  if (!dictionary->HasKey(kKey)) return;
+  auto values = dictionary->GetDictionary(kKey);
+  auto* filter = options->mutable_pose_graph_odometry_motion_filter();
+  filter->set_max_time_seconds(values->GetDouble("max_time_seconds"));
+  filter->set_max_distance_meters(values->GetDouble("max_distance_meters"));
+  filter->set_max_angle_radians(values->GetDouble("max_angle_radians"));
+}
+
 ConstantVelocityPoseExtrapolatorOptions
 CreateConstantVelocityPoseExtrapolatorOptions(
     common::ParameterDictionary* const parameter_dictionary) {
@@ -54,6 +76,18 @@ CreateConstantVelocityPoseExtrapolatorOptions(
 }
 
 }  // namespace
+
+TrajectoryBuilderOptions CreateTrajectoryBuilderOptions(
+    common::ParameterDictionary* const parameter_dictionary) {
+  TrajectoryBuilderOptions options;
+  *options.mutable_trajectory_builder_2d_options() =
+      CreateLocalTrajectoryBuilderOptions2D(
+          parameter_dictionary->GetDictionary("trajectory_builder_2d").get());
+  PopulatePureLocalizationTrimmerOptions(&options, parameter_dictionary);
+  PopulatePoseGraphOdometryMotionFilterOptions(&options,
+                                                parameter_dictionary);
+  return options;
+}
 
 PoseExtrapolatorOptions CreatePoseExtrapolatorOptions(
     common::ParameterDictionary* const parameter_dictionary) {

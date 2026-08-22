@@ -25,10 +25,9 @@ flowchart LR
     TF[calibration.yaml<br/>固定外参与时间偏移]
     READ[bag 单遍读取]
     CONVERT[反序列化与坐标转换]
-    COLLATE[Collator<br/>按时间排序 scan/odom]
-    LOCAL[LocalTrajectoryBuilder2D<br/>局部 SLAM]
+    DISPATCH[DataDispatcher<br/>按时间排序 scan/odom]
+    FRONTEND[TrajectoryFrontend2D<br/>单一前端边界]
     SUBMAP[ActiveSubmaps2D<br/>栅格与子图]
-    GLOBAL[GlobalTrajectoryBuilder<br/>前后端桥接]
     GRAPH[PoseGraph<br/>约束与回环]
     OPT[OptimizationProblem2D<br/>Ceres 全局优化]
     CSV[(优化轨迹 CSV)]
@@ -40,12 +39,11 @@ flowchart LR
     BAG --> READ
     TF --> CONVERT
     READ --> CONVERT
-    CONVERT --> COLLATE
-    COLLATE --> GLOBAL
-    GLOBAL --> LOCAL
-    LOCAL --> SUBMAP
-    LOCAL --> GLOBAL
-    GLOBAL --> GRAPH
+    CONVERT --> FRONTEND
+    FRONTEND --> DISPATCH
+    DISPATCH --> FRONTEND
+    FRONTEND --> SUBMAP
+    FRONTEND --> GRAPH
     SUBMAP --> GRAPH
     GRAPH --> OPT
     OPT --> GRAPH
@@ -53,25 +51,24 @@ flowchart LR
     GRAPH --> SWMAP
 ```
 
-核心所有权关系是：`MapBuilder` 同时拥有线程池、一个 `Collator`、一个
-`PoseGraph` 和轨迹构建器数组。每条轨迹构建器实际是一层
-`CollatedTrajectoryBuilder`，内部包装一层 `GlobalTrajectoryBuilder`，后者再拥有
-`LocalTrajectoryBuilder2D`，并持有共享 `PoseGraph` 的非拥有指针。
+核心所有权关系是：`MapBuilder` 同时拥有线程池、一个 `DataDispatcher`、一个
+`PoseGraph` 和前端数组。每条轨迹只对应一个 `TrajectoryFrontend2D`。它登记排序回调、
+执行局部 SLAM，并把 node/odometry 转交共享的 `PoseGraph`，不再经过多层 builder 包装
+和虚接口。
 
 ```text
 MapBuilder
 ├── ThreadPool
-├── Collator
+├── DataDispatcher
 ├── PoseGraph
 │   ├── ConstraintBuilder2D
 │   └── OptimizationProblem2D
-└── CollatedTrajectoryBuilder[trajectory_id]
-    └── GlobalTrajectoryBuilder
-        └── LocalTrajectoryBuilder2D
-            ├── PoseExtrapolator
-            ├── single scan input
-            ├── scan matchers
-            └── ActiveSubmaps2D
+└── TrajectoryFrontend2D[trajectory_id]
+    ├── sensor ordering callback
+    ├── PoseExtrapolator
+    ├── scan matchers
+    ├── ActiveSubmaps2D
+    └── PoseGraph（非拥有指针）
 ```
 
 ## 3. 启动和装配
@@ -85,12 +82,11 @@ MapBuilder
    `PoseGraph → ConstraintBuilder2D`；
 5. 如果指定 `--offline_load_state_filename`，先读取并冻结旧地图；
 6. 为 `scan` 和 `odom` 注册一条新轨迹；
-7. 创建 `CollatedTrajectoryBuilder → GlobalTrajectoryBuilder →
-   LocalTrajectoryBuilder2D` 链路；
+7. 创建一个 `TrajectoryFrontend2D` 并注册 scan/odom 排序回调；
 8. 加载标定文件，单遍回放传感器数据。
 
 传给 `AddTrajectoryBuilder()` 的 sensor ID 是内部稳定名称 `scan` 和 `odom`。
-它们同时也是 Collator 的队列键，不是从 bag 中动态发现的任意话题名称。
+它们同时也是 `DataDispatcher` 的队列键，不是从 bag 中动态发现的任意话题名称。
 
 ### 3.1 MapBuilder、PoseGraph 和线程池的职责
 
@@ -99,21 +95,19 @@ MapBuilder
 ```text
 MapBuilder（装配与生命周期容器）
 ├── DataDispatcher
-├── CollatedTrajectoryBuilder
-│   └── GlobalTrajectoryBuilder
-│       └── LocalTrajectoryBuilder2D       ← SLAM 前端
+├── TrajectoryFrontend2D                   ← SLAM 前端
 ├── PoseGraph                              ← SLAM 后端
 │   └── ConstraintBuilder2D
 └── ThreadPool                             ← 后端执行资源
      └── 注入 PoseGraph / ConstraintBuilder2D
 ```
 
-因此，前后端并行指的是 bag 回放和 `LocalTrajectoryBuilder2D` 继续处理 scan 时，
+因此，前后端并行指的是 bag 回放和 `TrajectoryFrontend2D` 继续处理 scan 时，
 `PoseGraph` 可以在后台推进已提交 node 的约束工作；不是说 `MapBuilder`、`PoseGraph` 和
 `ThreadPool` 分别代表三个同级模块。
 
 `MapBuilder` 是装配和生命周期入口，本身不执行具体 SLAM 算法。它持有线程池、
-`PoseGraph`、`DataDispatcher` 以及各条 trajectory builder 链，负责创建轨迹、结束轨迹、
+`PoseGraph`、`DataDispatcher` 以及各条 frontend，负责创建轨迹、结束轨迹、
 加载/保存 `.swmap`。当前虽然只有一条轨迹，仍由它统一保证这些对象的析构顺序：必须先
 等待图计算完成，才能销毁被后台任务引用的 submap、node 和 scan matcher。
 
@@ -166,7 +160,7 @@ LaserScan 的数据时间定义为最后一个有效扫描点所在时刻；各�
 
 ## 5. 时间排序与分派
 
-`CollatedTrajectoryBuilder` 把两种强类型数据直接提交给 `DataDispatcher`。
+`TrajectoryFrontend2D` 把两种强类型数据直接提交给 `DataDispatcher`。
 dispatcher 使用 C++20 `std::variant<TimedPointCloudData, OdometryData>` 保存数据，
 为 `(trajectory_id, sensor_id)` 各维护一个无锁 `std::deque`，并保证：
 
@@ -175,15 +169,15 @@ dispatcher 使用 C++20 `std::variant<TimedPointCloudData, OdometryData>` 保存
 - 单个队列缺数据时暂停分派；
 - `FinishTrajectory()` 标记所有队列结束并排空剩余数据。
 
-排序后的数据通过 `std::visit` 进入匹配的
-`GlobalTrajectoryBuilder::AddSensorData()` 重载，不再创建 `sensor::Data` 虚对象，也不
-再经过 `BlockingQueue`/`OrderedMultiQueue`。bag 文件中消息的物理排列可以交错，但每个
+排序后的数据通过 `std::visit` 进入 `TrajectoryFrontend2D::ProcessSensorData()` 的强类型
+重载，不再创建 `sensor::Data` 虚对象，也不经过 builder 虚接口、`BlockingQueue` 或
+`OrderedMultiQueue`。bag 文件中消息的物理排列可以交错，但每个
 传感器自身仍必须保持时间有序。当前 bag reader 是唯一生产者，后台 PoseGraph 不会写
 传感器队列，因此 dispatcher 明确采用单线程同步模型。
 
 ## 6. `/scan` 的局部 SLAM 路径
 
-一次 scan 进入 `LocalTrajectoryBuilder2D::AddRangeData()` 后依次经过：
+一次 scan 进入 `TrajectoryFrontend2D` 后，由内部局部匹配实现依次经过：
 
 1. 校验输入是唯一的 `scan` sensor，且帧内点时间单调递增；
 2. `PoseExtrapolator` 根据已有 pose 和 odometry 预测扫描期间姿态；
@@ -273,9 +267,9 @@ p_gravity       = T_gravity_local · p_local
 
 ## 7. `/odom` 的双路径
 
-Odometry 经 `GlobalTrajectoryBuilder` 后分成两路：
+Odometry 经 `TrajectoryFrontend2D` 后分成两路：
 
-- 送入 `LocalTrajectoryBuilder2D`，供 `PoseExtrapolator` 做实时姿态预测；
+- 送入前端内部的局部匹配实现，供 `PoseExtrapolator` 做实时姿态预测；
 - 送入 `PoseGraph` 保存为全局优化的 odometry 约束数据。
 
 第二路可以由 `pose_graph_odometry_motion_filter` 降采样。当前没有外部 IMU 输入；局部
@@ -283,7 +277,7 @@ Odometry 经 `GlobalTrajectoryBuilder` 后分成两路：
 
 ## 8. 从局部结果到 PoseGraph
 
-`GlobalTrajectoryBuilder` 是前端与后端的边界：
+`TrajectoryFrontend2D` 是唯一的前端入口，也是前端与后端的边界：
 
 - 只有产生 `MatchingResult` 的 scan 才形成一次局部 SLAM 输出；
 - 只有通过 motion filter、带 `InsertionResult` 的结果才调用
@@ -331,11 +325,11 @@ bag 读完后的顺序不可交换：
 
 ## 11. 线程和阻塞边界
 
-- bag 读取、消息反序列化、TF 查询、Collator 分派和局部 SLAM 在主线程推进；
+- bag 读取、消息反序列化、标定变换、`DataDispatcher` 分派和局部 SLAM 在主线程推进；
 - PoseGraph 通过 `ThreadPool` 并行计算候选约束；
 - PoseGraph 的 work queue 串行化会修改全局图状态的操作；
 - `RunFinalOptimization()` 是最终同步屏障，返回后才能导出稳定轨迹和地图；
-- Collator 若等待某个 sensor queue，会停止整个轨迹的数据分派，因此缺失 `/scan` 或
+- `DataDispatcher` 若等待某个 sensor queue，会停止整个轨迹的数据分派，因此缺失 `/scan` 或
   `/odom` 不能被当作可选输入。
 
 ## 12. 目录与职责对应
@@ -343,8 +337,8 @@ bag 读完后的顺序不可交换：
 | 目录 | 在 bag 链路中的职责 |
 |---|---|
 | `application/` | 参数、bag 单遍读取、ROS 消息转换、生命周期控制 |
-| `core/` | 时间、传感器数据、Collator、点云、变换、线程池和指标 |
-| `trajectory/` | 数据排序外壳以及局部/全局轨迹编排边界 |
+| `core/` | 时间、传感器数据、DataDispatcher、点云、变换、线程池和指标 |
+| `trajectory/` | 单一 `TrajectoryFrontend2D` 前端边界与配置 |
 | `local/` | 局部 SLAM、姿态预测、运动过滤和 range 汇聚 |
 | `scan_matching/` | 局部匹配及全局约束搜索使用的匹配算法 |
 | `mapping/` | MapBuilder、栅格和子图生命周期 |

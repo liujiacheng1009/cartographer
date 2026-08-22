@@ -303,6 +303,9 @@ struct TrajectoryBuilderOptions {
   std::optional<MotionFilterOptions> pose_graph_odometry_motion_filter_;
 };
 
+TrajectoryBuilderOptions CreateTrajectoryBuilderOptions(
+    common::ParameterDictionary* parameter_dictionary);
+
 LocalTrajectoryBuilderOptions2D CreateLocalTrajectoryBuilderOptions2D(
     common::ParameterDictionary* parameter_dictionary);
 PoseGraphOptions CreatePoseGraphOptions(

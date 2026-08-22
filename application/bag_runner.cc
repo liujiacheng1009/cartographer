@@ -259,10 +259,10 @@ int main(int argc, char** argv) {
     map_builder->LoadStateFromFile(FLAGS_offline_load_state_filename,
                                    FLAGS_offline_load_frozen_state);
   }
-  const std::set<carto::mapping::TrajectoryBuilderInterface::SensorId> sensors = {
-      {carto::mapping::TrajectoryBuilderInterface::SensorId::SensorType::RANGE,
+  const std::set<carto::mapping::MapBuilder::SensorId> sensors = {
+      {carto::mapping::MapBuilder::SensorId::SensorType::RANGE,
        "scan"},
-      {carto::mapping::TrajectoryBuilderInterface::SensorId::SensorType::ODOMETRY,
+      {carto::mapping::MapBuilder::SensorId::SensorType::ODOMETRY,
        "odom"}};
   const int trajectory_id = map_builder->AddTrajectoryBuilder(
       sensors, trajectory_options, nullptr);

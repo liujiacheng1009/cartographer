@@ -22,8 +22,7 @@
 #include "cartographer/serialization/swmap.h"
 #include "cartographer/local/local_trajectory_builder_2d.h"
 #include "cartographer/pose_graph/pose_graph.h"
-#include "cartographer/trajectory/collated_trajectory_builder.h"
-#include "cartographer/trajectory/global_trajectory_builder.h"
+#include "cartographer/trajectory/trajectory_frontend_2d.h"
 #include "cartographer/local/motion_filter.h"
 #include "cartographer/core/data_dispatcher.h"
 #include "cartographer/core/voxel_filter.h"
@@ -110,20 +109,11 @@ int MapBuilder::AddTrajectoryBuilder(
         MotionFilter(trajectory_options.pose_graph_odometry_motion_filter()));
   }
 
-  std::unique_ptr<LocalTrajectoryBuilder2D> local_trajectory_builder;
-  if (trajectory_options.has_trajectory_builder_2d_options()) {
-    local_trajectory_builder = absl::make_unique<LocalTrajectoryBuilder2D>(
-        trajectory_options.trajectory_builder_2d_options(),
-        SelectRangeSensorId(expected_sensor_ids));
-  }
-  DCHECK(dynamic_cast<PoseGraph*>(pose_graph_.get()));
-  trajectory_builders_.push_back(absl::make_unique<CollatedTrajectoryBuilder>(
+  trajectory_builders_.push_back(absl::make_unique<TrajectoryFrontend2D>(
       trajectory_options, data_dispatcher_.get(), trajectory_id,
-      expected_sensor_ids,
-      CreateGlobalTrajectoryBuilder2D(
-          std::move(local_trajectory_builder), trajectory_id,
-          static_cast<PoseGraph*>(pose_graph_.get()),
-          local_slam_result_callback, pose_graph_odometry_motion_filter)));
+      expected_sensor_ids, SelectRangeSensorId(expected_sensor_ids),
+      pose_graph_.get(), std::move(local_slam_result_callback),
+      pose_graph_odometry_motion_filter));
   MaybeAddPureLocalizationTrimmer(trajectory_id, trajectory_options,
                                   pose_graph_.get());
 
