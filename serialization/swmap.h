@@ -12,7 +12,7 @@
 
 namespace cartographer {
 namespace mapping {
-class PoseGraph;
+class TrajectoryBackend2D;
 }
 namespace io {
 
@@ -50,7 +50,7 @@ struct SerializedState {
 };
 
 bool WriteSwMap(const std::string& filename,
-                const mapping::PoseGraph& pose_graph,
+                const mapping::TrajectoryBackend2D& pose_graph,
                 bool include_unfinished_submaps);
 SerializedState ReadSwMap(const std::string& filename);
 

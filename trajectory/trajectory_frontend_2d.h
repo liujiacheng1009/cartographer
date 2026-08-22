@@ -18,7 +18,7 @@
 #include "cartographer/local/local_trajectory_builder_2d.h"
 #include "cartographer/local/motion_filter.h"
 #include "cartographer/mapping/submaps.h"
-#include "cartographer/pose_graph/pose_graph.h"
+#include "cartographer/pose_graph/trajectory_backend_2d.h"
 #include "cartographer/trajectory/options.h"
 
 namespace cartographer::mapping {
@@ -51,7 +51,7 @@ class TrajectoryFrontend2D {
       const TrajectoryBuilderOptions& options,
       sensor::DataDispatcher* data_dispatcher, int trajectory_id,
       const std::set<SensorId>& expected_sensor_ids, std::string range_sensor_id,
-      PoseGraph* pose_graph, LocalSlamResultCallback local_slam_result_callback,
+      TrajectoryBackend2D* backend, LocalSlamResultCallback local_slam_result_callback,
       const absl::optional<MotionFilter>& pose_graph_odometry_motion_filter);
 
   TrajectoryFrontend2D(const TrajectoryFrontend2D&) = delete;
@@ -71,7 +71,7 @@ class TrajectoryFrontend2D {
 
   sensor::DataDispatcher* const data_dispatcher_;
   const int trajectory_id_;
-  PoseGraph* const pose_graph_;
+  TrajectoryBackend2D* const backend_;
   std::unique_ptr<LocalTrajectoryBuilder2D> local_slam_;
   LocalSlamResultCallback local_slam_result_callback_;
   absl::optional<MotionFilter> pose_graph_odometry_motion_filter_;

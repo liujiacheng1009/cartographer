@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "cartographer/pose_graph/pose_graph.h"
+#include "cartographer/pose_graph/trajectory_backend_2d.h"
 #include "cartographer/mapping/grid_2d.h"
 
 #include <algorithm>
@@ -49,9 +49,9 @@ static auto* kActiveSubmapsMetric = metrics::Gauge::Null();
 static auto* kFrozenSubmapsMetric = metrics::Gauge::Null();
 static auto* kDeletedSubmapsMetric = metrics::Gauge::Null();
 
-PoseGraph::PoseGraph(
+TrajectoryBackend2D::TrajectoryBackend2D(
     const PoseGraphOptions& options,
-    std::unique_ptr<optimization::OptimizationProblem2D> optimization_problem,
+    std::unique_ptr<optimization::PoseOptimizer2D> optimization_problem,
     common::ThreadPool* thread_pool)
     : options_(options),
       optimization_problem_(std::move(optimization_problem)),
@@ -66,13 +66,13 @@ PoseGraph::PoseGraph(
   }
 }
 
-PoseGraph::~PoseGraph() {
+TrajectoryBackend2D::~TrajectoryBackend2D() {
   WaitForAllComputations();
   absl::MutexLock locker(&work_queue_mutex_);
   CHECK(work_queue_ == nullptr);
 }
 
-std::vector<SubmapId> PoseGraph::InitializeGlobalSubmapPoses(
+std::vector<SubmapId> TrajectoryBackend2D::InitializeGlobalSubmapPoses(
     const int trajectory_id, const common::Time time,
     const std::vector<std::shared_ptr<const Submap2D>>& insertion_submaps) {
   CHECK(!insertion_submaps.empty());
@@ -123,7 +123,7 @@ std::vector<SubmapId> PoseGraph::InitializeGlobalSubmapPoses(
   return {front_submap_id, last_submap_id};
 }
 
-NodeId PoseGraph::AppendNode(
+NodeId TrajectoryBackend2D::AppendNode(
     std::shared_ptr<const TrajectoryNode::Data> constant_data,
     const int trajectory_id,
     const std::vector<std::shared_ptr<const Submap2D>>& insertion_submaps,
@@ -151,7 +151,7 @@ NodeId PoseGraph::AppendNode(
   return node_id;
 }
 
-NodeId PoseGraph::AddNode(
+NodeId TrajectoryBackend2D::AddNode(
     std::shared_ptr<const TrajectoryNode::Data> constant_data,
     const int trajectory_id,
     const std::vector<std::shared_ptr<const Submap2D>>& insertion_submaps) {
@@ -171,7 +171,7 @@ NodeId PoseGraph::AddNode(
   return node_id;
 }
 
-void PoseGraph::AddWorkItem(
+void TrajectoryBackend2D::AddWorkItem(
     const std::function<WorkItem::Result()>& work_item) {
   absl::MutexLock locker(&work_queue_mutex_);
   if (work_queue_ == nullptr) {
@@ -189,7 +189,7 @@ void PoseGraph::AddWorkItem(
           .count());
 }
 
-void PoseGraph::AddTrajectoryIfNeeded(const int trajectory_id) {
+void TrajectoryBackend2D::AddTrajectoryIfNeeded(const int trajectory_id) {
   data_.trajectories_state[trajectory_id];
   CHECK(data_.trajectories_state.at(trajectory_id).state !=
         TrajectoryState::FINISHED);
@@ -206,7 +206,7 @@ void PoseGraph::AddTrajectoryIfNeeded(const int trajectory_id) {
   }
 }
 
-void PoseGraph::AddOdometryData(const int trajectory_id,
+void TrajectoryBackend2D::AddOdometryData(const int trajectory_id,
                                   const sensor::OdometryData& odometry_data) {
   AddWorkItem([=, this]() LOCKS_EXCLUDED(mutex_) {
     absl::MutexLock locker(&mutex_);
@@ -217,7 +217,7 @@ void PoseGraph::AddOdometryData(const int trajectory_id,
   });
 }
 
-void PoseGraph::ComputeConstraint(const NodeId& node_id,
+void TrajectoryBackend2D::ComputeConstraint(const NodeId& node_id,
                                     const SubmapId& submap_id) {
   bool maybe_add_local_constraint = false;
   bool maybe_add_global_constraint = false;
@@ -268,7 +268,7 @@ void PoseGraph::ComputeConstraint(const NodeId& node_id,
   }
 }
 
-WorkItem::Result PoseGraph::ComputeConstraintsForNode(
+WorkItem::Result TrajectoryBackend2D::ComputeConstraintsForNode(
     const NodeId& node_id,
     std::vector<std::shared_ptr<const Submap2D>> insertion_submaps,
     const bool newly_finished_submap) {
@@ -360,7 +360,7 @@ WorkItem::Result PoseGraph::ComputeConstraintsForNode(
   return WorkItem::Result::kDoNotRunOptimization;
 }
 
-common::Time PoseGraph::GetLatestNodeTime(const NodeId& node_id,
+common::Time TrajectoryBackend2D::GetLatestNodeTime(const NodeId& node_id,
                                             const SubmapId& submap_id) const {
   common::Time time = data_.trajectory_nodes.at(node_id).constant_data->time;
   const InternalSubmapData& submap_data = data_.submap_data.at(submap_id);
@@ -374,7 +374,7 @@ common::Time PoseGraph::GetLatestNodeTime(const NodeId& node_id,
   return time;
 }
 
-void PoseGraph::UpdateTrajectoryConnectivity(const Constraint& constraint) {
+void TrajectoryBackend2D::UpdateTrajectoryConnectivity(const Constraint& constraint) {
   CHECK_EQ(constraint.tag, Constraint::INTER_SUBMAP);
   const common::Time time =
       GetLatestNodeTime(constraint.node_id, constraint.submap_id);
@@ -383,7 +383,7 @@ void PoseGraph::UpdateTrajectoryConnectivity(const Constraint& constraint) {
       time);
 }
 
-void PoseGraph::DeleteTrajectoriesIfNeeded() {
+void TrajectoryBackend2D::DeleteTrajectoriesIfNeeded() {
   TrimmingHandle trimming_handle(this);
   for (auto& it : data_.trajectories_state) {
     if (it.second.deletion_state ==
@@ -400,8 +400,8 @@ void PoseGraph::DeleteTrajectoriesIfNeeded() {
   }
 }
 
-void PoseGraph::HandleWorkQueue(
-    const constraints::ConstraintBuilder2D::Result& result) {
+void TrajectoryBackend2D::HandleWorkQueue(
+    const constraints::ConstraintEngine2D::Result& result) {
   {
     absl::MutexLock locker(&mutex_);
     data_.constraints.insert(data_.constraints.end(), result.begin(),
@@ -444,12 +444,9 @@ void PoseGraph::HandleWorkQueue(
     for (auto& trimmer : trimmers_) {
       trimmer->Trim(&trimming_handle);
     }
-    trimmers_.erase(
-        std::remove_if(trimmers_.begin(), trimmers_.end(),
-                       [](std::unique_ptr<PoseGraphTrimmer>& trimmer) {
-                         return trimmer->IsFinished();
-                       }),
-        trimmers_.end());
+    std::erase_if(trimmers_, [](const auto& trimmer) {
+      return trimmer->IsFinished();
+    });
 
     num_nodes_since_last_loop_closure_ = 0;
 
@@ -476,7 +473,7 @@ void PoseGraph::HandleWorkQueue(
   DrainWorkQueue();
 }
 
-void PoseGraph::DrainWorkQueue() {
+void TrajectoryBackend2D::DrainWorkQueue() {
   bool process_work_queue = true;
   size_t work_queue_size;
   while (process_work_queue) {
@@ -497,12 +494,12 @@ void PoseGraph::DrainWorkQueue() {
   LOG(INFO) << "Remaining work items in queue: " << work_queue_size;
   // We have to optimize again.
   constraint_builder_.WhenDone(
-      [this](const constraints::ConstraintBuilder2D::Result& result) {
+      [this](const constraints::ConstraintEngine2D::Result& result) {
         HandleWorkQueue(result);
       });
 }
 
-void PoseGraph::WaitForAllComputations() {
+void TrajectoryBackend2D::WaitForAllComputations() {
   int num_trajectory_nodes;
   {
     absl::MutexLock locker(&mutex_);
@@ -547,7 +544,7 @@ void PoseGraph::WaitForAllComputations() {
   bool notification = false;
   constraint_builder_.WhenDone(
       [this,
-       &notification](const constraints::ConstraintBuilder2D::Result& result)
+       &notification](const constraints::ConstraintEngine2D::Result& result)
           LOCKS_EXCLUDED(mutex_) {
             absl::MutexLock locker(&mutex_);
             data_.constraints.insert(data_.constraints.end(), result.begin(),
@@ -565,7 +562,7 @@ void PoseGraph::WaitForAllComputations() {
   std::cout << "\r\x1b[KOptimizing: Done.     " << std::endl;
 }
 
-void PoseGraph::DeleteTrajectory(const int trajectory_id) {
+void TrajectoryBackend2D::DeleteTrajectory(const int trajectory_id) {
   {
     absl::MutexLock locker(&mutex_);
     auto it = data_.trajectories_state.find(trajectory_id);
@@ -591,7 +588,7 @@ void PoseGraph::DeleteTrajectory(const int trajectory_id) {
   });
 }
 
-void PoseGraph::FinishTrajectory(const int trajectory_id) {
+void TrajectoryBackend2D::FinishTrajectory(const int trajectory_id) {
   AddWorkItem([this, trajectory_id]() LOCKS_EXCLUDED(mutex_) {
     absl::MutexLock locker(&mutex_);
     CHECK(!IsTrajectoryFinished(trajectory_id));
@@ -604,13 +601,13 @@ void PoseGraph::FinishTrajectory(const int trajectory_id) {
   });
 }
 
-bool PoseGraph::IsTrajectoryFinished(const int trajectory_id) const {
+bool TrajectoryBackend2D::IsTrajectoryFinished(const int trajectory_id) const {
   return data_.trajectories_state.count(trajectory_id) != 0 &&
          data_.trajectories_state.at(trajectory_id).state ==
              TrajectoryState::FINISHED;
 }
 
-void PoseGraph::FreezeTrajectory(const int trajectory_id) {
+void TrajectoryBackend2D::FreezeTrajectory(const int trajectory_id) {
   {
     absl::MutexLock locker(&mutex_);
     data_.trajectory_connectivity_state.Add(trajectory_id);
@@ -639,13 +636,13 @@ void PoseGraph::FreezeTrajectory(const int trajectory_id) {
   });
 }
 
-bool PoseGraph::IsTrajectoryFrozen(const int trajectory_id) const {
+bool TrajectoryBackend2D::IsTrajectoryFrozen(const int trajectory_id) const {
   return data_.trajectories_state.count(trajectory_id) != 0 &&
          data_.trajectories_state.at(trajectory_id).state ==
              TrajectoryState::FROZEN;
 }
 
-void PoseGraph::AddSerializedSubmap(const io::SerializedSubmap2D& value) {
+void TrajectoryBackend2D::AddSerializedSubmap(const io::SerializedSubmap2D& value) {
   const transform::Rigid2d global_pose = transform::Project2D(value.global_pose);
   auto grid = absl::make_unique<ProbabilityGrid>(
       MapLimits(value.grid.resolution, value.grid.max, value.grid.cell_limits),
@@ -678,7 +675,7 @@ void PoseGraph::AddSerializedSubmap(const io::SerializedSubmap2D& value) {
   });
 }
 
-void PoseGraph::AddSerializedNode(const io::SerializedNode& value) {
+void TrajectoryBackend2D::AddSerializedNode(const io::SerializedNode& value) {
   auto constant_data = std::make_shared<const TrajectoryNode::Data>(value.data);
   {
     absl::MutexLock locker(&mutex_);
@@ -705,7 +702,7 @@ void PoseGraph::AddSerializedNode(const io::SerializedNode& value) {
   });
 }
 
-void PoseGraph::SetSerializedTrajectoryData(
+void TrajectoryBackend2D::SetSerializedTrajectoryData(
     int trajectory_id, const TrajectoryData& trajectory_data) {
   AddWorkItem([this, trajectory_id, trajectory_data]() LOCKS_EXCLUDED(mutex_) {
     absl::MutexLock locker(&mutex_);
@@ -716,7 +713,7 @@ void PoseGraph::SetSerializedTrajectoryData(
   });
 }
 
-void PoseGraph::AddNodeToSubmap(const NodeId& node_id,
+void TrajectoryBackend2D::AddNodeToSubmap(const NodeId& node_id,
                                   const SubmapId& submap_id) {
   AddWorkItem([this, node_id, submap_id]() LOCKS_EXCLUDED(mutex_) {
     absl::MutexLock locker(&mutex_);
@@ -727,7 +724,7 @@ void PoseGraph::AddNodeToSubmap(const NodeId& node_id,
   });
 }
 
-void PoseGraph::AddSerializedConstraints(
+void TrajectoryBackend2D::AddSerializedConstraints(
     const std::vector<Constraint>& constraints) {
   AddWorkItem([this, constraints]() LOCKS_EXCLUDED(mutex_) {
     absl::MutexLock locker(&mutex_);
@@ -761,7 +758,7 @@ void PoseGraph::AddSerializedConstraints(
   });
 }
 
-void PoseGraph::AddTrimmer(std::unique_ptr<PoseGraphTrimmer> trimmer) {
+void TrajectoryBackend2D::AddTrimmer(std::unique_ptr<PoseGraphTrimmer> trimmer) {
   // C++11 does not allow us to move a unique_ptr into a lambda.
   PoseGraphTrimmer* const trimmer_ptr = trimmer.release();
   AddWorkItem([this, trimmer_ptr]() LOCKS_EXCLUDED(mutex_) {
@@ -771,7 +768,7 @@ void PoseGraph::AddTrimmer(std::unique_ptr<PoseGraphTrimmer> trimmer) {
   });
 }
 
-void PoseGraph::RunFinalOptimization() {
+void TrajectoryBackend2D::RunFinalOptimization() {
   {
     AddWorkItem([this]() LOCKS_EXCLUDED(mutex_) {
       absl::MutexLock locker(&mutex_);
@@ -791,7 +788,7 @@ void PoseGraph::RunFinalOptimization() {
   WaitForAllComputations();
 }
 
-void PoseGraph::RunOptimization() {
+void TrajectoryBackend2D::RunOptimization() {
   if (optimization_problem_->submap_data().empty()) {
     return;
   }
@@ -837,7 +834,7 @@ void PoseGraph::RunOptimization() {
   data_.global_submap_poses_2d = submap_data;
 }
 
-bool PoseGraph::CanAddWorkItemModifying(int trajectory_id) {
+bool TrajectoryBackend2D::CanAddWorkItemModifying(int trajectory_id) {
   auto it = data_.trajectories_state.find(trajectory_id);
   if (it == data_.trajectories_state.end()) {
     return true;
@@ -865,16 +862,16 @@ bool PoseGraph::CanAddWorkItemModifying(int trajectory_id) {
   return true;
 }
 
-PoseGraph::TrimmingHandle::TrimmingHandle(PoseGraph* const parent)
+TrajectoryBackend2D::TrimmingHandle::TrimmingHandle(TrajectoryBackend2D* const parent)
     : parent_(parent) {}
 
-int PoseGraph::TrimmingHandle::num_submaps(const int trajectory_id) const {
+int TrajectoryBackend2D::TrimmingHandle::num_submaps(const int trajectory_id) const {
   const auto& submap_data = parent_->optimization_problem_->submap_data();
   return submap_data.SizeOfTrajectoryOrZero(trajectory_id);
 }
 
 MapById<SubmapId, SubmapData>
-PoseGraph::TrimmingHandle::GetOptimizedSubmapData() const {
+TrajectoryBackend2D::TrimmingHandle::GetOptimizedSubmapData() const {
   MapById<SubmapId, SubmapData> submaps;
   for (const auto& submap_id_data : parent_->data_.submap_data) {
     if (submap_id_data.data.state != SubmapState::kFinished ||
@@ -891,7 +888,7 @@ PoseGraph::TrimmingHandle::GetOptimizedSubmapData() const {
   return submaps;
 }
 
-std::vector<SubmapId> PoseGraph::TrimmingHandle::GetSubmapIds(
+std::vector<SubmapId> TrajectoryBackend2D::TrimmingHandle::GetSubmapIds(
     int trajectory_id) const {
   std::vector<SubmapId> submap_ids;
   const auto& submap_data = parent_->optimization_problem_->submap_data();
@@ -902,25 +899,25 @@ std::vector<SubmapId> PoseGraph::TrimmingHandle::GetSubmapIds(
 }
 
 const MapById<NodeId, TrajectoryNode>&
-PoseGraph::TrimmingHandle::GetTrajectoryNodes() const {
+TrajectoryBackend2D::TrimmingHandle::GetTrajectoryNodes() const {
   return parent_->data_.trajectory_nodes;
 }
 
 const std::vector<Constraint>&
-PoseGraph::TrimmingHandle::GetConstraints() const {
+TrajectoryBackend2D::TrimmingHandle::GetConstraints() const {
   return parent_->data_.constraints;
 }
 
-bool PoseGraph::TrimmingHandle::IsFinished(const int trajectory_id) const {
+bool TrajectoryBackend2D::TrimmingHandle::IsFinished(const int trajectory_id) const {
   return parent_->IsTrajectoryFinished(trajectory_id);
 }
 
-void PoseGraph::TrimmingHandle::SetTrajectoryState(int trajectory_id,
+void TrajectoryBackend2D::TrimmingHandle::SetTrajectoryState(int trajectory_id,
                                                      TrajectoryState state) {
   parent_->data_.trajectories_state[trajectory_id].state = state;
 }
 
-void PoseGraph::TrimmingHandle::TrimSubmap(const SubmapId& submap_id) {
+void TrajectoryBackend2D::TrimmingHandle::TrimSubmap(const SubmapId& submap_id) {
   // TODO(hrapp): We have to make sure that the trajectory has been finished
   // if we want to delete the last submaps.
   CHECK(parent_->data_.submap_data.at(submap_id).state ==
@@ -1015,7 +1012,7 @@ void PoseGraph::TrimmingHandle::TrimSubmap(const SubmapId& submap_id) {
 }
 
 MapById<SubmapId, SubmapData>
-PoseGraph::GetSubmapDataUnderLock() const {
+TrajectoryBackend2D::GetSubmapDataUnderLock() const {
   MapById<SubmapId, SubmapData> submaps;
   for (const auto& submap_id_data : data_.submap_data) {
     submaps.Insert(submap_id_data.id,
@@ -1024,12 +1021,12 @@ PoseGraph::GetSubmapDataUnderLock() const {
   return submaps;
 }
 
-void PoseGraph::SetGlobalSlamOptimizationCallback(
+void TrajectoryBackend2D::SetGlobalSlamOptimizationCallback(
     GlobalSlamOptimizationCallback callback) {
   global_slam_optimization_callback_ = callback;
 }
 
-void PoseGraph::RegisterMetrics(metrics::FamilyFactory* family_factory) {
+void TrajectoryBackend2D::RegisterMetrics(metrics::FamilyFactory* family_factory) {
   auto* latency = family_factory->NewGaugeFamily(
       "mapping_2d_pose_graph_work_queue_delay",
       "Age of the oldest entry in the work queue in seconds");

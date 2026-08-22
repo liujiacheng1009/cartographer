@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "cartographer/pose_graph/constraint_builder_2d.h"
+#include "cartographer/pose_graph/constraint_engine_2d.h"
 
 #include <cmath>
 #include <functional>
@@ -54,7 +54,7 @@ transform::Rigid2d ComputeSubmapPose(const Submap2D& submap) {
   return transform::Project2D(submap.local_pose());
 }
 
-ConstraintBuilder2D::ConstraintBuilder2D(
+ConstraintEngine2D::ConstraintEngine2D(
     const ConstraintBuilderOptions& options,
     common::ThreadPool* const thread_pool)
     : options_(options),
@@ -63,7 +63,7 @@ ConstraintBuilder2D::ConstraintBuilder2D(
       when_done_task_(absl::make_unique<common::Task>()),
       ceres_scan_matcher_(options.ceres_scan_matcher_options()) {}
 
-ConstraintBuilder2D::~ConstraintBuilder2D() {
+ConstraintEngine2D::~ConstraintEngine2D() {
   absl::MutexLock locker(&mutex_);
   CHECK_EQ(finish_node_task_->GetState(), common::Task::NEW);
   CHECK_EQ(when_done_task_->GetState(), common::Task::NEW);
@@ -72,7 +72,7 @@ ConstraintBuilder2D::~ConstraintBuilder2D() {
   CHECK(when_done_ == nullptr);
 }
 
-void ConstraintBuilder2D::MaybeAddConstraint(
+void ConstraintEngine2D::MaybeAddConstraint(
     const SubmapId& submap_id, const Submap2D* const submap,
     const NodeId& node_id, const TrajectoryNode::Data* const constant_data,
     const transform::Rigid2d& initial_relative_pose) {
@@ -109,7 +109,7 @@ void ConstraintBuilder2D::MaybeAddConstraint(
   finish_node_task_->AddDependency(constraint_task_handle);
 }
 
-void ConstraintBuilder2D::MaybeAddGlobalConstraint(
+void ConstraintEngine2D::MaybeAddGlobalConstraint(
     const SubmapId& submap_id, const Submap2D* const submap,
     const NodeId& node_id, const TrajectoryNode::Data* const constant_data) {
   absl::MutexLock locker(&mutex_);
@@ -134,7 +134,7 @@ void ConstraintBuilder2D::MaybeAddGlobalConstraint(
   finish_node_task_->AddDependency(constraint_task_handle);
 }
 
-void ConstraintBuilder2D::NotifyEndOfNode() {
+void ConstraintEngine2D::NotifyEndOfNode() {
   absl::MutexLock locker(&mutex_);
   CHECK(finish_node_task_ != nullptr);
   finish_node_task_->SetWorkItem([this] {
@@ -148,8 +148,8 @@ void ConstraintBuilder2D::NotifyEndOfNode() {
   ++num_started_nodes_;
 }
 
-void ConstraintBuilder2D::WhenDone(
-    const std::function<void(const ConstraintBuilder2D::Result&)>& callback) {
+void ConstraintEngine2D::WhenDone(
+    const std::function<void(const ConstraintEngine2D::Result&)>& callback) {
   absl::MutexLock locker(&mutex_);
   CHECK(when_done_ == nullptr);
   // TODO(gaschler): Consider using just std::function, it can also be empty.
@@ -160,8 +160,8 @@ void ConstraintBuilder2D::WhenDone(
   when_done_task_ = absl::make_unique<common::Task>();
 }
 
-const ConstraintBuilder2D::SubmapScanMatcher*
-ConstraintBuilder2D::DispatchScanMatcherConstruction(const SubmapId& submap_id,
+const ConstraintEngine2D::SubmapScanMatcher*
+ConstraintEngine2D::DispatchScanMatcherConstruction(const SubmapId& submap_id,
                                                      const Grid2D* const grid) {
   CHECK(grid);
   if (submap_scan_matchers_.count(submap_id) != 0) {
@@ -183,13 +183,13 @@ ConstraintBuilder2D::DispatchScanMatcherConstruction(const SubmapId& submap_id,
   return &submap_scan_matchers_.at(submap_id);
 }
 
-void ConstraintBuilder2D::ComputeConstraint(
+void ConstraintEngine2D::ComputeConstraint(
     const SubmapId& submap_id, const Submap2D* const submap,
     const NodeId& node_id, bool match_full_submap,
     const TrajectoryNode::Data* const constant_data,
     const transform::Rigid2d& initial_relative_pose,
     const SubmapScanMatcher& submap_scan_matcher,
-    std::unique_ptr<ConstraintBuilder2D::Constraint>* constraint) {
+    std::unique_ptr<ConstraintEngine2D::Constraint>* constraint) {
   CHECK(submap_scan_matcher.fast_correlative_scan_matcher);
   const transform::Rigid2d initial_pose =
       ComputeSubmapPose(*submap) * initial_relative_pose;
@@ -274,7 +274,7 @@ void ConstraintBuilder2D::ComputeConstraint(
   }
 }
 
-void ConstraintBuilder2D::RunWhenDoneCallback() {
+void ConstraintEngine2D::RunWhenDoneCallback() {
   Result result;
   std::unique_ptr<std::function<void(const Result&)>> callback;
   {
@@ -297,12 +297,12 @@ void ConstraintBuilder2D::RunWhenDoneCallback() {
   (*callback)(result);
 }
 
-int ConstraintBuilder2D::GetNumFinishedNodes() {
+int ConstraintEngine2D::GetNumFinishedNodes() {
   absl::MutexLock locker(&mutex_);
   return num_finished_nodes_;
 }
 
-void ConstraintBuilder2D::DeleteScanMatcher(const SubmapId& submap_id) {
+void ConstraintEngine2D::DeleteScanMatcher(const SubmapId& submap_id) {
   absl::MutexLock locker(&mutex_);
   if (when_done_) {
     LOG(WARNING)
@@ -313,7 +313,7 @@ void ConstraintBuilder2D::DeleteScanMatcher(const SubmapId& submap_id) {
   kNumSubmapScanMatchersMetric->Set(submap_scan_matchers_.size());
 }
 
-void ConstraintBuilder2D::RegisterMetrics(metrics::FamilyFactory* factory) {
+void ConstraintEngine2D::RegisterMetrics(metrics::FamilyFactory* factory) {
   auto* counts = factory->NewCounterFamily(
       "mapping_constraints_constraint_builder_2d_constraints",
       "Constraints computed");

@@ -20,12 +20,12 @@ TrajectoryFrontend2D::TrajectoryFrontend2D(
     const TrajectoryBuilderOptions& options,
     sensor::DataDispatcher* const data_dispatcher, const int trajectory_id,
     const std::set<SensorId>& expected_sensor_ids, std::string range_sensor_id,
-    PoseGraph* const pose_graph,
+    TrajectoryBackend2D* const backend,
     LocalSlamResultCallback local_slam_result_callback,
     const absl::optional<MotionFilter>& pose_graph_odometry_motion_filter)
     : data_dispatcher_(data_dispatcher),
       trajectory_id_(trajectory_id),
-      pose_graph_(pose_graph),
+      backend_(backend),
       local_slam_(absl::make_unique<LocalTrajectoryBuilder2D>(
           options.trajectory_builder_2d_options(),
           std::move(range_sensor_id))),
@@ -86,7 +86,7 @@ void TrajectoryFrontend2D::ProcessSensorData(
 
   std::unique_ptr<InsertionResult> insertion_result;
   if (matching_result->insertion_result != nullptr) {
-    const NodeId node_id = pose_graph_->AddNode(
+    const NodeId node_id = backend_->AddNode(
         matching_result->insertion_result->constant_data, trajectory_id_,
         matching_result->insertion_result->insertion_submaps);
     CHECK_EQ(node_id.trajectory_id, trajectory_id_);
@@ -112,7 +112,7 @@ void TrajectoryFrontend2D::ProcessSensorData(
       pose_graph_odometry_motion_filter_->IsSimilar(data.time, data.pose)) {
     return;
   }
-  pose_graph_->AddOdometryData(trajectory_id_, data);
+  backend_->AddOdometryData(trajectory_id_, data);
 }
 
 }  // namespace cartographer::mapping

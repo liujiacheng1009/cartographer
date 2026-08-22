@@ -21,7 +21,7 @@
 #include "cartographer/core/rigid_transform.h"
 #include "cartographer/serialization/swmap.h"
 #include "cartographer/local/local_trajectory_builder_2d.h"
-#include "cartographer/pose_graph/pose_graph.h"
+#include "cartographer/pose_graph/trajectory_backend_2d.h"
 #include "cartographer/trajectory/trajectory_frontend_2d.h"
 #include "cartographer/local/motion_filter.h"
 #include "cartographer/core/data_dispatcher.h"
@@ -66,17 +66,17 @@ std::string SelectRangeSensorId(
 void MaybeAddPureLocalizationTrimmer(
     const int trajectory_id,
     const TrajectoryBuilderOptions& trajectory_options,
-    PoseGraph* pose_graph) {
+    TrajectoryBackend2D* backend) {
   if (trajectory_options.pure_localization()) {
     LOG(WARNING)
         << "'TrajectoryBuilderOptions::pure_localization' field is deprecated. "
            "Use 'TrajectoryBuilderOptions::pure_localization_trimmer' instead.";
-    pose_graph->AddTrimmer(absl::make_unique<PureLocalizationTrimmer>(
+    backend->AddTrimmer(absl::make_unique<PureLocalizationTrimmer>(
         trajectory_id, 3 /* max_submaps_to_keep */));
     return;
   }
   if (trajectory_options.has_pure_localization_trimmer()) {
-    pose_graph->AddTrimmer(absl::make_unique<PureLocalizationTrimmer>(
+    backend->AddTrimmer(absl::make_unique<PureLocalizationTrimmer>(
         trajectory_id,
         trajectory_options.pure_localization_trimmer().max_submaps_to_keep()));
   }
@@ -87,9 +87,9 @@ void MaybeAddPureLocalizationTrimmer(
 MapBuilder::MapBuilder(const MapBuilderOptions& options)
     : options_(options), thread_pool_(options.num_background_threads()) {
   CHECK(options.use_trajectory_builder_2d());
-  pose_graph_ = absl::make_unique<PoseGraph>(
+  backend_ = absl::make_unique<TrajectoryBackend2D>(
       options_.pose_graph_options(),
-      absl::make_unique<optimization::OptimizationProblem2D>(
+      absl::make_unique<optimization::PoseOptimizer2D>(
           options_.pose_graph_options().optimization_problem_options()),
       &thread_pool_);
   CHECK(!options.collate_by_trajectory());
@@ -112,15 +112,15 @@ int MapBuilder::AddTrajectoryBuilder(
   trajectory_builders_.push_back(absl::make_unique<TrajectoryFrontend2D>(
       trajectory_options, data_dispatcher_.get(), trajectory_id,
       expected_sensor_ids, SelectRangeSensorId(expected_sensor_ids),
-      pose_graph_.get(), std::move(local_slam_result_callback),
+      backend_.get(), std::move(local_slam_result_callback),
       pose_graph_odometry_motion_filter));
   MaybeAddPureLocalizationTrimmer(trajectory_id, trajectory_options,
-                                  pose_graph_.get());
+                                  backend_.get());
 
   if (trajectory_options.has_initial_trajectory_pose()) {
     const auto& initial_trajectory_pose =
         trajectory_options.initial_trajectory_pose();
-    pose_graph_->SetInitialTrajectoryPose(
+    backend_->SetInitialTrajectoryPose(
         trajectory_id, initial_trajectory_pose.to_trajectory_id,
         initial_trajectory_pose.relative_pose, initial_trajectory_pose.timestamp);
   }
@@ -135,7 +135,7 @@ int MapBuilder::AddTrajectoryForDeserialization() {
 
 void MapBuilder::FinishTrajectory(const int trajectory_id) {
   data_dispatcher_->FinishTrajectory(trajectory_id);
-  pose_graph_->FinishTrajectory(trajectory_id);
+  backend_->FinishTrajectory(trajectory_id);
 }
 
 std::string MapBuilder::GetSubmapTexture(
@@ -147,7 +147,7 @@ std::string MapBuilder::GetSubmapTexture(
            std::to_string(num_trajectory_builders()) + " trajectories.";
   }
 
-  const auto submap_data = pose_graph_->GetSubmapData(submap_id);
+  const auto submap_data = backend_->GetSubmapData(submap_id);
   if (submap_data.submap == nullptr) {
     return "Requested submap " + std::to_string(submap_id.submap_index) +
            " from trajectory " + std::to_string(submap_id.trajectory_id) +
@@ -159,7 +159,7 @@ std::string MapBuilder::GetSubmapTexture(
 
 bool MapBuilder::SerializeStateToFile(bool include_unfinished_submaps,
                                       const std::string& filename) {
-  return io::WriteSwMap(filename, *pose_graph_, include_unfinished_submaps);
+  return io::WriteSwMap(filename, *backend_, include_unfinished_submaps);
 }
 
 std::map<int, int> MapBuilder::LoadStateFromFile(
@@ -177,18 +177,18 @@ std::map<int, int> MapBuilder::LoadStateFromFile(
   for (int old_id : state.trajectory_ids) {
     const int new_id = AddTrajectoryForDeserialization();
     CHECK(trajectory_remapping.emplace(old_id, new_id).second);
-    pose_graph_->FreezeTrajectory(new_id);
+    backend_->FreezeTrajectory(new_id);
   }
   for (auto& submap : state.submaps) {
     submap.id.trajectory_id = trajectory_remapping.at(submap.id.trajectory_id);
-    pose_graph_->AddSerializedSubmap(submap);
+    backend_->AddSerializedSubmap(submap);
   }
   for (auto& node : state.nodes) {
     node.id.trajectory_id = trajectory_remapping.at(node.id.trajectory_id);
-    pose_graph_->AddSerializedNode(node);
+    backend_->AddSerializedNode(node);
   }
   for (const auto& item : state.trajectory_data) {
-    pose_graph_->SetSerializedTrajectoryData(
+    backend_->SetSerializedTrajectoryData(
         trajectory_remapping.at(item.first), item.second);
   }
   for (auto constraint : state.constraints) {
@@ -197,7 +197,7 @@ std::map<int, int> MapBuilder::LoadStateFromFile(
     constraint.node_id.trajectory_id =
         trajectory_remapping.at(constraint.node_id.trajectory_id);
     if (constraint.tag == Constraint::INTRA_SUBMAP) {
-      pose_graph_->AddNodeToSubmap(constraint.node_id, constraint.submap_id);
+      backend_->AddNodeToSubmap(constraint.node_id, constraint.submap_id);
     }
   }
   return trajectory_remapping;

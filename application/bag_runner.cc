@@ -209,12 +209,12 @@ void ValidateBagOnlyConfig(
 }
 
 void WriteTrajectory(const std::string& filename, int trajectory_id,
-                     carto::mapping::PoseGraph* pose_graph) {
+                     carto::mapping::TrajectoryBackend2D* backend) {
   if (filename.empty()) return;
   std::ofstream output(filename);
   CHECK(output.good()) << "Cannot open trajectory output '" << filename << "'.";
   output << std::setprecision(17) << "timestamp,x,y,theta\n";
-  for (const auto& item : pose_graph->GetTrajectoryNodes()) {
+  for (const auto& item : backend->GetTrajectoryNodes()) {
     if (item.id.trajectory_id != trajectory_id) continue;
     const auto& pose = item.data.global_pose;
     const auto& q = pose.rotation();
@@ -288,7 +288,7 @@ int main(int argc, char** argv) {
     }
   }
   map_builder->FinishTrajectory(trajectory_id);
-  map_builder->pose_graph()->RunFinalOptimization();
+  map_builder->backend()->RunFinalOptimization();
   const double wall_seconds =
       std::chrono::duration<double>(std::chrono::steady_clock::now() - started)
           .count();
@@ -300,7 +300,7 @@ int main(int argc, char** argv) {
   CHECK_EQ(getrusage(RUSAGE_SELF, &usage), 0);
   LOG(INFO) << "Peak memory usage: " << usage.ru_maxrss << " KiB";
   WriteTrajectory(FLAGS_trajectory_filename, trajectory_id,
-                  map_builder->pose_graph());
+                  map_builder->backend());
   if (!FLAGS_offline_save_state_filename.empty()) {
     CHECK(map_builder->SerializeStateToFile(
         true, FLAGS_offline_save_state_filename));

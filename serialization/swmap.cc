@@ -4,7 +4,7 @@
 #include <filesystem>
 #include <set>
 
-#include "cartographer/pose_graph/pose_graph.h"
+#include "cartographer/pose_graph/trajectory_backend_2d.h"
 #include "cartographer/mapping/submap_2d.h"
 #include "glog/logging.h"
 #include "sqlite3.h"
@@ -181,7 +181,7 @@ void Validate(sqlite3* db) {
 
 }  // namespace
 
-bool WriteSwMap(const std::string& filename, const mapping::PoseGraph& pose_graph,
+bool WriteSwMap(const std::string& filename, const mapping::TrajectoryBackend2D& pose_graph,
                 bool include_unfinished_submaps) {
   std::filesystem::remove(filename);
   sqlite3* db = Open(filename, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE);

@@ -27,7 +27,7 @@
 #include "cartographer/core/data_dispatcher.h"
 #include "cartographer/pose_graph/id.h"
 #include "cartographer/trajectory/options.h"
-#include "cartographer/pose_graph/pose_graph.h"
+#include "cartographer/pose_graph/trajectory_backend_2d.h"
 #include "cartographer/mapping/submap_texture.h"
 #include "cartographer/trajectory/trajectory_frontend_2d.h"
 
@@ -35,7 +35,7 @@ namespace cartographer {
 namespace mapping {
 
 // Wires up the complete SLAM stack with TrajectoryBuilders (for local submaps)
-// and a PoseGraph for loop closure.
+// and a TrajectoryBackend2D for loop closure.
 MapBuilderOptions CreateMapBuilderOptions(
     common::ParameterDictionary* parameter_dictionary);
 
@@ -68,7 +68,7 @@ class MapBuilder {
   std::map<int, int> LoadStateFromFile(const std::string &filename,
                                        bool load_frozen_state);
 
-  PoseGraph* pose_graph() { return pose_graph_.get(); }
+  TrajectoryBackend2D* backend() { return backend_.get(); }
 
   int num_trajectory_builders() const {
     return trajectory_builders_.size();
@@ -83,7 +83,7 @@ class MapBuilder {
   const MapBuilderOptions options_;
   common::ThreadPool thread_pool_;
 
-  std::unique_ptr<PoseGraph> pose_graph_;
+  std::unique_ptr<TrajectoryBackend2D> backend_;
 
   std::unique_ptr<sensor::DataDispatcher> data_dispatcher_;
   std::vector<std::unique_ptr<TrajectoryFrontend2D>> trajectory_builders_;

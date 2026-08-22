@@ -21,7 +21,7 @@
 #include <set>
 #include <vector>
 
-#include "cartographer/pose_graph/optimization_problem_2d.h"
+#include "cartographer/pose_graph/pose_optimizer_2d.h"
 #include "cartographer/pose_graph/trajectory_connectivity_state.h"
 #include "cartographer/pose_graph/pose_graph_types.h"
 #include "cartographer/mapping/submaps.h"

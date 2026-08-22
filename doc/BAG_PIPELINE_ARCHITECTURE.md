@@ -28,12 +28,12 @@ flowchart LR
     DISPATCH[DataDispatcher<br/>按时间排序 scan/odom]
     FRONTEND[TrajectoryFrontend2D<br/>单一前端边界]
     SUBMAP[ActiveSubmaps2D<br/>栅格与子图]
-    GRAPH[PoseGraph<br/>约束与回环]
-    OPT[OptimizationProblem2D<br/>Ceres 全局优化]
+    GRAPH[TrajectoryBackend2D<br/>约束与回环]
+    OPT[PoseOptimizer2D<br/>Ceres 全局优化]
     CSV[(优化轨迹 CSV)]
     SWMAP[(.swmap v3)]
 
-    CFG --> LOCAL
+    CFG --> FRONTEND
     CFG --> GRAPH
     BAG --> TF
     BAG --> READ
@@ -52,23 +52,23 @@ flowchart LR
 ```
 
 核心所有权关系是：`MapBuilder` 同时拥有线程池、一个 `DataDispatcher`、一个
-`PoseGraph` 和前端数组。每条轨迹只对应一个 `TrajectoryFrontend2D`。它登记排序回调、
-执行局部 SLAM，并把 node/odometry 转交共享的 `PoseGraph`，不再经过多层 builder 包装
+`TrajectoryBackend2D` 和前端数组。每条轨迹只对应一个 `TrajectoryFrontend2D`。它登记排序回调、
+执行局部 SLAM，并把 node/odometry 转交共享的 `TrajectoryBackend2D`，不再经过多层 builder 包装
 和虚接口。
 
 ```text
 MapBuilder
 ├── ThreadPool
 ├── DataDispatcher
-├── PoseGraph
-│   ├── ConstraintBuilder2D
-│   └── OptimizationProblem2D
+├── TrajectoryBackend2D
+│   ├── ConstraintEngine2D（内部约束引擎）
+│   └── PoseOptimizer2D（内部 Ceres 求解器）
 └── TrajectoryFrontend2D[trajectory_id]
     ├── sensor ordering callback
     ├── PoseExtrapolator
     ├── scan matchers
     ├── ActiveSubmaps2D
-    └── PoseGraph（非拥有指针）
+    └── TrajectoryBackend2D（非拥有指针）
 ```
 
 ## 3. 启动和装配
@@ -79,7 +79,7 @@ MapBuilder
 2. 生成 `MapBuilderOptions` 和 `TrajectoryBuilderOptions`；
 3. 校验配置只声明当前支持的输入；
 4. 创建 `MapBuilder`；其内部持有后台线程池，并将线程池作为执行资源注入
-   `PoseGraph → ConstraintBuilder2D`；
+   `TrajectoryBackend2D` 的内部任务引擎；
 5. 如果指定 `--offline_load_state_filename`，先读取并冻结旧地图；
 6. 为 `scan` 和 `odom` 注册一条新轨迹；
 7. 创建一个 `TrajectoryFrontend2D` 并注册 scan/odom 排序回调；
@@ -88,7 +88,7 @@ MapBuilder
 传给 `AddTrajectoryBuilder()` 的 sensor ID 是内部稳定名称 `scan` 和 `odom`。
 它们同时也是 `DataDispatcher` 的队列键，不是从 bag 中动态发现的任意话题名称。
 
-### 3.1 MapBuilder、PoseGraph 和线程池的职责
+### 3.1 MapBuilder、TrajectoryBackend2D 和线程池的职责
 
 三者不是平行的 SLAM 模块，前后端边界和所有权关系如下：
 
@@ -96,32 +96,36 @@ MapBuilder
 MapBuilder（装配与生命周期容器）
 ├── DataDispatcher
 ├── TrajectoryFrontend2D                   ← SLAM 前端
-├── PoseGraph                              ← SLAM 后端
-│   └── ConstraintBuilder2D
+├── TrajectoryBackend2D                    ← 唯一公开 SLAM 后端
 └── ThreadPool                             ← 后端执行资源
-     └── 注入 PoseGraph / ConstraintBuilder2D
+     └── 注入 TrajectoryBackend2D
 ```
 
 因此，前后端并行指的是 bag 回放和 `TrajectoryFrontend2D` 继续处理 scan 时，
-`PoseGraph` 可以在后台推进已提交 node 的约束工作；不是说 `MapBuilder`、`PoseGraph` 和
+`TrajectoryBackend2D` 可以在后台推进已提交 node 的约束工作；不是说 `MapBuilder`、`TrajectoryBackend2D` 和
 `ThreadPool` 分别代表三个同级模块。
 
 `MapBuilder` 是装配和生命周期入口，本身不执行具体 SLAM 算法。它持有线程池、
-`PoseGraph`、`DataDispatcher` 以及各条 frontend，负责创建轨迹、结束轨迹、
+`TrajectoryBackend2D`、`DataDispatcher` 以及各条 frontend，负责创建轨迹、结束轨迹、
 加载/保存 `.swmap`。当前虽然只有一条轨迹，仍由它统一保证这些对象的析构顺序：必须先
 等待图计算完成，才能销毁被后台任务引用的 submap、node 和 scan matcher。
 
-`PoseGraph` 保存全局状态，包括 trajectory node、submap、约束和优化后的全局位姿。
-局部 SLAM 每产生一个 node，`PoseGraph` 就为它寻找可匹配的 submap、生成约束，并按
+`TrajectoryBackend2D` 保存全局状态，包括 trajectory node、submap、约束和优化后的全局位姿。
+局部 SLAM 每产生一个 node，`TrajectoryBackend2D` 就为它寻找可匹配的 submap、生成约束，并按
 `optimize_every_n_nodes` 触发一次全局优化。局部 scan matching 负责“当前扫描放在哪里”，
-PoseGraph 则负责“历史 node/submap 整体怎样保持一致并闭环”。
+TrajectoryBackend2D 则负责“历史 node/submap 整体怎样保持一致并闭环”。
 
-线程池只服务于 PoseGraph 后台工作，不用于并行读取 bag，也不改变 `scan/odom` 的时间
+`ConstraintEngine2D` 和 `PoseOptimizer2D` 是后端私有实现组件：前者生成候选约束，后者
+求解已经确定的约束。`MapBuilder`、`TrajectoryFrontend2D`、bag runner 和序列化层都只
+依赖 `TrajectoryBackend2D`，不能直接访问这两个组件。这样对外只有一个后端边界，同时
+避免把并发任务状态与 Ceres 数值状态混进同一个巨型类。
+
+线程池只服务于 TrajectoryBackend2D 后台工作，不用于并行读取 bag，也不改变 `scan/odom` 的时间
 顺序。当前配置 `map_builder.num_background_threads: 4`，主要执行：
 
 - 构建每个 submap 的 `FastCorrelativeScanMatcher2D` 搜索结构；
 - 并行计算不同 node-submap 候选的局部约束和全局闭环约束；
-- 按依赖关系汇总一个 node 的约束，随后串行更新 PoseGraph 工作队列；
+- 按依赖关系汇总一个 node 的约束，随后串行更新 TrajectoryBackend2D 工作队列；
 - 等约束全部完成后执行全局优化回调。
 
 之所以保留线程池，是因为约束搜索通常比单帧局部 SLAM昂贵，而且不同候选彼此独立。
@@ -130,7 +134,7 @@ PoseGraph 则负责“历史 node/submap 整体怎样保持一致并闭环”。
 完成后才能优化”的依赖关系，并非单纯封装 `std::thread`。
 
 线程池不是 SLAM 数学上的必要条件：可以重写成单线程同步流水线，但不能只删除
-`ThreadPool`。那样需要同时改写 `ConstraintBuilder2D::WhenDone()`、PoseGraph 工作队列和
+`ThreadPool`。那样需要同时改写 `ConstraintEngine2D::WhenDone()`、TrajectoryBackend2D 工作队列和
 `WaitForAllComputations()` 的完成协议。当前保留它的核心理由是约束计算吞吐和已有任务依赖
 语义，而不是因为 bag 输入本身需要多线程。
 
@@ -172,7 +176,7 @@ dispatcher 使用 C++20 `std::variant<TimedPointCloudData, OdometryData>` 保存
 排序后的数据通过 `std::visit` 进入 `TrajectoryFrontend2D::ProcessSensorData()` 的强类型
 重载，不再创建 `sensor::Data` 虚对象，也不经过 builder 虚接口、`BlockingQueue` 或
 `OrderedMultiQueue`。bag 文件中消息的物理排列可以交错，但每个
-传感器自身仍必须保持时间有序。当前 bag reader 是唯一生产者，后台 PoseGraph 不会写
+传感器自身仍必须保持时间有序。当前 bag reader 是唯一生产者，后台 TrajectoryBackend2D 不会写
 传感器队列，因此 dispatcher 明确采用单线程同步模型。
 
 ## 6. `/scan` 的局部 SLAM 路径
@@ -263,38 +267,38 @@ p_gravity       = T_gravity_local · p_local
 ```
 
 因此 odometry 短时稳定时可缩小匹配搜索范围；odometry 有累计漂移时，激光与子图匹配会
-持续校正局部预测，而后端 PoseGraph 再负责更长时间尺度的回环和全局一致性。
+持续校正局部预测，而后端 TrajectoryBackend2D 再负责更长时间尺度的回环和全局一致性。
 
 ## 7. `/odom` 的双路径
 
 Odometry 经 `TrajectoryFrontend2D` 后分成两路：
 
 - 送入前端内部的局部匹配实现，供 `PoseExtrapolator` 做实时姿态预测；
-- 送入 `PoseGraph` 保存为全局优化的 odometry 约束数据。
+- 送入 `TrajectoryBackend2D` 保存为全局优化的 odometry 约束数据。
 
 第二路可以由 `pose_graph_odometry_motion_filter` 降采样。当前没有外部 IMU 输入；局部
 姿态推演使用 odometry、已估计 pose 的角速度以及内部合成重力方向。
 
-## 8. 从局部结果到 PoseGraph
+## 8. 从局部结果到 TrajectoryBackend2D
 
 `TrajectoryFrontend2D` 是唯一的前端入口，也是前端与后端的边界：
 
 - 只有产生 `MatchingResult` 的 scan 才形成一次局部 SLAM 输出；
 - 只有通过 motion filter、带 `InsertionResult` 的结果才调用
-  `PoseGraph::AddNode()`；
+  `TrajectoryBackend2D::AddNode()`；
 - 新节点携带常量观测数据和其插入的一个或多个子图；
-- PoseGraph 立即建立 intra-submap 约束，并在后台搜索 inter-submap/回环约束；
+- TrajectoryBackend2D 立即建立 intra-submap 约束，并在后台搜索 inter-submap/回环约束；
 - 达到配置的节点数后触发一次全局优化。
 
-`ConstraintBuilder2D` 使用快速相关扫描匹配器寻找候选，再用 Ceres 细化约束。
-`OptimizationProblem2D` 联合优化节点位姿、子图位姿和 odometry 关系。优化完成后执行
+`ConstraintEngine2D` 使用快速相关扫描匹配器寻找候选，再用 Ceres 细化约束。
+`PoseOptimizer2D` 联合优化节点位姿、子图位姿和 odometry 关系。优化完成后执行
 trimmer，删除定位模式下不再需要保留的旧子图。
 
 ## 9. 建图与冻结地图定位
 
 ### 9.1 新图模式
 
-不传 `--offline_load_state_filename` 时，PoseGraph 从空状态开始。新轨迹持续创建节点和
+不传 `--offline_load_state_filename` 时，TrajectoryBackend2D 从空状态开始。新轨迹持续创建节点和
 子图，结束后完整优化，并可输出新的 `.swmap`。
 
 ### 9.2 已知地图定位模式
@@ -315,19 +319,19 @@ trimmer，删除定位模式下不再需要保留的旧子图。
 bag 读完后的顺序不可交换：
 
 1. `MapBuilder::FinishTrajectory()` 结束并排空 sensor queues；
-2. `PoseGraph::FinishTrajectory()` 标记轨迹完成；
-3. `PoseGraph::RunFinalOptimization()` 等待后台约束任务并做最终全局优化；
+2. `TrajectoryBackend2D::FinishTrajectory()` 标记轨迹完成；
+3. `TrajectoryBackend2D::RunFinalOptimization()` 等待后台约束任务并做最终全局优化；
 4. 从 `GetTrajectoryNodes()` 写优化后的 `timestamp,x,y,theta` CSV；
 5. 可选调用 `SerializeStateToFile(true, ...)` 写 `.swmap`。
 
 `.swmap` 由 `serialization/swmap.*` 负责，保存轨迹、子图栅格、节点、约束和轨迹
-数据。它是持久化边界，不拥有运行时 PoseGraph 状态。
+数据。它是持久化边界，不拥有运行时 TrajectoryBackend2D 状态。
 
 ## 11. 线程和阻塞边界
 
 - bag 读取、消息反序列化、标定变换、`DataDispatcher` 分派和局部 SLAM 在主线程推进；
-- PoseGraph 通过 `ThreadPool` 并行计算候选约束；
-- PoseGraph 的 work queue 串行化会修改全局图状态的操作；
+- TrajectoryBackend2D 通过 `ThreadPool` 并行计算候选约束；
+- TrajectoryBackend2D 的 work queue 串行化会修改全局图状态的操作；
 - `RunFinalOptimization()` 是最终同步屏障，返回后才能导出稳定轨迹和地图；
 - `DataDispatcher` 若等待某个 sensor queue，会停止整个轨迹的数据分派，因此缺失 `/scan` 或
   `/odom` 不能被当作可选输入。
@@ -358,7 +362,10 @@ bag 读完后的顺序不可交换：
 | 前后端桥接 | `trajectory/global_trajectory_builder.cc` |
 | 局部 SLAM | `local/local_trajectory_builder_2d.cc` |
 | 子图和栅格 | `mapping/submap_2d.cc`、`mapping/grid_2d.cc` |
-| 位姿图工作流 | `pose_graph/pose_graph_workflow.cc` |
-| 约束计算 | `pose_graph/constraint_builder_2d.cc` |
-| 全局优化 | `pose_graph/optimization_problem_2d.cc` |
+| 单一后端入口与工作流 | `pose_graph/trajectory_backend_2d.{h,cc}` |
+| 后端只读查询 | `pose_graph/trajectory_backend_query_2d.cc` |
+| 内部约束引擎 | `pose_graph/constraint_engine_2d.{h,cc}` |
+| 内部位姿优化器 | `pose_graph/pose_optimizer_2d.{h,cc}` |
+| 约束计算 | `pose_graph/constraint_engine_2d.cc` |
+| 全局优化 | `pose_graph/pose_optimizer_2d.cc` |
 | 状态持久化 | `serialization/swmap.cc` |

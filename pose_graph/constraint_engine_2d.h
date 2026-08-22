@@ -57,17 +57,17 @@ transform::Rigid2d ComputeSubmapPose(const Submap2D& submap);
 // and another MaybeAdd(Global)Constraint()/WhenDone() cycle can follow.
 //
 // This class is thread-safe.
-class ConstraintBuilder2D {
+class ConstraintEngine2D {
  public:
   using Constraint = ::cartographer::mapping::Constraint;
   using Result = std::vector<Constraint>;
 
-  ConstraintBuilder2D(const ConstraintBuilderOptions& options,
+  ConstraintEngine2D(const ConstraintBuilderOptions& options,
                       common::ThreadPool* thread_pool);
-  ~ConstraintBuilder2D();
+  ~ConstraintEngine2D();
 
-  ConstraintBuilder2D(const ConstraintBuilder2D&) = delete;
-  ConstraintBuilder2D& operator=(const ConstraintBuilder2D&) = delete;
+  ConstraintEngine2D(const ConstraintEngine2D&) = delete;
+  ConstraintEngine2D& operator=(const ConstraintEngine2D&) = delete;
 
   // Schedules exploring a new constraint between 'submap' identified by
   // 'submap_id', and the 'compressed_point_cloud' for 'node_id'. The

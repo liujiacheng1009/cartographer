@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "cartographer/pose_graph/optimization_problem_2d.h"
+#include "cartographer/pose_graph/pose_optimizer_2d.h"
 
 #include <algorithm>
 #include <array>
@@ -238,35 +238,35 @@ transform::Rigid2d ToPose(const std::array<double, 3>& values) {
 
 }  // namespace
 
-OptimizationProblem2D::OptimizationProblem2D(
+PoseOptimizer2D::PoseOptimizer2D(
     const OptimizationProblemOptions& options)
     : options_(options) {}
 
-OptimizationProblem2D::~OptimizationProblem2D() {}
+PoseOptimizer2D::~PoseOptimizer2D() {}
 
-void OptimizationProblem2D::AddOdometryData(
+void PoseOptimizer2D::AddOdometryData(
     const int trajectory_id, const sensor::OdometryData& odometry_data) {
   odometry_data_.Append(trajectory_id, odometry_data);
 }
 
-void OptimizationProblem2D::AddTrajectoryNode(const int trajectory_id,
+void PoseOptimizer2D::AddTrajectoryNode(const int trajectory_id,
                                               const NodeSpec2D& node_data) {
   node_data_.Append(trajectory_id, node_data);
   trajectory_data_[trajectory_id];
 }
 
-void OptimizationProblem2D::SetTrajectoryData(
+void PoseOptimizer2D::SetTrajectoryData(
     int trajectory_id, const TrajectoryData& trajectory_data) {
   trajectory_data_[trajectory_id] = trajectory_data;
 }
 
-void OptimizationProblem2D::InsertTrajectoryNode(const NodeId& node_id,
+void PoseOptimizer2D::InsertTrajectoryNode(const NodeId& node_id,
                                                  const NodeSpec2D& node_data) {
   node_data_.Insert(node_id, node_data);
   trajectory_data_[node_id.trajectory_id];
 }
 
-void OptimizationProblem2D::TrimTrajectoryNode(const NodeId& node_id) {
+void PoseOptimizer2D::TrimTrajectoryNode(const NodeId& node_id) {
   odometry_data_.Trim(node_data_, node_id);
   node_data_.Trim(node_id);
   if (node_data_.SizeOfTrajectoryOrZero(node_id.trajectory_id) == 0) {
@@ -274,27 +274,27 @@ void OptimizationProblem2D::TrimTrajectoryNode(const NodeId& node_id) {
   }
 }
 
-void OptimizationProblem2D::AddSubmap(
+void PoseOptimizer2D::AddSubmap(
     const int trajectory_id, const transform::Rigid2d& global_submap_pose) {
   submap_data_.Append(trajectory_id, SubmapSpec2D{global_submap_pose});
 }
 
-void OptimizationProblem2D::InsertSubmap(
+void PoseOptimizer2D::InsertSubmap(
     const SubmapId& submap_id, const transform::Rigid2d& global_submap_pose) {
   submap_data_.Insert(submap_id, SubmapSpec2D{global_submap_pose});
 }
 
-void OptimizationProblem2D::TrimSubmap(const SubmapId& submap_id) {
+void PoseOptimizer2D::TrimSubmap(const SubmapId& submap_id) {
   submap_data_.Trim(submap_id);
 }
 
-void OptimizationProblem2D::SetMaxNumIterations(
+void PoseOptimizer2D::SetMaxNumIterations(
     const int32 max_num_iterations) {
   options_.mutable_ceres_solver_options()->set_max_num_iterations(
       max_num_iterations);
 }
 
-void OptimizationProblem2D::Solve(
+void PoseOptimizer2D::Solve(
     const std::vector<Constraint>& constraints,
     const std::map<int, TrajectoryState>& trajectories_state) {
   if (node_data_.empty()) {
@@ -419,7 +419,7 @@ void OptimizationProblem2D::Solve(
   }
 }
 
-std::unique_ptr<transform::Rigid3d> OptimizationProblem2D::InterpolateOdometry(
+std::unique_ptr<transform::Rigid3d> PoseOptimizer2D::InterpolateOdometry(
     const int trajectory_id, const common::Time time) const {
   const auto it = odometry_data_.lower_bound(trajectory_id, time);
   if (it == odometry_data_.EndOfTrajectory(trajectory_id)) {
@@ -439,7 +439,7 @@ std::unique_ptr<transform::Rigid3d> OptimizationProblem2D::InterpolateOdometry(
 }
 
 std::unique_ptr<transform::Rigid3d>
-OptimizationProblem2D::CalculateOdometryBetweenNodes(
+PoseOptimizer2D::CalculateOdometryBetweenNodes(
     const int trajectory_id, const NodeSpec2D& first_node_data,
     const NodeSpec2D& second_node_data) const {
   if (odometry_data_.HasTrajectory(trajectory_id)) {

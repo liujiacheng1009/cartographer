@@ -33,8 +33,8 @@
 #include "cartographer/core/thread_pool.h"
 #include "cartographer/core/rigid_transform.h"
 #include "cartographer/mapping/submap_2d.h"
-#include "cartographer/pose_graph/constraint_builder_2d.h"
-#include "cartographer/pose_graph/optimization_problem_2d.h"
+#include "cartographer/pose_graph/constraint_engine_2d.h"
+#include "cartographer/pose_graph/pose_optimizer_2d.h"
 #include "cartographer/pose_graph/pose_graph_data.h"
 #include "cartographer/pose_graph/trajectory_connectivity_state.h"
 #include "cartographer/pose_graph/work_queue.h"
@@ -60,18 +60,18 @@ namespace mapping {
 // Each node has been matched against one or more submaps (adding a constraint
 // for each match), both poses of nodes and of submaps are to be optimized.
 // All constraints are between a submap i and a node j.
-class PoseGraph {
+class TrajectoryBackend2D {
  public:
   using InitialTrajectoryPose = mapping::InitialTrajectoryPoseState;
 
-  PoseGraph(
+  TrajectoryBackend2D(
       const PoseGraphOptions& options,
-      std::unique_ptr<optimization::OptimizationProblem2D> optimization_problem,
+      std::unique_ptr<optimization::PoseOptimizer2D> optimization_problem,
       common::ThreadPool* thread_pool);
-  ~PoseGraph();
+  ~TrajectoryBackend2D();
 
-  PoseGraph(const PoseGraph&) = delete;
-  PoseGraph& operator=(const PoseGraph&) = delete;
+  TrajectoryBackend2D(const TrajectoryBackend2D&) = delete;
+  TrajectoryBackend2D& operator=(const TrajectoryBackend2D&) = delete;
 
   // Adds a new node with 'constant_data'. Its 'constant_data->local_pose' was
   // determined by scan matching against 'insertion_submaps.front()' and the
@@ -180,7 +180,7 @@ class PoseGraph {
   void DeleteTrajectoriesIfNeeded() EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   // Runs the optimization, executes the trimmers and processes the work queue.
-  void HandleWorkQueue(const constraints::ConstraintBuilder2D::Result& result)
+  void HandleWorkQueue(const constraints::ConstraintEngine2D::Result& result)
       LOCKS_EXCLUDED(mutex_) LOCKS_EXCLUDED(work_queue_mutex_);
 
   // Process pending tasks in the work queue on the calling thread, until the
@@ -234,8 +234,8 @@ class PoseGraph {
   int num_nodes_since_last_loop_closure_ GUARDED_BY(mutex_) = 0;
 
   // Current optimization problem.
-  std::unique_ptr<optimization::OptimizationProblem2D> optimization_problem_;
-  constraints::ConstraintBuilder2D constraint_builder_;
+  std::unique_ptr<optimization::PoseOptimizer2D> optimization_problem_;
+  constraints::ConstraintEngine2D constraint_builder_;
 
   // Thread pool used for handling the work queue.
   common::ThreadPool* const thread_pool_;
@@ -251,7 +251,7 @@ class PoseGraph {
   // 'mutex_' of the pose graph is held while this class is used.
   class TrimmingHandle : public Trimmable {
    public:
-    TrimmingHandle(PoseGraph* parent);
+    TrimmingHandle(TrajectoryBackend2D* parent);
     ~TrimmingHandle() {}
 
     int num_submaps(int trajectory_id) const;
@@ -270,7 +270,7 @@ class PoseGraph {
         EXCLUSIVE_LOCKS_REQUIRED(parent_->mutex_);
 
    private:
-    PoseGraph* const parent_;
+    TrajectoryBackend2D* const parent_;
   };
 };
 

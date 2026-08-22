@@ -1,7 +1,7 @@
 // Copyright 2026 The SweepNav Authors
 // Licensed under the Apache License, Version 2.0 (the "License").
 
-#include "cartographer/pose_graph/pose_graph.h"
+#include "cartographer/pose_graph/trajectory_backend_2d.h"
 
 #include <iterator>
 
@@ -10,12 +10,12 @@
 namespace cartographer {
 namespace mapping {
 
-MapById<NodeId, TrajectoryNode> PoseGraph::GetTrajectoryNodes() const {
+MapById<NodeId, TrajectoryNode> TrajectoryBackend2D::GetTrajectoryNodes() const {
   absl::MutexLock locker(&mutex_);
   return data_.trajectory_nodes;
 }
 
-MapById<NodeId, TrajectoryNodePose> PoseGraph::GetTrajectoryNodePoses() const {
+MapById<NodeId, TrajectoryNodePose> TrajectoryBackend2D::GetTrajectoryNodePoses() const {
   MapById<NodeId, TrajectoryNodePose> node_poses;
   absl::MutexLock locker(&mutex_);
   for (const auto& node_id_data : data_.trajectory_nodes) {
@@ -33,7 +33,7 @@ MapById<NodeId, TrajectoryNodePose> PoseGraph::GetTrajectoryNodePoses() const {
 }
 
 std::map<int, TrajectoryState>
-PoseGraph::GetTrajectoryStates() const {
+TrajectoryBackend2D::GetTrajectoryStates() const {
   std::map<int, TrajectoryState> trajectories_state;
   absl::MutexLock locker(&mutex_);
   for (const auto& it : data_.trajectories_state) {
@@ -42,18 +42,18 @@ PoseGraph::GetTrajectoryStates() const {
   return trajectories_state;
 }
 
-sensor::MapByTime<sensor::OdometryData> PoseGraph::GetOdometryData() const {
+sensor::MapByTime<sensor::OdometryData> TrajectoryBackend2D::GetOdometryData() const {
   absl::MutexLock locker(&mutex_);
   return optimization_problem_->odometry_data();
 }
 
 std::map<int, TrajectoryData>
-PoseGraph::GetTrajectoryData() const {
+TrajectoryBackend2D::GetTrajectoryData() const {
   absl::MutexLock locker(&mutex_);
   return optimization_problem_->trajectory_data();
 }
 
-std::vector<Constraint> PoseGraph::constraints() const {
+std::vector<Constraint> TrajectoryBackend2D::constraints() const {
   std::vector<Constraint> result;
   absl::MutexLock locker(&mutex_);
   for (const Constraint& constraint : data_.constraints) {
@@ -70,7 +70,7 @@ std::vector<Constraint> PoseGraph::constraints() const {
   return result;
 }
 
-void PoseGraph::SetInitialTrajectoryPose(const int from_trajectory_id,
+void TrajectoryBackend2D::SetInitialTrajectoryPose(const int from_trajectory_id,
                                          const int to_trajectory_id,
                                          const transform::Rigid3d& pose,
                                          const common::Time time) {
@@ -79,7 +79,7 @@ void PoseGraph::SetInitialTrajectoryPose(const int from_trajectory_id,
       InitialTrajectoryPose{to_trajectory_id, pose, time};
 }
 
-transform::Rigid3d PoseGraph::GetInterpolatedGlobalTrajectoryPose(
+transform::Rigid3d TrajectoryBackend2D::GetInterpolatedGlobalTrajectoryPose(
     const int trajectory_id, const common::Time time) const {
   CHECK_GT(data_.trajectory_nodes.SizeOfTrajectoryOrZero(trajectory_id), 0);
   const auto it = data_.trajectory_nodes.lower_bound(trajectory_id, time);
@@ -98,32 +98,32 @@ transform::Rigid3d PoseGraph::GetInterpolatedGlobalTrajectoryPose(
       .transform;
 }
 
-transform::Rigid3d PoseGraph::GetLocalToGlobalTransform(
+transform::Rigid3d TrajectoryBackend2D::GetLocalToGlobalTransform(
     const int trajectory_id) const {
   absl::MutexLock locker(&mutex_);
   return ComputeLocalToGlobalTransform(data_.global_submap_poses_2d,
                                        trajectory_id);
 }
 
-std::vector<std::vector<int>> PoseGraph::GetConnectedTrajectories() const {
+std::vector<std::vector<int>> TrajectoryBackend2D::GetConnectedTrajectories() const {
   absl::MutexLock locker(&mutex_);
   return data_.trajectory_connectivity_state.Components();
 }
 
-SubmapData PoseGraph::GetSubmapData(
+SubmapData TrajectoryBackend2D::GetSubmapData(
     const SubmapId& submap_id) const {
   absl::MutexLock locker(&mutex_);
   return GetSubmapDataUnderLock(submap_id);
 }
 
 MapById<SubmapId, SubmapData>
-PoseGraph::GetAllSubmapData() const {
+TrajectoryBackend2D::GetAllSubmapData() const {
   absl::MutexLock locker(&mutex_);
   return GetSubmapDataUnderLock();
 }
 
 MapById<SubmapId, SubmapPose>
-PoseGraph::GetAllSubmapPoses() const {
+TrajectoryBackend2D::GetAllSubmapPoses() const {
   absl::MutexLock locker(&mutex_);
   MapById<SubmapId, SubmapPose> submap_poses;
   for (const auto& submap_id_data : data_.submap_data) {
@@ -135,7 +135,7 @@ PoseGraph::GetAllSubmapPoses() const {
   return submap_poses;
 }
 
-transform::Rigid3d PoseGraph::ComputeLocalToGlobalTransform(
+transform::Rigid3d TrajectoryBackend2D::ComputeLocalToGlobalTransform(
     const MapById<SubmapId, optimization::SubmapSpec2D>& global_submap_poses,
     const int trajectory_id) const {
   auto begin_it = global_submap_poses.BeginOfTrajectory(trajectory_id);
@@ -157,7 +157,7 @@ transform::Rigid3d PoseGraph::ComputeLocalToGlobalTransform(
              .inverse();
 }
 
-SubmapData PoseGraph::GetSubmapDataUnderLock(
+SubmapData TrajectoryBackend2D::GetSubmapDataUnderLock(
     const SubmapId& submap_id) const {
   const auto it = data_.submap_data.find(submap_id);
   if (it == data_.submap_data.end()) return {};

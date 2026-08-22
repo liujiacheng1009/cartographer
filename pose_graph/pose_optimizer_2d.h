@@ -50,15 +50,15 @@ struct SubmapSpec2D {
   transform::Rigid2d global_pose;
 };
 
-class OptimizationProblem2D {
+class PoseOptimizer2D {
  public:
   using Constraint = ::cartographer::mapping::Constraint;
-  explicit OptimizationProblem2D(
+  explicit PoseOptimizer2D(
       const OptimizationProblemOptions& options);
-  ~OptimizationProblem2D();
+  ~PoseOptimizer2D();
 
-  OptimizationProblem2D(const OptimizationProblem2D&) = delete;
-  OptimizationProblem2D& operator=(const OptimizationProblem2D&) = delete;
+  PoseOptimizer2D(const PoseOptimizer2D&) = delete;
+  PoseOptimizer2D& operator=(const PoseOptimizer2D&) = delete;
 
   void AddOdometryData(int trajectory_id,
                        const sensor::OdometryData& odometry_data);
