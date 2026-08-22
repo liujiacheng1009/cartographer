@@ -35,7 +35,7 @@ flowchart LR
     GRAPH[TrajectoryBackend2D<br/>约束与回环]
     OPT[PoseOptimizer2D<br/>Ceres 全局优化]
     CSV[(优化轨迹 CSV)]
-    SWMAP[(.swmap v3)]
+    SWMAP[(.swmap v4)]
 
     CFG --> FRONTEND
     CFG --> GRAPH
@@ -306,18 +306,16 @@ dispatcher 使用 C++20 `std::variant<TimedPointCloudData, OdometryData>` 保存
 2. odometry 尚不足两条时，用 pose 队列首尾两个已匹配位姿的差分速度；
 3. 初始化阶段还没有足够时间跨度时，速度保持零，预测位姿等于最近位姿。
 
-对最近校正位姿 `T_local_tracking(t₀) = (R₀, p₀)` 和时间差
-`Δt = t - t₀`，实现采用完整刚体恒速模型，而不只是平移速度补偿：
+对最近校正位姿 `T_local_tracking(t₀) = (yaw₀, p₀)` 和时间差
+`Δt = t - t₀`，实现采用平面恒速模型：
 
 ```text
-p(t) = p₀ + v · Δt
-R(t) = R₀ · Exp(ω · Δt)
+p(t)   = p₀ + v · Δt
+yaw(t) = normalize(yaw₀ + ω · Δt)
 ```
 
-其中 `v` 和 `ω` 优先取 odometry 差分结果。代码使用 `ImuTracker` 积分角速度来实现
-旋转指数映射，但当前没有外部 IMU 输入；每次推进只注入 odometry/pose 推导出的角速度
-和固定 `UnitZ` 合成重力。因此这里的 gravity alignment 在 2D 产品中主要用于维持
-roll/pitch 与水平面一致，不能解释为真实 IMU 融合。
+其中 `v` 和 `ω` 优先取 odometry 差分结果。里程计输入在 ROS 边界只提取
+`x/y/yaw`，不再构造合成 IMU 或 gravity alignment。
 
 因此每个点使用的都是包含位置和朝向的
 `T_local_tracking(tᵢ) = (R(tᵢ), p(tᵢ))`：
@@ -328,22 +326,21 @@ p_local(tᵢ) = T_local_tracking(tᵢ) · p_tracking(tᵢ)
 
 这里先在 `local` 坐标系完成逐点 deskew，是因为不同采样时刻的 tracking frame 在运动，
 而 local frame 是这一小段时间内共同的静止参考。随后以扫描帧末姿态为基准，把累计点云
-变换到重力对齐坐标系：
+变换到帧末 tracking 坐标系：
 
 ```text
-T_gravity_local = R_gravity_tracking(t_end) · inverse(T_local_tracking(t_end))
-p_gravity       = T_gravity_local · p_local
+T_tracking_end_local = inverse(T_local_tracking(t_end))
+p_tracking_end       = T_tracking_end_local · p_local
 ```
 
-其中 `R_gravity_tracking` 来自 `EstimateGravityOrientation()`。当前没有真实 IMU，因此它
-使用合成 `UnitZ` 约束 roll/pitch，yaw 仍由 odometry/历史 pose 的角速度推进。也就是说：
-运动补偿使用完整 3D 姿态，scan matching 前才将重力对齐后的帧末预测投影为 2D 位姿。
+点云坐标仍用 `Vector3f` 容纳 z 值，但用来 deskew 的位姿始终是
+`x/y/yaw`；三维点只是数据载体，不是定位状态。
 
 预测有两个消费位置：
 
 - 对 scan 内每个点调用 `ExtrapolatePose(tᵢ)`，把点和雷达原点变换到运动补偿后的
   local 坐标；
-- 对帧末调用 `ExtrapolatePose(t_scan_end)`，投影为 2D 后作为 scan matcher 的搜索
+- 对帧末调用 `ExtrapolatePose(t_scan_end)`，直接作为 scan matcher 的搜索
   初值。
 
 它不是最终位姿来源。最终局部位姿由 scan matcher 对活动子图校正：
@@ -487,7 +484,7 @@ bag 读完后的顺序不可交换：
 | `scan_matching/` | 局部匹配及全局约束搜索使用的匹配算法 |
 | `mapping/` | 栅格、子图及其插入生命周期 |
 | `backend/` | 节点/子图约束、回环、全局优化与裁剪 |
-| `serialization/` | `.swmap` v3 读写 |
+| `serialization/` | `.swmap` v4 平面位姿读写 |
 
 新增代码应按主要状态所有权落位，不应重新建立 `slam/` 汇总目录，也不应创建超过
 `cartographer/<职责>/<文件>` 的源码层级。

@@ -63,7 +63,7 @@
 - 单一后端：`mapping::TrajectoryBackend2D`
 - 配置样例：`config/iilabs3d_offline.yaml`
 - 标定样例：每个 rosbag2 目录中的 `calibration.yaml`
-- 状态格式：`.swmap` schema v3
+- 状态格式：`.swmap` schema v4（仅保存 `x/y/yaw` 平面位姿）
 
 ## 文档维护原则
 
@@ -78,4 +78,3 @@
 
 本文档描述仓库当前的 C++20 bag-only 实现。上游 Cartographer、ROS 1 或
 `cartographer_ros` 的教程与接口并不自动适用于本工程。
-

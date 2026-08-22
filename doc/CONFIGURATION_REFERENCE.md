@@ -129,7 +129,6 @@ true 时先运行 `real_time_correlative_scan_matcher`。这会提高较差初�
 | 参数 | 基线 | 当前含义 |
 |---|---:|---|
 | `pose_queue_duration` | 0.001 s | 估计速度使用的最短 pose 历史窗口 |
-| `imu_gravity_time_constant` | 10 s | 旧二维重力对齐内部参数 |
 
 当前没有外部 IMU 输入。产品假设严格二维运动，roll/pitch 不从真实惯导观测恢复；未来若
 里程计提供 IMU 姿态，应先定义新的输入与标定契约，不能把角速度伪装成现有 IMU。
@@ -161,4 +160,3 @@ true 时先运行 `real_time_correlative_scan_matcher`。这会提高较差初�
 `ParameterDictionary` 会跟踪字段消费。配置文件不是“可带多余字段的模板”：拼写错误、
 上游遗留选项或未支持功能字段可能直接失败。这一策略用于防止用户以为某个参数生效，
 实际却被程序忽略。
-

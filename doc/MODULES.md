@@ -42,7 +42,6 @@ frontend/backend/mapping/scan_matching/serialization ─→ foundation
 - `LocalSlam2D`：滤波、预测、scan matching、运动过滤和 submap 插入。
 - `PoseExtrapolator`：由历史 pose 与 odometry 估计 scan 内各点姿态。
 - `MotionFilter`：按时间、平移、旋转门限抑制冗余 node。
-- `ImuTracker`：当前仅承载旧二维平面重力对齐实现；外部 IMU 输入未开放。
 
 线程模型：bag 回放线程调用前端；前端算法本身按输入顺序同步执行。
 
