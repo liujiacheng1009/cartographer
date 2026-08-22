@@ -230,6 +230,105 @@ bag 主线程在 PGO 期间仍可继续产生局部结果并把 work item 追加
 当前 PGO 完成后才会进入下一批后端处理。最终 `RunFinalOptimization()` 会等待 work queue
 和约束任务全部清空，再运行最终 PGO，保证导出的轨迹和 `.swmap` 已稳定。
 
+### 3.3 `MaybeAddConstraint()` 的候选筛选与任务依赖
+
+`ConstraintEngine2D::MaybeAddConstraint()` 处理的是“已有相对位姿初值”的
+node-submap 局部约束候选。它不在调用线程里直接执行扫描匹配，而是完成
+便宜的前置筛选、为异步结果预留位置，然后组装任务依赖图。
+
+#### 第一层：初值距离门限
+
+`initial_relative_pose` 是 node 相对 submap 的平面位姿初值。它通常来自当前
+node/submap 全局位姿估计的相对变换，并决定快速相关匹配的搜索中心。
+函数首先检查其平移模长：
+
+```text
+norm(initial_relative_pose.translation) > max_constraint_distance
+                                      → 直接丢弃
+```
+
+当前 `max_constraint_distance` 为 15 m。这一层不读取栅格、不构建匹配索引，
+用最小成本排除超过带初值局部搜索适用范围的候选。这里只检查平移距离；
+yaw 差由后续相关搜索窗和匹配得分共同限制。
+
+#### 第二层：每个 submap 独立的固定比例采样
+
+`per_submap_sampler_` 的逻辑键值是：
+
+```text
+SubmapId → FixedRatioSampler(sampling_ratio)
+```
+
+`emplace(std::piecewise_construct, ...)` 使第一个属于该 submap 的候选创建
+sampler，后续候选复用同一个计数器。`Pulse()` 每次先增加 pulse 数，仅当
+
+```text
+num_samples / num_pulses < sampling_ratio
+```
+
+时放行当前候选并增加 sample 数。因此它不是伪随机数比较，而是确定性的
+均匀固定比例抽样；在相同候选调用顺序下会产生相同选择。当前
+`sampling_ratio=0.15`，表示每个 submap 长期约有 15% 的近距离候选进入真正
+扫描匹配。按 submap 分开计数可防止候选密集的 submap 消耗全局采样额度。
+
+所以 `sampling_ratio` 的分母不是全部 LaserScan，而是已通过距离门限、
+且属于同一 submap 的 node-submap 候选对：
+
+```text
+全部 node-submap 组合
+  → max_constraint_distance 筛选
+  → per-submap FixedRatioSampler
+  → 真正执行局部约束匹配
+```
+
+#### 第三层：预留结果槽与构建 scan matcher
+
+候选通过后，函数持有 `mutex_`，检查是否已调度 `WhenDone()`，并在
+`constraints_` 的 `std::deque<std::unique_ptr<Constraint>>` 中追加一个空结果槽。
+后台 `ComputeConstraint()` 收到这个槽的地址：匹配成功时填入
+`Constraint`，失败时保持 `nullptr`。使用 `deque` 保证后续追加候选时已传给
+异步任务的元素地址不失效。
+
+`DispatchScanMatcherConstruction(submap_id, submap->grid())` 按 submap 查找或
+延迟构建 `FastCorrelativeScanMatcher2D`。submap 的概率栅格一旦 finished 就不再
+变化，因此昂贵的多分辨率搜索索引只需构建一次，之后可被该 submap 的
+多个 node 候选共享。
+
+#### 第四层：约束任务的依赖图
+
+函数为 `ComputeConstraint(..., match_full_submap=false, ...)` 创建后台任务。
+`false` 表示使用 `initial_relative_pose` 作为初值执行有限窗局部搜索；
+`MaybeAddGlobalConstraint()` 则传入 `true` 并搜索完整 submap，两者不应混淆。
+
+每个局部候选都建立如下依赖：
+
+```text
+scan_matcher->creation_task_handle
+                │
+                ▼
+       constraint_task
+       ComputeConstraint()
+                │
+                ▼
+       finish_node_task_
+                │ NotifyEndOfNode()
+                ▼
+        when_done_task_
+                │ WhenDone()
+                ▼
+   汇总非空 Constraint → PGO
+```
+
+`constraint_task` 先依赖 scan matcher 的构建句柄，所以 worker 不会在索引就绪前
+进入匹配。调度后返回的任务句柄又被添加为 `finish_node_task_` 的依赖，
+使“一个 node 处理完成”精确表示该 node 的全部候选约束已返回。
+`NotifyEndOfNode()` 封闭当前 node 的完成屏障并创建下一个；`WhenDone()` 则等待
+所有 node 屏障，过滤失败匹配留下的空槽，将成功约束一次性交给后端。
+
+耗时的 `ComputeConstraint()` 执行时不持有 `ConstraintEngine2D::mutex_`；锁只保护
+任务批次状态、结果槽和 matcher 缓存的管理。这使多个候选能够真正并行，
+同时保证 PGO 只在完整批次汇合后看到稳定的约束集。
+
 ## 4. Bag 单遍读取
 
 每个源 bag 目录固定保存自己的 `calibration.yaml`。benchmark worker 生成只包含
@@ -366,7 +465,7 @@ Odometry 经 `Frontend2D` 后分成两路：
 - 送入 `TrajectoryBackend2D` 保存为全局优化的 odometry 约束数据。
 
 第二路可以由 `pose_graph_odometry_motion_filter` 降采样。当前没有外部 IMU 输入；局部
-姿态推演使用 odometry、已估计 pose 的角速度以及内部合成重力方向。
+位姿外推只使用 odometry 或已估计 pose 的平面线速度和 yaw 角速度。
 
 ## 8. 从局部结果到 TrajectoryBackend2D
 
@@ -394,9 +493,9 @@ trimmer，删除定位模式下不再需要保留的旧子图。
 
 传入 `.swmap` 时，`SlamSystem::LoadStateFromFile()`：
 
-1. 校验并读取当前 v3 schema；
+1. 校验并读取当前 v4 schema；
 2. 为文件中的轨迹创建新的内部 trajectory ID；
-3. 恢复子图、节点、轨迹数据和 intra-submap 关系；
+3. 恢复子图、节点和 intra-submap 关系；
 4. 把恢复的轨迹标记为 frozen；
 5. 另建一条活动轨迹接收当前 bag 的 scan/odom；
 6. 通过新节点到冻结子图的约束完成定位。
@@ -460,8 +559,8 @@ bag 读完后的顺序不可交换：
 4. 从 `GetTrajectoryNodes()` 写优化后的 `timestamp,x,y,theta` CSV；
 5. 可选调用 `SerializeStateToFile(true, ...)` 写 `.swmap`。
 
-`.swmap` 由 `serialization/swmap.*` 负责，保存轨迹、子图栅格、节点、约束和轨迹
-数据。它是持久化边界，不拥有运行时 TrajectoryBackend2D 状态。
+`.swmap` 由 `serialization/swmap.*` 负责，保存轨迹 ID、子图栅格、节点和约束。
+它是持久化边界，不拥有运行时 TrajectoryBackend2D 状态。
 
 ## 11. 线程和阻塞边界
 

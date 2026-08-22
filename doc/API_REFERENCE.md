@@ -115,6 +115,8 @@ trajectory_id
 为每个 finished submap 延迟建立 fast-correlative 索引，并对 node-submap pair 进行局部或
 全局约束匹配。粗匹配分数低于 `min_score`/`global_localization_min_score` 时拒绝；通过后
 由 Ceres matcher 精化相对位姿并生成加权约束。
+`MaybeAddConstraint()` 的距离筛选、每 submap 固定比例采样和异步完成屏障详见
+[Bag 输入架构 3.3 节](BAG_PIPELINE_ARCHITECTURE.md#33-maybeaddconstraint-的候选筛选与任务依赖)。
 
 ## `optimization::PoseOptimizer2D`
 
