@@ -56,7 +56,7 @@ transform::Rigid2d ComputeSubmapPose(const Submap2D& submap) {
 
 ConstraintBuilder2D::ConstraintBuilder2D(
     const ConstraintBuilderOptions& options,
-    common::ThreadPoolInterface* const thread_pool)
+    common::ThreadPool* const thread_pool)
     : options_(options),
       thread_pool_(thread_pool),
       finish_node_task_(absl::make_unique<common::Task>()),

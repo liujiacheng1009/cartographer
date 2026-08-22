@@ -48,7 +48,6 @@ set(ALL_LIBRARY_SRCS
   core/point_cloud.cc
   core/range_data.cc
   core/rigid_transform.cc
-  core/task.cc
   core/thread_pool.cc
   core/time.cc
   core/timestamped_transform.cc

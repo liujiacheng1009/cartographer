@@ -30,7 +30,7 @@
 #include "cartographer/core/fixed_ratio_sampler.h"
 #include "cartographer/core/histogram.h"
 #include "cartographer/core/math.h"
-#include "cartographer/core/task.h"
+#include "cartographer/core/thread_pool.h"
 #include "cartographer/core/thread_pool.h"
 #include "cartographer/slam/submap_2d.h"
 #include "cartographer/slam/ceres_scan_matcher_2d.h"
@@ -63,7 +63,7 @@ class ConstraintBuilder2D {
   using Result = std::vector<Constraint>;
 
   ConstraintBuilder2D(const ConstraintBuilderOptions& options,
-                      common::ThreadPoolInterface* thread_pool);
+                      common::ThreadPool* thread_pool);
   ~ConstraintBuilder2D();
 
   ConstraintBuilder2D(const ConstraintBuilder2D&) = delete;
@@ -134,7 +134,7 @@ class ConstraintBuilder2D {
   void RunWhenDoneCallback() LOCKS_EXCLUDED(mutex_);
 
   const ConstraintBuilderOptions options_;
-  common::ThreadPoolInterface* thread_pool_;
+  common::ThreadPool* thread_pool_;
   absl::Mutex mutex_;
 
   // 'callback' set by WhenDone().
