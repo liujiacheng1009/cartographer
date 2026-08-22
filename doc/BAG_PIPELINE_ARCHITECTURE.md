@@ -164,6 +164,25 @@ PGO：PoseOptimizer2D::Solve
   └── Ceres 求解器线程（ceres_solver_options.num_threads: 7）
 ```
 
+当前配置的实际并发和候选限流参数是：
+
+- `num_background_threads: 4`：约束阶段最多由 4 个后端 worker 消费匹配器构建和候选
+  验证任务；其中一个 worker 也可能正在执行串行的 `DrainWorkQueue()`；
+- `constraint_builder.sampling_ratio: 0.15`：同轨迹约束候选只抽样约 15%，不是让每个
+  node 与所有旧 submap 都匹配；
+- `max_constraint_distance: 15.0`：带初值的候选超过 15 m 直接排除；
+- 快速相关匹配搜索窗为 `7 m / ±30°`，分支定界深度为 7，得分至少达到 `0.65` 才进入
+  后续约束；跨轨迹全局匹配要求 `0.7`；
+- `global_sampling_ratio: 0.003`：不同轨迹的全局候选进一步降到约 0.3%；
+- 每个候选的 Ceres 精配准使用 `num_threads: 1`，候选级并行由上述 4 个后端 worker
+  提供；局部 SLAM 的 Ceres 同样是单线程；
+- PGO 的 Ceres 配置为 `num_threads: 7`，每超过 20 个 node 批量触发一次。
+
+所以 CPU 确实可能较高，但通常不是 `4 + 7` 个后端计算线程同时满载：进入 PGO 前会先
+等待本批约束任务完成。约束阶段的主要峰值约为“前端主线程 + 最多 4 个后台 worker”；
+PGO 阶段则切换为 Ceres 最多 7 线程，同时前端仍可能继续处理 bag。对于 4 核设备，当前
+配置存在明显过度订阅风险；对于 8 核及以上的离线工作站，这组参数更偏向缩短回放时间。
+
 前端调用 `AddNode()` 时会先在互斥锁保护下登记 node，然后把“为该 node 建约束”的
 work item 放入队列。线程池中同时只允许一个 `DrainWorkQueue()` 消费这条队列，因此新增
 node、odometry、冻结轨迹和删除轨迹等图状态修改仍保持确定顺序；并行的是耗时且彼此独立
@@ -176,6 +195,12 @@ node、odometry、冻结轨迹和删除轨迹等图状态修改仍保持确定�
   搜索；
 - 快速相关匹配先筛选候选，Ceres scan matcher 再细化相对位姿；不同候选可在线程池中
   并行计算。
+
+回环不是直接建立 submap-submap 边。一个新 node 可以同时对多个已结束 submap 形成候选；
+一个 submap 刚结束时，也会反向检查此前未插入该 submap 的旧 node。每个 finished submap
+只构建一次 `FastCorrelativeScanMatcher2D` 搜索索引，多个 node-submap 候选等待该索引
+任务完成后共享它并行搜索。最终 PGO 通过这些 node-submap 边间接约束 submap 之间的相对
+位置。
 
 当累计 node 数超过 `optimize_every_n_nodes`（当前配置为 20）时，work queue 暂停继续
 修改图，并通过 `ConstraintEngine2D::WhenDone()` 等待本轮所有约束任务完成。随后把约束
