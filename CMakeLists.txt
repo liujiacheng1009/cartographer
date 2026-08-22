@@ -48,25 +48,25 @@ set(ALL_LIBRARY_SRCS
   core/voxel_filter.cc
   scan_matching/ceres_scan_matcher_2d.cc
   trajectory/trajectory_frontend_2d.cc
-  pose_graph/constraint_engine_2d.cc
-  pose_graph/constraint_builder.cc
+  backend/constraint_engine_2d.cc
+  backend/constraint_options.cc
   scan_matching/correlative_scan_matcher_2d.cc
   scan_matching/fast_correlative_scan_matcher_2d.cc
   mapping/grid_2d.cc
-  local/imu_tracker.cc
-  local/local_trajectory_builder_2d.cc
-  mapping/map_builder.cc
-  local/motion_filter.cc
-  pose_graph/pose_optimizer_2d.cc
+  trajectory/imu_tracker.cc
+  trajectory/local_slam_2d.cc
+  application/slam_system.cc
+  trajectory/motion_filter.cc
+  backend/pose_optimizer_2d.cc
   trajectory/options.cc
-  pose_graph/overlapping_submaps_trimmer_2d.cc
-  local/pose_extrapolator.cc
-  pose_graph/trajectory_backend_2d.cc
-  pose_graph/trajectory_backend_query_2d.cc
-  pose_graph/pose_graph_trimmer.cc
+  backend/overlapping_submaps_trimmer_2d.cc
+  trajectory/pose_extrapolator.cc
+  backend/trajectory_backend_2d.cc
+  backend/trajectory_backend_query_2d.cc
+  backend/backend_trimmer.cc
   scan_matching/real_time_correlative_scan_matcher_2d.cc
   mapping/submap_2d.cc
-  pose_graph/trajectory_connectivity_state.cc
+  backend/trajectory_connectivity_state.cc
   serialization/swmap.cc
 )
 

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "cartographer/local/imu_tracker.h"
+#include "cartographer/trajectory/imu_tracker.h"
 
 #include <cmath>
 #include <limits>

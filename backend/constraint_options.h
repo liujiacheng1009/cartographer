@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 The Cartographer Authors
+ * Copyright 2016 The Cartographer Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,29 +14,21 @@
  * limitations under the License.
  */
 
-#ifndef CARTOGRAPHER_MAPPING_INTERNAL_WORK_QUEUE_H
-#define CARTOGRAPHER_MAPPING_INTERNAL_WORK_QUEUE_H
+#ifndef CARTOGRAPHER_BACKEND_CONSTRAINT_OPTIONS_H_
+#define CARTOGRAPHER_BACKEND_CONSTRAINT_OPTIONS_H_
 
-#include <chrono>
-#include <deque>
-#include <functional>
+#include "cartographer/core/parameter_dictionary.h"
+#include "cartographer/trajectory/options.h"
 
 namespace cartographer {
 namespace mapping {
+namespace constraints {
 
-struct WorkItem {
-  enum class Result {
-    kDoNotRunOptimization,
-    kRunOptimization,
-  };
+ConstraintBuilderOptions CreateConstraintBuilderOptions(
+    common::ParameterDictionary* parameter_dictionary);
 
-  std::chrono::steady_clock::time_point time;
-  std::function<Result()> task;
-};
-
-using WorkQueue = std::deque<WorkItem>;
-
+}  // namespace constraints
 }  // namespace mapping
 }  // namespace cartographer
 
-#endif  // CARTOGRAPHER_MAPPING_INTERNAL_WORK_QUEUE_H
+#endif  // CARTOGRAPHER_BACKEND_CONSTRAINT_OPTIONS_H_

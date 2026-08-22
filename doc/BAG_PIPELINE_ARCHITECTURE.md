@@ -51,13 +51,13 @@ flowchart LR
     GRAPH --> SWMAP
 ```
 
-核心所有权关系是：`MapBuilder` 同时拥有线程池、一个 `DataDispatcher`、一个
+核心所有权关系是：`SlamSystem` 同时拥有线程池、一个 `DataDispatcher`、一个
 `TrajectoryBackend2D` 和前端数组。每条轨迹只对应一个 `TrajectoryFrontend2D`。它登记排序回调、
 执行局部 SLAM，并把 node/odometry 转交共享的 `TrajectoryBackend2D`，不再经过多层 builder 包装
 和虚接口。
 
 ```text
-MapBuilder
+SlamSystem
 ├── ThreadPool
 ├── DataDispatcher
 ├── TrajectoryBackend2D
@@ -76,9 +76,9 @@ MapBuilder
 `bag_runner` 按以下顺序装配系统：
 
 1. 解析命令行参数并读取 YAML；
-2. 生成 `MapBuilderOptions` 和 `TrajectoryBuilderOptions`；
+2. 生成 `SlamSystemOptions` 和 `TrajectoryBuilderOptions`；
 3. 校验配置只声明当前支持的输入；
-4. 创建 `MapBuilder`；其内部持有后台线程池，并将线程池作为执行资源注入
+4. 创建 `SlamSystem`；其内部持有后台线程池，并将线程池作为执行资源注入
    `TrajectoryBackend2D` 的内部任务引擎；
 5. 如果指定 `--offline_load_state_filename`，先读取并冻结旧地图；
 6. 为 `scan` 和 `odom` 注册一条新轨迹；
@@ -93,7 +93,7 @@ MapBuilder
 重构后的公开模块、所有权和非拥有依赖如下：
 
 ```text
-MapBuilder（装配与生命周期容器）
+SlamSystem（装配与生命周期容器）
 ├── owns DataDispatcher                    ← scan/odom 时间排序
 ├── owns TrajectoryFrontend2D[]            ← 唯一公开 SLAM 前端
 ├── owns TrajectoryBackend2D               ← 唯一公开 SLAM 后端
@@ -107,13 +107,13 @@ TrajectoryBackend2D
 └── borrows ThreadPool                     ← 约束搜索与后端工作队列
 ```
 
-`MapBuilder` 是唯一所有者和装配入口；`TrajectoryFrontend2D`、
+`SlamSystem` 是唯一所有者和装配入口；`TrajectoryFrontend2D`、
 `TrajectoryBackend2D` 是并列的算法边界，`DataDispatcher` 和 `ThreadPool` 分别是它们的
 执行基础设施。前后端并行指的是 bag 回放和前端继续处理 scan 时，后端可以在线程池中
 推进已提交 node 的约束工作。所有 `borrows` 指针都不参与所有权，生命周期由
-`MapBuilder` 的成员顺序和结束同步屏障保证。
+`SlamSystem` 的成员顺序和结束同步屏障保证。
 
-`MapBuilder` 是装配和生命周期入口，本身不执行具体 SLAM 算法。它持有线程池、
+`SlamSystem` 是装配和生命周期入口，本身不执行具体 SLAM 算法。它持有线程池、
 `TrajectoryBackend2D`、`DataDispatcher` 以及各条 frontend，负责创建轨迹、结束轨迹、
 加载/保存 `.swmap`。当前虽然只有一条轨迹，仍由它统一保证这些对象的析构顺序：必须先
 等待图计算完成，才能销毁被后台任务引用的 submap、node 和 scan matcher。
@@ -124,7 +124,7 @@ TrajectoryBackend2D
 TrajectoryBackend2D 则负责“历史 node/submap 整体怎样保持一致并闭环”。
 
 `ConstraintEngine2D` 和 `PoseOptimizer2D` 是后端私有实现组件：前者生成候选约束，后者
-求解已经确定的约束。`MapBuilder`、`TrajectoryFrontend2D`、bag runner 和序列化层都只
+求解已经确定的约束。`SlamSystem`、`TrajectoryFrontend2D`、bag runner 和序列化层都只
 依赖 `TrajectoryBackend2D`，不能直接访问这两个组件。这样对外只有一个后端边界，同时
 避免把并发任务状态与 Ceres 数值状态混进同一个巨型类。
 
@@ -377,7 +377,7 @@ trimmer，删除定位模式下不再需要保留的旧子图。
 
 ### 9.2 已知地图定位模式
 
-传入 `.swmap` 时，`MapBuilder::LoadStateFromFile()`：
+传入 `.swmap` 时，`SlamSystem::LoadStateFromFile()`：
 
 1. 校验并读取当前 v3 schema；
 2. 为文件中的轨迹创建新的内部 trajectory ID；
@@ -392,7 +392,7 @@ trimmer，删除定位模式下不再需要保留的旧子图。
 
 bag 读完后的顺序不可交换：
 
-1. `MapBuilder::FinishTrajectory()` 结束并排空 sensor queues；
+1. `SlamSystem::FinishTrajectory()` 结束并排空 sensor queues；
 2. `TrajectoryBackend2D::FinishTrajectory()` 标记轨迹完成；
 3. `TrajectoryBackend2D::RunFinalOptimization()` 等待后台约束任务并做最终全局优化；
 4. 从 `GetTrajectoryNodes()` 写优化后的 `timestamp,x,y,theta` CSV；
@@ -414,13 +414,12 @@ bag 读完后的顺序不可交换：
 
 | 目录 | 在 bag 链路中的职责 |
 |---|---|
-| `application/` | 参数、bag 单遍读取、ROS 消息转换、生命周期控制 |
+| `application/` | `SlamSystem` 装配、bag 单遍读取、ROS 消息转换和生命周期控制 |
 | `core/` | 时间、传感器数据、DataDispatcher、点云、变换、线程池和指标 |
-| `trajectory/` | 单一 `TrajectoryFrontend2D` 前端边界与配置 |
-| `local/` | 局部 SLAM、姿态预测、运动过滤和 range 汇聚 |
+| `trajectory/` | 前端入口、局部 SLAM、姿态预测、运动过滤和前端配置 |
 | `scan_matching/` | 局部匹配及全局约束搜索使用的匹配算法 |
-| `mapping/` | MapBuilder、栅格和子图生命周期 |
-| `pose_graph/` | 节点/子图约束、回环、全局优化与裁剪 |
+| `mapping/` | 栅格、子图及其插入生命周期 |
+| `backend/` | 节点/子图约束、回环、全局优化与裁剪 |
 | `serialization/` | `.swmap` v3 读写 |
 
 新增代码应按主要状态所有权落位，不应重新建立 `slam/` 汇总目录，也不应创建超过
@@ -431,15 +430,15 @@ bag 读完后的顺序不可交换：
 | 入口 | 文件 |
 |---|---|
 | bag 主流程 | `application/bag_runner.cc` |
-| 栈装配与状态加载 | `mapping/map_builder.cc` |
-| 时间排序 | `core/data_dispatcher.cc`、`trajectory/collated_trajectory_builder.cc` |
-| 前后端桥接 | `trajectory/global_trajectory_builder.cc` |
-| 局部 SLAM | `local/local_trajectory_builder_2d.cc` |
+| 栈装配与状态加载 | `application/slam_system.cc` |
+| 时间排序 | `core/data_dispatcher.cc` |
+| 单一前端与前后端桥接 | `trajectory/trajectory_frontend_2d.{h,cc}` |
+| 局部 SLAM | `trajectory/local_slam_2d.cc` |
 | 子图和栅格 | `mapping/submap_2d.cc`、`mapping/grid_2d.cc` |
-| 单一后端入口与工作流 | `pose_graph/trajectory_backend_2d.{h,cc}` |
-| 后端只读查询 | `pose_graph/trajectory_backend_query_2d.cc` |
-| 内部约束引擎 | `pose_graph/constraint_engine_2d.{h,cc}` |
-| 内部位姿优化器 | `pose_graph/pose_optimizer_2d.{h,cc}` |
-| 约束计算 | `pose_graph/constraint_engine_2d.cc` |
-| 全局优化 | `pose_graph/pose_optimizer_2d.cc` |
+| 单一后端入口与工作流 | `backend/trajectory_backend_2d.{h,cc}` |
+| 后端只读查询 | `backend/trajectory_backend_query_2d.cc` |
+| 内部约束引擎 | `backend/constraint_engine_2d.{h,cc}` |
+| 内部位姿优化器 | `backend/pose_optimizer_2d.{h,cc}` |
+| 约束计算 | `backend/constraint_engine_2d.cc` |
+| 全局优化 | `backend/pose_optimizer_2d.cc` |
 | 状态持久化 | `serialization/swmap.cc` |

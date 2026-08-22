@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef CARTOGRAPHER_MAPPING_POSE_GRAPH_H_
-#define CARTOGRAPHER_MAPPING_POSE_GRAPH_H_
+#ifndef CARTOGRAPHER_BACKEND_TRAJECTORY_BACKEND_2D_H_
+#define CARTOGRAPHER_BACKEND_TRAJECTORY_BACKEND_2D_H_
 
 #include <deque>
 #include <functional>
@@ -33,13 +33,13 @@
 #include "cartographer/core/thread_pool.h"
 #include "cartographer/core/rigid_transform.h"
 #include "cartographer/mapping/submap_2d.h"
-#include "cartographer/pose_graph/constraint_engine_2d.h"
-#include "cartographer/pose_graph/pose_optimizer_2d.h"
-#include "cartographer/pose_graph/pose_graph_data.h"
-#include "cartographer/pose_graph/trajectory_connectivity_state.h"
-#include "cartographer/pose_graph/work_queue.h"
-#include "cartographer/pose_graph/pose_graph_types.h"
-#include "cartographer/pose_graph/pose_graph_trimmer.h"
+#include "cartographer/backend/constraint_engine_2d.h"
+#include "cartographer/backend/pose_optimizer_2d.h"
+#include "cartographer/backend/backend_state.h"
+#include "cartographer/backend/trajectory_connectivity_state.h"
+#include "cartographer/backend/backend_work_queue.h"
+#include "cartographer/backend/backend_types.h"
+#include "cartographer/backend/backend_trimmer.h"
 #include "cartographer/mapping/grid_2d.h"
 #include "cartographer/serialization/swmap.h"
 #include "cartographer/core/metrics.h"
@@ -277,4 +277,4 @@ class TrajectoryBackend2D {
 }  // namespace mapping
 }  // namespace cartographer
 
-#endif  // CARTOGRAPHER_MAPPING_POSE_GRAPH_H_
+#endif  // CARTOGRAPHER_BACKEND_TRAJECTORY_BACKEND_2D_H_

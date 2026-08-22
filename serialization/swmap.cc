@@ -4,7 +4,7 @@
 #include <filesystem>
 #include <set>
 
-#include "cartographer/pose_graph/trajectory_backend_2d.h"
+#include "cartographer/backend/trajectory_backend_2d.h"
 #include "cartographer/mapping/submap_2d.h"
 #include "glog/logging.h"
 #include "sqlite3.h"

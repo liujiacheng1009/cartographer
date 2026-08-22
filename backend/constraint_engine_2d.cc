@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "cartographer/pose_graph/constraint_engine_2d.h"
+#include "cartographer/backend/constraint_engine_2d.h"
 
 #include <cmath>
 #include <functional>

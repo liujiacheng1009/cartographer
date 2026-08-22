@@ -15,7 +15,7 @@
 #include "cartographer/core/parameter_dictionary.h"
 #include "cartographer/core/rigid_transform.h"
 #include "cartographer/core/transform.h"
-#include "cartographer/mapping/map_builder.h"
+#include "cartographer/application/slam_system.h"
 #include "gflags/gflags.h"
 #include "glog/logging.h"
 #include "nav_msgs/msg/odometry.hpp"
@@ -248,21 +248,21 @@ int main(int argc, char** argv) {
   CHECK_EQ(calibration.tracking_frame, tracking_frame);
   CHECK_EQ(calibration.lidar_topic, "/scan");
   CHECK_EQ(calibration.odometry_topic, "/odom");
-  const auto map_options = carto::mapping::CreateMapBuilderOptions(
+  const auto map_options = carto::mapping::CreateSlamSystemOptions(
       dictionary->GetDictionary("map_builder").get());
   const auto trajectory_options = carto::mapping::CreateTrajectoryBuilderOptions(
       dictionary->GetDictionary("trajectory_builder").get());
   ValidateBagOnlyConfig(dictionary.get(), trajectory_options);
 
-  auto map_builder = carto::mapping::CreateMapBuilder(map_options);
+  auto map_builder = carto::mapping::CreateSlamSystem(map_options);
   if (!FLAGS_offline_load_state_filename.empty()) {
     map_builder->LoadStateFromFile(FLAGS_offline_load_state_filename,
                                    FLAGS_offline_load_frozen_state);
   }
-  const std::set<carto::mapping::MapBuilder::SensorId> sensors = {
-      {carto::mapping::MapBuilder::SensorId::SensorType::RANGE,
+  const std::set<carto::mapping::SlamSystem::SensorId> sensors = {
+      {carto::mapping::SlamSystem::SensorId::SensorType::RANGE,
        "scan"},
-      {carto::mapping::MapBuilder::SensorId::SensorType::ODOMETRY,
+      {carto::mapping::SlamSystem::SensorId::SensorType::ODOMETRY,
        "odom"}};
   const int trajectory_id = map_builder->AddTrajectoryBuilder(
       sensors, trajectory_options, nullptr);

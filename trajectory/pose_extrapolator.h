@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-#ifndef CARTOGRAPHER_MAPPING_POSE_EXTRAPOLATOR_H_
-#define CARTOGRAPHER_MAPPING_POSE_EXTRAPOLATOR_H_
+#ifndef CARTOGRAPHER_TRAJECTORY_POSE_EXTRAPOLATOR_H_
+#define CARTOGRAPHER_TRAJECTORY_POSE_EXTRAPOLATOR_H_
 
 #include <deque>
 #include <memory>
 
 #include "cartographer/core/rigid_transform.h"
 #include "cartographer/trajectory/options.h"
-#include "cartographer/local/imu_tracker.h"
+#include "cartographer/trajectory/imu_tracker.h"
 #include "cartographer/core/sensor_data.h"
 #include "cartographer/core/rigid_transform.h"
 
@@ -97,4 +97,4 @@ class PoseExtrapolator {
 }  // namespace mapping
 }  // namespace cartographer
 
-#endif  // CARTOGRAPHER_MAPPING_POSE_EXTRAPOLATOR_H_
+#endif  // CARTOGRAPHER_TRAJECTORY_POSE_EXTRAPOLATOR_H_

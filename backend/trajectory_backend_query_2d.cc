@@ -1,7 +1,7 @@
 // Copyright 2026 The SweepNav Authors
 // Licensed under the Apache License, Version 2.0 (the "License").
 
-#include "cartographer/pose_graph/trajectory_backend_2d.h"
+#include "cartographer/backend/trajectory_backend_2d.h"
 
 #include <iterator>
 

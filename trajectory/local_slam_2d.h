@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef CARTOGRAPHER_MAPPING_INTERNAL_2D_LOCAL_TRAJECTORY_BUILDER_2D_H_
-#define CARTOGRAPHER_MAPPING_INTERNAL_2D_LOCAL_TRAJECTORY_BUILDER_2D_H_
+#ifndef CARTOGRAPHER_TRAJECTORY_LOCAL_SLAM_2D_H_
+#define CARTOGRAPHER_TRAJECTORY_LOCAL_SLAM_2D_H_
 
 #include <chrono>
 #include <memory>
@@ -25,8 +25,8 @@
 #include "cartographer/mapping/submap_2d.h"
 #include "cartographer/scan_matching/ceres_scan_matcher_2d.h"
 #include "cartographer/scan_matching/real_time_correlative_scan_matcher_2d.h"
-#include "cartographer/local/motion_filter.h"
-#include "cartographer/local/pose_extrapolator.h"
+#include "cartographer/trajectory/motion_filter.h"
+#include "cartographer/trajectory/pose_extrapolator.h"
 #include "cartographer/trajectory/options.h"
 #include "cartographer/core/metrics.h"
 #include "cartographer/core/sensor_data.h"
@@ -39,7 +39,7 @@ namespace mapping {
 // Wires up the local SLAM stack (i.e. pose extrapolator, scan matching, etc.)
 // without loop closure.
 // TODO(gaschler): Add test for this class similar to the 3D test.
-class LocalTrajectoryBuilder2D {
+class LocalSlam2D {
  public:
   struct InsertionResult {
     std::shared_ptr<const TrajectoryNode::Data> constant_data;
@@ -53,13 +53,13 @@ class LocalTrajectoryBuilder2D {
     std::unique_ptr<const InsertionResult> insertion_result;
   };
 
-  explicit LocalTrajectoryBuilder2D(
+  explicit LocalSlam2D(
       const LocalTrajectoryBuilderOptions2D& options,
       std::string expected_range_sensor_id);
-  ~LocalTrajectoryBuilder2D();
+  ~LocalSlam2D();
 
-  LocalTrajectoryBuilder2D(const LocalTrajectoryBuilder2D&) = delete;
-  LocalTrajectoryBuilder2D& operator=(const LocalTrajectoryBuilder2D&) = delete;
+  LocalSlam2D(const LocalSlam2D&) = delete;
+  LocalSlam2D& operator=(const LocalSlam2D&) = delete;
 
   // Returns 'MatchingResult' when range data accumulation completed,
   // otherwise 'nullptr'. Range data must be approximately horizontal
@@ -119,4 +119,4 @@ class LocalTrajectoryBuilder2D {
 }  // namespace mapping
 }  // namespace cartographer
 
-#endif  // CARTOGRAPHER_MAPPING_INTERNAL_2D_LOCAL_TRAJECTORY_BUILDER_2D_H_
+#endif  // CARTOGRAPHER_TRAJECTORY_LOCAL_SLAM_2D_H_

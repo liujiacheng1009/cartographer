@@ -35,7 +35,7 @@
 #include "cartographer/mapping/submap_2d.h"
 #include "cartographer/scan_matching/ceres_scan_matcher_2d.h"
 #include "cartographer/scan_matching/fast_correlative_scan_matcher_2d.h"
-#include "cartographer/pose_graph/pose_graph_types.h"
+#include "cartographer/backend/backend_types.h"
 #include "cartographer/trajectory/options.h"
 #include "cartographer/core/metrics.h"
 #include "cartographer/core/voxel_filter.h"

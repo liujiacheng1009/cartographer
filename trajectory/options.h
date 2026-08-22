@@ -240,7 +240,7 @@ struct PoseGraphOptions {
       overlapping_submaps_trimmer_2d_;
 };
 
-struct MapBuilderOptions {
+struct SlamSystemOptions {
   CARTOGRAPHER_OPTION_SCALAR(bool, use_trajectory_builder_2d)
   CARTOGRAPHER_OPTION_SCALAR(int, num_background_threads)
   CARTOGRAPHER_OPTION_SCALAR(bool, collate_by_trajectory)

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "cartographer/pose_graph/constraint_builder.h"
+#include "cartographer/backend/constraint_options.h"
 
 #include "cartographer/scan_matching/ceres_scan_matcher_2d.h"
 #include "cartographer/scan_matching/fast_correlative_scan_matcher_2d.h"

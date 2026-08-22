@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "cartographer/pose_graph/pose_optimizer_2d.h"
+#include "cartographer/backend/pose_optimizer_2d.h"
 
 #include <algorithm>
 #include <array>
@@ -46,7 +46,7 @@
 #ifndef CARTOGRAPHER_MAPPING_INTERNAL_OPTIMIZATION_COST_FUNCTIONS_SPA_COST_FUNCTION_2D_H_
 #define CARTOGRAPHER_MAPPING_INTERNAL_OPTIMIZATION_COST_FUNCTIONS_SPA_COST_FUNCTION_2D_H_
 
-#include "cartographer/pose_graph/pose_graph_types.h"
+#include "cartographer/backend/backend_types.h"
 #include "ceres/ceres.h"
 
 namespace cartographer {

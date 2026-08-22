@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef CARTOGRAPHER_MAPPING_IMU_TRACKER_H_
-#define CARTOGRAPHER_MAPPING_IMU_TRACKER_H_
+#ifndef CARTOGRAPHER_TRAJECTORY_IMU_TRACKER_H_
+#define CARTOGRAPHER_TRAJECTORY_IMU_TRACKER_H_
 
 #include "Eigen/Geometry"
 #include "cartographer/core/rigid_transform.h"
@@ -58,4 +58,4 @@ class ImuTracker {
 }  // namespace mapping
 }  // namespace cartographer
 
-#endif  // CARTOGRAPHER_MAPPING_IMU_TRACKER_H_
+#endif  // CARTOGRAPHER_TRAJECTORY_IMU_TRACKER_H_

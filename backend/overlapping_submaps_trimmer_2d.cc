@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "cartographer/pose_graph/overlapping_submaps_trimmer_2d.h"
+#include "cartographer/backend/overlapping_submaps_trimmer_2d.h"
 
 #include <algorithm>
 

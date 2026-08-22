@@ -1,5 +1,5 @@
-#ifndef CARTOGRAPHER_MAPPING_POSE_GRAPH_TYPES_H_
-#define CARTOGRAPHER_MAPPING_POSE_GRAPH_TYPES_H_
+#ifndef CARTOGRAPHER_BACKEND_TYPES_H_
+#define CARTOGRAPHER_BACKEND_TYPES_H_
 
 #include <array>
 #include <functional>
@@ -11,7 +11,7 @@
 #include "absl/types/optional.h"
 #include "cartographer/core/rigid_transform.h"
 #include "cartographer/core/rigid_transform.h"
-#include "cartographer/pose_graph/id.h"
+#include "cartographer/backend/id.h"
 #include "cartographer/mapping/submaps.h"
 
 namespace cartographer {
@@ -53,4 +53,4 @@ using GlobalSlamOptimizationCallback =
 }  // namespace mapping
 }  // namespace cartographer
 
-#endif  // CARTOGRAPHER_MAPPING_POSE_GRAPH_TYPES_H_
+#endif  // CARTOGRAPHER_BACKEND_TYPES_H_

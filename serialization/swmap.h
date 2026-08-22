@@ -5,9 +5,9 @@
 #include <string>
 #include <vector>
 
-#include "cartographer/pose_graph/id.h"
-#include "cartographer/pose_graph/pose_graph_types.h"
-#include "cartographer/pose_graph/trajectory_node.h"
+#include "cartographer/backend/id.h"
+#include "cartographer/backend/backend_types.h"
+#include "cartographer/backend/trajectory_node.h"
 #include "cartographer/mapping/grid_2d.h"
 
 namespace cartographer {

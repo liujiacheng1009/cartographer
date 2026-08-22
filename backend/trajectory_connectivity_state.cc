@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "cartographer/pose_graph/trajectory_connectivity_state.h"
+#include "cartographer/backend/trajectory_connectivity_state.h"
 
 #include <algorithm>
 

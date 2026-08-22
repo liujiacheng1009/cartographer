@@ -14,16 +14,16 @@
  * limitations under the License.
  */
 
-#include "cartographer/mapping/map_builder.h"
+#include "cartographer/application/slam_system.h"
 
 #include "absl/memory/memory.h"
 #include "absl/types/optional.h"
 #include "cartographer/core/rigid_transform.h"
 #include "cartographer/serialization/swmap.h"
-#include "cartographer/local/local_trajectory_builder_2d.h"
-#include "cartographer/pose_graph/trajectory_backend_2d.h"
+#include "cartographer/trajectory/local_slam_2d.h"
+#include "cartographer/backend/trajectory_backend_2d.h"
 #include "cartographer/trajectory/trajectory_frontend_2d.h"
-#include "cartographer/local/motion_filter.h"
+#include "cartographer/trajectory/motion_filter.h"
 #include "cartographer/core/data_dispatcher.h"
 #include "cartographer/core/voxel_filter.h"
 #include "cartographer/core/rigid_transform.h"
@@ -32,9 +32,9 @@
 namespace cartographer {
 namespace mapping {
 
-MapBuilderOptions CreateMapBuilderOptions(
+SlamSystemOptions CreateSlamSystemOptions(
     common::ParameterDictionary* const parameter_dictionary) {
-  MapBuilderOptions options;
+  SlamSystemOptions options;
   options.set_use_trajectory_builder_2d(
       parameter_dictionary->GetBool("use_trajectory_builder_2d"));
   options.set_num_background_threads(
@@ -51,10 +51,10 @@ namespace {
 
 
 std::string SelectRangeSensorId(
-    const std::set<MapBuilder::SensorId>& expected_sensor_ids) {
+    const std::set<SlamSystem::SensorId>& expected_sensor_ids) {
   std::vector<std::string> range_sensor_ids;
-  for (const MapBuilder::SensorId& sensor_id : expected_sensor_ids) {
-    if (sensor_id.type == MapBuilder::SensorId::SensorType::RANGE) {
+  for (const SlamSystem::SensorId& sensor_id : expected_sensor_ids) {
+    if (sensor_id.type == SlamSystem::SensorId::SensorType::RANGE) {
       range_sensor_ids.push_back(sensor_id.id);
     }
   }
@@ -84,7 +84,7 @@ void MaybeAddPureLocalizationTrimmer(
 
 }  // namespace
 
-MapBuilder::MapBuilder(const MapBuilderOptions& options)
+SlamSystem::SlamSystem(const SlamSystemOptions& options)
     : options_(options), thread_pool_(options.num_background_threads()) {
   CHECK(options.use_trajectory_builder_2d());
   backend_ = absl::make_unique<TrajectoryBackend2D>(
@@ -96,7 +96,7 @@ MapBuilder::MapBuilder(const MapBuilderOptions& options)
   data_dispatcher_ = absl::make_unique<sensor::DataDispatcher>();
 }
 
-int MapBuilder::AddTrajectoryBuilder(
+int SlamSystem::AddTrajectoryBuilder(
     const std::set<SensorId>& expected_sensor_ids,
     const TrajectoryBuilderOptions& trajectory_options,
     LocalSlamResultCallback local_slam_result_callback) {
@@ -127,18 +127,18 @@ int MapBuilder::AddTrajectoryBuilder(
   return trajectory_id;
 }
 
-int MapBuilder::AddTrajectoryForDeserialization() {
+int SlamSystem::AddTrajectoryForDeserialization() {
   const int trajectory_id = trajectory_builders_.size();
   trajectory_builders_.emplace_back();
   return trajectory_id;
 }
 
-void MapBuilder::FinishTrajectory(const int trajectory_id) {
+void SlamSystem::FinishTrajectory(const int trajectory_id) {
   data_dispatcher_->FinishTrajectory(trajectory_id);
   backend_->FinishTrajectory(trajectory_id);
 }
 
-std::string MapBuilder::GetSubmapTexture(
+std::string SlamSystem::GetSubmapTexture(
     const SubmapId& submap_id, SubmapTextureResponse* const response) {
   if (submap_id.trajectory_id < 0 ||
       submap_id.trajectory_id >= num_trajectory_builders()) {
@@ -157,12 +157,12 @@ std::string MapBuilder::GetSubmapTexture(
   return "";
 }
 
-bool MapBuilder::SerializeStateToFile(bool include_unfinished_submaps,
+bool SlamSystem::SerializeStateToFile(bool include_unfinished_submaps,
                                       const std::string& filename) {
   return io::WriteSwMap(filename, *backend_, include_unfinished_submaps);
 }
 
-std::map<int, int> MapBuilder::LoadStateFromFile(
+std::map<int, int> SlamSystem::LoadStateFromFile(
     const std::string& state_filename, const bool load_frozen_state) {
   const std::string suffix = ".swmap";
   if (state_filename.substr(
@@ -203,8 +203,8 @@ std::map<int, int> MapBuilder::LoadStateFromFile(
   return trajectory_remapping;
 }
 
-std::unique_ptr<MapBuilder> CreateMapBuilder(const MapBuilderOptions& options) {
-  return absl::make_unique<MapBuilder>(options);
+std::unique_ptr<SlamSystem> CreateSlamSystem(const SlamSystemOptions& options) {
+  return absl::make_unique<SlamSystem>(options);
 }
 
 }  // namespace mapping

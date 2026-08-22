@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "cartographer/local/local_trajectory_builder_2d.h"
+#include "cartographer/trajectory/local_slam_2d.h"
 
 #include <algorithm>
 #include <limits>
@@ -36,7 +36,7 @@ static auto* kCeresScanMatcherCostMetric = metrics::Histogram::Null();
 static auto* kScanMatcherResidualDistanceMetric = metrics::Histogram::Null();
 static auto* kScanMatcherResidualAngleMetric = metrics::Histogram::Null();
 
-LocalTrajectoryBuilder2D::LocalTrajectoryBuilder2D(
+LocalSlam2D::LocalSlam2D(
     const LocalTrajectoryBuilderOptions2D& options,
     std::string expected_range_sensor_id)
     : options_(options),
@@ -47,10 +47,10 @@ LocalTrajectoryBuilder2D::LocalTrajectoryBuilder2D(
       ceres_scan_matcher_(options_.ceres_scan_matcher_options()),
       expected_range_sensor_id_(std::move(expected_range_sensor_id)) {}
 
-LocalTrajectoryBuilder2D::~LocalTrajectoryBuilder2D() {}
+LocalSlam2D::~LocalSlam2D() {}
 
 sensor::RangeData
-LocalTrajectoryBuilder2D::TransformToGravityAlignedFrameAndFilter(
+LocalSlam2D::TransformToGravityAlignedFrameAndFilter(
     const transform::Rigid3f& transform_to_gravity_aligned_frame,
     const sensor::RangeData& range_data) const {
   const sensor::RangeData cropped =
@@ -63,7 +63,7 @@ LocalTrajectoryBuilder2D::TransformToGravityAlignedFrameAndFilter(
       sensor::VoxelFilter(cropped.misses, options_.voxel_filter_size())};
 }
 
-std::unique_ptr<transform::Rigid2d> LocalTrajectoryBuilder2D::ScanMatch(
+std::unique_ptr<transform::Rigid2d> LocalSlam2D::ScanMatch(
     const common::Time time, const transform::Rigid2d& pose_prediction,
     const sensor::PointCloud& filtered_gravity_aligned_point_cloud) {
   if (active_submaps_.submaps().empty()) {
@@ -102,8 +102,8 @@ std::unique_ptr<transform::Rigid2d> LocalTrajectoryBuilder2D::ScanMatch(
   return pose_observation;
 }
 
-std::unique_ptr<LocalTrajectoryBuilder2D::MatchingResult>
-LocalTrajectoryBuilder2D::AddRangeData(
+std::unique_ptr<LocalSlam2D::MatchingResult>
+LocalSlam2D::AddRangeData(
     const std::string& sensor_id,
     const sensor::TimedPointCloudData& range_data) {
   CHECK_EQ(sensor_id, expected_range_sensor_id_);
@@ -197,8 +197,8 @@ LocalTrajectoryBuilder2D::AddRangeData(
   return nullptr;
 }
 
-std::unique_ptr<LocalTrajectoryBuilder2D::MatchingResult>
-LocalTrajectoryBuilder2D::AddAccumulatedRangeData(
+std::unique_ptr<LocalSlam2D::MatchingResult>
+LocalSlam2D::AddAccumulatedRangeData(
     const common::Time time,
     const sensor::RangeData& gravity_aligned_range_data,
     const transform::Rigid3d& gravity_alignment,
@@ -265,8 +265,8 @@ LocalTrajectoryBuilder2D::AddAccumulatedRangeData(
                      std::move(insertion_result)});
 }
 
-std::unique_ptr<LocalTrajectoryBuilder2D::InsertionResult>
-LocalTrajectoryBuilder2D::InsertIntoSubmap(
+std::unique_ptr<LocalSlam2D::InsertionResult>
+LocalSlam2D::InsertIntoSubmap(
     const common::Time time, const sensor::RangeData& range_data_in_local,
     const sensor::PointCloud& filtered_gravity_aligned_point_cloud,
     const transform::Rigid3d& pose_estimate,
@@ -288,7 +288,7 @@ LocalTrajectoryBuilder2D::InsertIntoSubmap(
       std::move(insertion_submaps)});
 }
 
-void LocalTrajectoryBuilder2D::AddOdometryData(
+void LocalSlam2D::AddOdometryData(
     const sensor::OdometryData& odometry_data) {
   if (extrapolator_ == nullptr) {
     // Until we've initialized the extrapolator we cannot add odometry data.
@@ -298,7 +298,7 @@ void LocalTrajectoryBuilder2D::AddOdometryData(
   extrapolator_->AddOdometryData(odometry_data);
 }
 
-void LocalTrajectoryBuilder2D::InitializeExtrapolator(const common::Time time) {
+void LocalSlam2D::InitializeExtrapolator(const common::Time time) {
   if (extrapolator_ != nullptr) {
     return;
   }
@@ -312,7 +312,7 @@ void LocalTrajectoryBuilder2D::InitializeExtrapolator(const common::Time time) {
   extrapolator_->AddPose(time, transform::Rigid3d::Identity());
 }
 
-void LocalTrajectoryBuilder2D::RegisterMetrics(
+void LocalSlam2D::RegisterMetrics(
     metrics::FamilyFactory* family_factory) {
   auto* latency = family_factory->NewGaugeFamily(
       "mapping_2d_local_trajectory_builder_latency",

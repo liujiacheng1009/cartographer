@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "cartographer/pose_graph/pose_graph_trimmer.h"
+#include "cartographer/backend/backend_trimmer.h"
 
 #include "glog/logging.h"
 

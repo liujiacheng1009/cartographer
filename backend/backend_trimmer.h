@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-#ifndef CARTOGRAPHER_MAPPING_POSE_GRAPH_TRIMMER_H_
-#define CARTOGRAPHER_MAPPING_POSE_GRAPH_TRIMMER_H_
+#ifndef CARTOGRAPHER_BACKEND_TRIMMER_H_
+#define CARTOGRAPHER_BACKEND_TRIMMER_H_
 
-#include "cartographer/pose_graph/id.h"
-#include "cartographer/pose_graph/pose_graph_types.h"
+#include "cartographer/backend/id.h"
+#include "cartographer/backend/backend_types.h"
 
 namespace cartographer {
 namespace mapping {
@@ -83,4 +83,4 @@ class PureLocalizationTrimmer : public PoseGraphTrimmer {
 }  // namespace mapping
 }  // namespace cartographer
 
-#endif  // CARTOGRAPHER_MAPPING_POSE_GRAPH_TRIMMER_H_
+#endif  // CARTOGRAPHER_BACKEND_TRIMMER_H_

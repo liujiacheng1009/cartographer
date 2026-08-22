@@ -145,7 +145,7 @@ class XYIndexRangeIterator
 }  // namespace cartographer
 
 #endif  // CARTOGRAPHER_MAPPING_2D_XY_INDEX_H_
-#include "cartographer/pose_graph/trajectory_node.h"
+#include "cartographer/backend/trajectory_node.h"
 #include "cartographer/core/point_cloud.h"
 #include "cartographer/core/range_data.h"
 #include "cartographer/core/rigid_transform.h"

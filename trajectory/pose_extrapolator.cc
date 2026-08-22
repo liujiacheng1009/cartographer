@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "cartographer/local/pose_extrapolator.h"
+#include "cartographer/trajectory/pose_extrapolator.h"
 
 #include <algorithm>
 

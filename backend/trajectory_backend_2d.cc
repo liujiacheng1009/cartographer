@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "cartographer/pose_graph/trajectory_backend_2d.h"
+#include "cartographer/backend/trajectory_backend_2d.h"
 #include "cartographer/mapping/grid_2d.h"
 
 #include <algorithm>
@@ -32,7 +32,7 @@
 #include "Eigen/Eigenvalues"
 #include "absl/memory/memory.h"
 #include "cartographer/core/math.h"
-#include "cartographer/pose_graph/overlapping_submaps_trimmer_2d.h"
+#include "cartographer/backend/overlapping_submaps_trimmer_2d.h"
 #include "cartographer/trajectory/options.h"
 #include "cartographer/core/voxel_filter.h"
 #include "cartographer/core/transform.h"

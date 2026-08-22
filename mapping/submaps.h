@@ -23,10 +23,10 @@
 #include "Eigen/Geometry"
 #include "cartographer/core/math.h"
 #include "cartographer/core/port.h"
-#include "cartographer/pose_graph/id.h"
+#include "cartographer/backend/id.h"
 #include "cartographer/mapping/grid_2d.h"
 #include "cartographer/mapping/submap_texture.h"
-#include "cartographer/pose_graph/trajectory_node.h"
+#include "cartographer/backend/trajectory_node.h"
 #include "glog/logging.h"
 
 namespace cartographer {

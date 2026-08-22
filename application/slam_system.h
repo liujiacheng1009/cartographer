@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef CARTOGRAPHER_MAPPING_MAP_BUILDER_H_
-#define CARTOGRAPHER_MAPPING_MAP_BUILDER_H_
+#ifndef CARTOGRAPHER_APPLICATION_SLAM_SYSTEM_H_
+#define CARTOGRAPHER_APPLICATION_SLAM_SYSTEM_H_
 
 #include <memory>
 #include <set>
@@ -25,9 +25,9 @@
 #include "cartographer/core/parameter_dictionary.h"
 #include "cartographer/core/thread_pool.h"
 #include "cartographer/core/data_dispatcher.h"
-#include "cartographer/pose_graph/id.h"
+#include "cartographer/backend/id.h"
 #include "cartographer/trajectory/options.h"
-#include "cartographer/pose_graph/trajectory_backend_2d.h"
+#include "cartographer/backend/trajectory_backend_2d.h"
 #include "cartographer/mapping/submap_texture.h"
 #include "cartographer/trajectory/trajectory_frontend_2d.h"
 
@@ -36,19 +36,19 @@ namespace mapping {
 
 // Wires up the complete SLAM stack with TrajectoryBuilders (for local submaps)
 // and a TrajectoryBackend2D for loop closure.
-MapBuilderOptions CreateMapBuilderOptions(
+SlamSystemOptions CreateSlamSystemOptions(
     common::ParameterDictionary* parameter_dictionary);
 
-class MapBuilder {
+class SlamSystem {
  public:
   using LocalSlamResultCallback = TrajectoryFrontend2D::LocalSlamResultCallback;
   using SensorId = TrajectoryFrontend2D::SensorId;
 
-  explicit MapBuilder(const MapBuilderOptions &options);
-  ~MapBuilder() = default;
+  explicit SlamSystem(const SlamSystemOptions &options);
+  ~SlamSystem() = default;
 
-  MapBuilder(const MapBuilder &) = delete;
-  MapBuilder &operator=(const MapBuilder &) = delete;
+  SlamSystem(const SlamSystem &) = delete;
+  SlamSystem &operator=(const SlamSystem &) = delete;
 
   int AddTrajectoryBuilder(
       const std::set<SensorId> &expected_sensor_ids,
@@ -80,7 +80,7 @@ class MapBuilder {
   }
 
  private:
-  const MapBuilderOptions options_;
+  const SlamSystemOptions options_;
   common::ThreadPool thread_pool_;
 
   std::unique_ptr<TrajectoryBackend2D> backend_;
@@ -89,9 +89,9 @@ class MapBuilder {
   std::vector<std::unique_ptr<TrajectoryFrontend2D>> trajectory_builders_;
 };
 
-std::unique_ptr<MapBuilder> CreateMapBuilder(const MapBuilderOptions& options);
+std::unique_ptr<SlamSystem> CreateSlamSystem(const SlamSystemOptions& options);
 
 }  // namespace mapping
 }  // namespace cartographer
 
-#endif  // CARTOGRAPHER_MAPPING_MAP_BUILDER_H_
+#endif  // CARTOGRAPHER_APPLICATION_SLAM_SYSTEM_H_

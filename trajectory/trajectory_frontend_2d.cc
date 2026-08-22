@@ -26,7 +26,7 @@ TrajectoryFrontend2D::TrajectoryFrontend2D(
     : data_dispatcher_(data_dispatcher),
       trajectory_id_(trajectory_id),
       backend_(backend),
-      local_slam_(absl::make_unique<LocalTrajectoryBuilder2D>(
+      local_slam_(absl::make_unique<LocalSlam2D>(
           options.trajectory_builder_2d_options(),
           std::move(range_sensor_id))),
       local_slam_result_callback_(std::move(local_slam_result_callback)),

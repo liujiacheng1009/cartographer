@@ -15,10 +15,10 @@
 #include "absl/types/optional.h"
 #include "cartographer/core/data_dispatcher.h"
 #include "cartographer/core/rate_timer.h"
-#include "cartographer/local/local_trajectory_builder_2d.h"
-#include "cartographer/local/motion_filter.h"
+#include "cartographer/trajectory/local_slam_2d.h"
+#include "cartographer/trajectory/motion_filter.h"
 #include "cartographer/mapping/submaps.h"
-#include "cartographer/pose_graph/trajectory_backend_2d.h"
+#include "cartographer/backend/trajectory_backend_2d.h"
 #include "cartographer/trajectory/options.h"
 
 namespace cartographer::mapping {
@@ -72,7 +72,7 @@ class TrajectoryFrontend2D {
   sensor::DataDispatcher* const data_dispatcher_;
   const int trajectory_id_;
   TrajectoryBackend2D* const backend_;
-  std::unique_ptr<LocalTrajectoryBuilder2D> local_slam_;
+  std::unique_ptr<LocalSlam2D> local_slam_;
   LocalSlamResultCallback local_slam_result_callback_;
   absl::optional<MotionFilter> pose_graph_odometry_motion_filter_;
   std::chrono::steady_clock::time_point last_logging_time_;

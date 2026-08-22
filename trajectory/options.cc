@@ -5,9 +5,9 @@
 
 #include "cartographer/core/voxel_filter.h"
 #include "cartographer/scan_matching/ceres_scan_matcher_2d.h"
-#include "cartographer/pose_graph/constraint_builder.h"
-#include "cartographer/local/motion_filter.h"
-#include "cartographer/local/pose_extrapolator.h"
+#include "cartographer/backend/constraint_options.h"
+#include "cartographer/trajectory/motion_filter.h"
+#include "cartographer/trajectory/pose_extrapolator.h"
 #include "cartographer/scan_matching/real_time_correlative_scan_matcher_2d.h"
 #include "cartographer/mapping/submap_2d.h"
 

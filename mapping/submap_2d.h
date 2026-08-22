@@ -89,7 +89,7 @@ class ProbabilityGridRangeDataInserter2D {
 
 #endif  // CARTOGRAPHER_MAPPING_2D_RANGE_DATA_INSERTER_2D_PROBABILITY_GRID_H_
 #include "cartographer/mapping/submaps.h"
-#include "cartographer/pose_graph/trajectory_node.h"
+#include "cartographer/backend/trajectory_node.h"
 #include "cartographer/mapping/grid_2d.h"
 #include "cartographer/core/range_data.h"
 #include "cartographer/core/rigid_transform.h"

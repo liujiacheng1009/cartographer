@@ -14,16 +14,16 @@
  * limitations under the License.
  */
 
-#ifndef CARTOGRAPHER_MAPPING_POSE_GRAPH_DATA_H_
-#define CARTOGRAPHER_MAPPING_POSE_GRAPH_DATA_H_
+#ifndef CARTOGRAPHER_BACKEND_STATE_H_
+#define CARTOGRAPHER_BACKEND_STATE_H_
 
 #include <map>
 #include <set>
 #include <vector>
 
-#include "cartographer/pose_graph/pose_optimizer_2d.h"
-#include "cartographer/pose_graph/trajectory_connectivity_state.h"
-#include "cartographer/pose_graph/pose_graph_types.h"
+#include "cartographer/backend/pose_optimizer_2d.h"
+#include "cartographer/backend/trajectory_connectivity_state.h"
+#include "cartographer/backend/backend_types.h"
 #include "cartographer/mapping/submaps.h"
 
 namespace cartographer {
@@ -89,4 +89,4 @@ struct PoseGraphData {
 }  // namespace mapping
 }  // namespace cartographer
 
-#endif  // CARTOGRAPHER_MAPPING_POSE_GRAPH_DATA_H_
+#endif  // CARTOGRAPHER_BACKEND_STATE_H_
