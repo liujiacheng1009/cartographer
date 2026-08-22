@@ -60,7 +60,6 @@ class OptimizationProblem2D {
   OptimizationProblem2D(const OptimizationProblem2D&) = delete;
   OptimizationProblem2D& operator=(const OptimizationProblem2D&) = delete;
 
-  void AddImuData(int trajectory_id, const sensor::ImuData& imu_data);
   void AddOdometryData(int trajectory_id,
                        const sensor::OdometryData& odometry_data);
   void AddTrajectoryNode(int trajectory_id,
@@ -84,9 +83,6 @@ class OptimizationProblem2D {
   }
   const MapById<SubmapId, SubmapSpec2D>& submap_data() const {
     return submap_data_;
-  }
-  const sensor::MapByTime<sensor::ImuData>& imu_data() const {
-    return empty_imu_data_;
   }
   const sensor::MapByTime<sensor::OdometryData>& odometry_data()
       const {
@@ -112,7 +108,6 @@ class OptimizationProblem2D {
   OptimizationProblemOptions options_;
   MapById<NodeId, NodeSpec2D> node_data_;
   MapById<SubmapId, SubmapSpec2D> submap_data_;
-  sensor::MapByTime<sensor::ImuData> empty_imu_data_;
   sensor::MapByTime<sensor::OdometryData> odometry_data_;
   std::map<int, TrajectoryData> trajectory_data_;
 };

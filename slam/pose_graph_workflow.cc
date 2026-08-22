@@ -206,17 +206,6 @@ void PoseGraph::AddTrajectoryIfNeeded(const int trajectory_id) {
   }
 }
 
-void PoseGraph::AddImuData(const int trajectory_id,
-                             const sensor::ImuData& imu_data) {
-  AddWorkItem([=]() LOCKS_EXCLUDED(mutex_) {
-    absl::MutexLock locker(&mutex_);
-    if (CanAddWorkItemModifying(trajectory_id)) {
-      optimization_problem_->AddImuData(trajectory_id, imu_data);
-    }
-    return WorkItem::Result::kDoNotRunOptimization;
-  });
-}
-
 void PoseGraph::AddOdometryData(const int trajectory_id,
                                   const sensor::OdometryData& odometry_data) {
   AddWorkItem([=]() LOCKS_EXCLUDED(mutex_) {

@@ -130,7 +130,6 @@ struct LocalTrajectoryBuilderOptions2D {
   CARTOGRAPHER_OPTION_SCALAR(int, num_accumulated_range_data)
   CARTOGRAPHER_OPTION_SCALAR(float, voxel_filter_size)
   CARTOGRAPHER_OPTION_SCALAR(bool, use_online_correlative_scan_matching)
-  CARTOGRAPHER_OPTION_SCALAR(bool, use_imu_data)
   CARTOGRAPHER_OPTION_FIELD(AdaptiveVoxelFilterOptions,
                             adaptive_voxel_filter_options)
   CARTOGRAPHER_OPTION_FIELD(AdaptiveVoxelFilterOptions,

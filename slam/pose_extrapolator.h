@@ -56,7 +56,6 @@ class PoseExtrapolator {
   common::Time GetLastExtrapolatedTime() const;
 
   void AddPose(common::Time time, const transform::Rigid3d& pose);
-  void AddImuData(const sensor::ImuData& imu_data);
   void AddOdometryData(const sensor::OdometryData& odometry_data);
   transform::Rigid3d ExtrapolatePose(common::Time time);
 
@@ -69,7 +68,6 @@ class PoseExtrapolator {
 
  private:
   void UpdateVelocitiesFromPoses();
-  void TrimImuData();
   void TrimOdometryData();
   void AdvanceImuTracker(common::Time time, ImuTracker* imu_tracker) const;
   Eigen::Quaterniond ExtrapolateRotation(common::Time time,
@@ -86,7 +84,6 @@ class PoseExtrapolator {
   Eigen::Vector3d angular_velocity_from_poses_ = Eigen::Vector3d::Zero();
 
   const double gravity_time_constant_;
-  std::deque<sensor::ImuData> imu_data_;
   std::unique_ptr<ImuTracker> imu_tracker_;
   std::unique_ptr<ImuTracker> odometry_imu_tracker_;
   std::unique_ptr<ImuTracker> extrapolation_imu_tracker_;

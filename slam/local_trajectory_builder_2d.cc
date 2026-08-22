@@ -113,17 +113,7 @@ LocalTrajectoryBuilder2D::AddRangeData(
   }
 
   const common::Time& time = synchronized_data.time;
-  // Initialize extrapolator now if we do not ever use an IMU.
-  if (!options_.use_imu_data()) {
-    InitializeExtrapolator(time);
-  }
-
-  if (extrapolator_ == nullptr) {
-    // Until we've initialized the extrapolator with our first IMU message, we
-    // cannot compute the orientation of the rangefinder.
-    LOG(INFO) << "Extrapolator not yet initialized.";
-    return nullptr;
-  }
+  InitializeExtrapolator(time);
 
   CHECK(!synchronized_data.ranges.empty());
   // TODO(gaschler): Check if this can strictly be 0.
@@ -297,12 +287,6 @@ LocalTrajectoryBuilder2D::InsertIntoSubmap(
           {},  // 'rotational_scan_matcher_histogram' is only used in 3D.
           pose_estimate}),
       std::move(insertion_submaps)});
-}
-
-void LocalTrajectoryBuilder2D::AddImuData(const sensor::ImuData& imu_data) {
-  CHECK(options_.use_imu_data()) << "An unexpected IMU packet was added.";
-  InitializeExtrapolator(imu_data.time);
-  extrapolator_->AddImuData(imu_data);
 }
 
 void LocalTrajectoryBuilder2D::AddOdometryData(

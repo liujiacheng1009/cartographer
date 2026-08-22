@@ -84,8 +84,6 @@ class PoseGraph {
       const std::vector<std::shared_ptr<const Submap2D>>& insertion_submaps)
       LOCKS_EXCLUDED(mutex_);
 
-  void AddImuData(int trajectory_id, const sensor::ImuData& imu_data)
-      LOCKS_EXCLUDED(mutex_);
   void AddOdometryData(int trajectory_id,
                        const sensor::OdometryData& odometry_data)
       LOCKS_EXCLUDED(mutex_);
@@ -122,8 +120,6 @@ class PoseGraph {
   MapById<NodeId, TrajectoryNodePose> GetTrajectoryNodePoses() const
       LOCKS_EXCLUDED(mutex_);
   std::map<int, TrajectoryState> GetTrajectoryStates() const
-      LOCKS_EXCLUDED(mutex_);
-  sensor::MapByTime<sensor::ImuData> GetImuData() const
       LOCKS_EXCLUDED(mutex_);
   sensor::MapByTime<sensor::OdometryData> GetOdometryData() const
       LOCKS_EXCLUDED(mutex_);

@@ -163,8 +163,6 @@ void ValidateBagOnlyConfig(
   if (dictionary->HasKey("use_landmarks"))
     CHECK(!dictionary->GetBool("use_landmarks"))
       << "Landmarks are not supported by the bag-only application.";
-  CHECK(!trajectory_options.trajectory_builder_2d_options().use_imu_data())
-      << "IMU topics are not supported by the bag-only application.";
 }
 
 void WriteTrajectory(const std::string& filename, int trajectory_id,

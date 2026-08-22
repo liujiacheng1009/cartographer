@@ -59,7 +59,6 @@ class TrajectoryBuilderInterface {
   struct SensorId {
     enum class SensorType {
       RANGE = 0,
-      IMU,
       ODOMETRY
     };
 
@@ -87,8 +86,6 @@ class TrajectoryBuilderInterface {
   virtual void AddSensorData(
       const std::string& sensor_id,
       const sensor::TimedPointCloudData& timed_point_cloud_data) = 0;
-  virtual void AddSensorData(const std::string& sensor_id,
-                             const sensor::ImuData& imu_data) = 0;
   virtual void AddSensorData(const std::string& sensor_id,
                              const sensor::OdometryData& odometry_data) = 0;
 };

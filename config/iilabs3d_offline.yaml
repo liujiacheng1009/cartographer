@@ -47,7 +47,6 @@ map_builder:
 
 trajectory_builder:
   trajectory_builder_2d:
-    use_imu_data: false
     min_range: 0.05
     max_range: 30.0
     min_z: -0.8

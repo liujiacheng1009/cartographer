@@ -42,11 +42,6 @@ PoseGraph::GetTrajectoryStates() const {
   return trajectories_state;
 }
 
-sensor::MapByTime<sensor::ImuData> PoseGraph::GetImuData() const {
-  absl::MutexLock locker(&mutex_);
-  return optimization_problem_->imu_data();
-}
-
 sensor::MapByTime<sensor::OdometryData> PoseGraph::GetOdometryData() const {
   absl::MutexLock locker(&mutex_);
   return optimization_problem_->odometry_data();

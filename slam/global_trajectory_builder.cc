@@ -87,14 +87,6 @@ class GlobalTrajectoryBuilder : public mapping::TrajectoryBuilderInterface {
   }
 
   void AddSensorData(const std::string& sensor_id,
-                     const sensor::ImuData& imu_data) override {
-    if (local_trajectory_builder_) {
-      local_trajectory_builder_->AddImuData(imu_data);
-    }
-    pose_graph_->AddImuData(trajectory_id_, imu_data);
-  }
-
-  void AddSensorData(const std::string& sensor_id,
                      const sensor::OdometryData& odometry_data) override {
     CHECK(odometry_data.pose.IsValid()) << odometry_data.pose;
     if (local_trajectory_builder_) {

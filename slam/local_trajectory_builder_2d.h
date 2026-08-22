@@ -71,7 +71,6 @@ class LocalTrajectoryBuilder2D {
   std::unique_ptr<MatchingResult> AddRangeData(
       const std::string& sensor_id,
       const sensor::TimedPointCloudData& range_data);
-  void AddImuData(const sensor::ImuData& imu_data);
   void AddOdometryData(const sensor::OdometryData& odometry_data);
 
   static void RegisterMetrics(metrics::FamilyFactory* family_factory);

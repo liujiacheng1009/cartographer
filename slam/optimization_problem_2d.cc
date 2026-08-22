@@ -59,12 +59,6 @@ OptimizationProblem2D::OptimizationProblem2D(
 
 OptimizationProblem2D::~OptimizationProblem2D() {}
 
-void OptimizationProblem2D::AddImuData(const int trajectory_id,
-                                       const sensor::ImuData& imu_data) {
-  // IMU data is not used in 2D optimization, so we ignore this part of the
-  // interface.
-}
-
 void OptimizationProblem2D::AddOdometryData(
     const int trajectory_id, const sensor::OdometryData& odometry_data) {
   odometry_data_.Append(trajectory_id, odometry_data);
@@ -88,7 +82,6 @@ void OptimizationProblem2D::InsertTrajectoryNode(const NodeId& node_id,
 }
 
 void OptimizationProblem2D::TrimTrajectoryNode(const NodeId& node_id) {
-  empty_imu_data_.Trim(node_data_, node_id);
   odometry_data_.Trim(node_data_, node_id);
   node_data_.Trim(node_id);
   if (node_data_.SizeOfTrajectoryOrZero(node_id.trajectory_id) == 0) {
