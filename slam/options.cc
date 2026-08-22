@@ -7,7 +7,7 @@
 #include "cartographer/slam/ceres_scan_matcher_2d.h"
 #include "cartographer/slam/constraint_builder.h"
 #include "cartographer/slam/motion_filter.h"
-#include "cartographer/slam/pose_extrapolator_interface.h"
+#include "cartographer/slam/pose_extrapolator.h"
 #include "cartographer/slam/real_time_correlative_scan_matcher_2d.h"
 #include "cartographer/slam/submap_2d.h"
 
@@ -39,6 +39,30 @@ ceres::Solver::Options CreateCeresSolverOptions(
 }  // namespace common
 
 namespace mapping {
+
+namespace {
+
+ConstantVelocityPoseExtrapolatorOptions
+CreateConstantVelocityPoseExtrapolatorOptions(
+    common::ParameterDictionary* const parameter_dictionary) {
+  ConstantVelocityPoseExtrapolatorOptions options;
+  options.set_pose_queue_duration(
+      parameter_dictionary->GetDouble("pose_queue_duration"));
+  options.set_imu_gravity_time_constant(
+      parameter_dictionary->GetDouble("imu_gravity_time_constant"));
+  return options;
+}
+
+}  // namespace
+
+PoseExtrapolatorOptions CreatePoseExtrapolatorOptions(
+    common::ParameterDictionary* const parameter_dictionary) {
+  PoseExtrapolatorOptions options;
+  *options.mutable_constant_velocity() =
+      CreateConstantVelocityPoseExtrapolatorOptions(
+          parameter_dictionary->GetDictionary("constant_velocity").get());
+  return options;
+}
 
 namespace {
 

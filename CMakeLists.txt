@@ -74,7 +74,6 @@ set(ALL_LIBRARY_SRCS
   slam/options.cc
   slam/overlapping_submaps_trimmer_2d.cc
   slam/pose_extrapolator.cc
-  slam/pose_extrapolator_interface.cc
   slam/pose_graph_workflow.cc
   slam/pose_graph_query.cc
   slam/pose_graph_trimmer.cc
