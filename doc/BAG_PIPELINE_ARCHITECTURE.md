@@ -127,6 +127,20 @@ TrajectoryBackend2D
 `optimize_every_n_nodes` 触发一次全局优化。局部 scan matching 负责“当前扫描放在哪里”，
 TrajectoryBackend2D 则负责“历史 node/submap 整体怎样保持一致并闭环”。
 
+这里的 trajectory、submap 和 node 是三个不同层级：
+
+```text
+Trajectory（一次建图或定位会话）
+└── Submap（该会话连续生成的局部概率地图）
+    └── Node（通过运动过滤并插入地图的激光帧位姿）
+```
+
+一个 trajectory 会包含多个 submap，每个 submap 又关联多个 node；不是“每个局部地图算
+一条 trajectory”。`NodeId` 和 `SubmapId` 都由 `(trajectory_id, index)` 组成，因此同一
+trajectory 内的 node/submap 共享第一个 ID 分量。普通新图模式通常只有 trajectory 0；
+加载已知地图定位时，后端同时保存加载并冻结的历史 trajectory 0，以及接收当前 bag 的
+活动 trajectory 1。
+
 `ConstraintEngine2D` 和 `PoseOptimizer2D` 是后端私有实现组件：前者生成候选约束，后者
 求解已经确定的约束。`SlamSystem`、`Frontend2D`、bag runner 和序列化层都只
 依赖 `TrajectoryBackend2D`，不能直接访问这两个组件。这样对外只有一个后端边界，同时
@@ -391,6 +405,53 @@ trimmer，删除定位模式下不再需要保留的旧子图。
 6. 通过新节点到冻结子图的约束完成定位。
 
 当前原生加载只允许 frozen map，不支持继续修改已加载的历史轨迹。
+
+如果调用方已知新旧轨迹的初始坐标关系，后端可使用
+`InitialTrajectoryPoseState{to_trajectory_id, relative_pose, time}`：
+
+- `to_trajectory_id` 是参考轨迹，例如冻结地图 trajectory 0；
+- `relative_pose` 是新轨迹相对参考轨迹的初始刚体变换；
+- `time` 指明应查询参考轨迹 global pose 的时刻。
+
+可把初始 global 关系理解为：
+
+```text
+T_global_new(t) = T_global_reference(t) · T_reference_new · T_new_local(t)
+```
+
+它只是两条轨迹坐标系之间的初始对齐，不会把活动轨迹永久固定；后续新 node 与冻结
+submap 的约束仍可修正定位轨迹。不加载地图的单轨迹建图不需要这一关系。
+
+### 9.3 Submap 状态与约束搜索资格
+
+后端的 `SubmapState` 不是完整生命周期枚举，而是描述 submap 能否作为额外约束搜索目标：
+
+```cpp
+enum class SubmapState { kNoConstraintSearch, kFinished };
+```
+
+状态变化如下：
+
+```text
+创建并持续插入 scan
+      │
+      ▼
+kNoConstraintSearch
+      │ 达到 num_range_data，概率栅格不再变化
+      ▼
+kFinished
+      ├── 构建 FastCorrelativeScanMatcher2D 索引
+      ├── 接受额外 node-submap 回环搜索
+      └── 参与后续 PGO 和裁剪
+```
+
+`kNoConstraintSearch` 不等于“没有任何约束”。活动 submap 仍会与正在插入它的 node 建立
+确定的 intra-submap 插入约束；禁止的是把这个仍在变化的栅格当作历史目标，执行额外的
+inter-submap/回环搜索。否则每次插入 scan 都可能使已经构建的快速相关匹配索引失效。
+
+`kFinished` 只表示地图内容已固定、具备搜索资格，不表示后端工作全部结束；索引构建、
+候选验证、PGO 和 trimmer 仍可能异步发生。从 `.swmap` 加载的历史 submap 会恢复为
+finished submap，并非“已经加载但因生命周期策略保持禁止搜索”。
 
 ## 10. 结束、优化与输出
 

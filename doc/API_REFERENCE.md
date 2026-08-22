@@ -85,8 +85,28 @@ submap 和 odometry 交给后端。`SensorId::SensorType` 只有 `RANGE`、`ODOM
 查询接口：`GetTrajectoryNodes`、`GetAllSubmapData`、`GetAllSubmapPoses`、
 `GetTrajectoryStates`、`GetOdometryData`、`constraints`。
 
+后端可以同时保存多条 trajectory，但每个局部 submap 不是一条独立 trajectory：
+
+```text
+trajectory_id
+├── SubmapId{trajectory_id, submap_index}
+└── NodeId{trajectory_id, node_index}
+```
+
+普通建图只有一条活动 trajectory；冻结地图定位通常包含一条或多条加载轨迹，再新增一条
+活动定位轨迹。`InitialTrajectoryPoseState` 用 `to_trajectory_id`、`relative_pose` 和
+`time` 表达新轨迹相对参考轨迹的初始坐标关系。
+
 线程约束通过 Abseil lock annotations 标注。公开写操作通常把 work item 放入后端队列；
 约束搜索在 `TaskExecutor` 工作线程执行，图状态修改和 PGO 由后端同步边界串行化。
+
+内部 `SubmapState` 的两个值描述约束搜索资格：
+
+- `kNoConstraintSearch`：submap 仍在插入数据；允许确定的 intra-submap 插入约束，禁止
+  额外回环搜索；
+- `kFinished`：栅格固定，可以构建 fast-correlative 索引并验证 inter-submap 候选。
+
+`kFinished` 不代表索引、约束和 PGO 已全部完成，只代表 submap 内容不会继续变化。
 
 ## `constraints::ConstraintEngine2D`
 
@@ -121,4 +141,3 @@ node 的局部 SLAM 关系和 odometry。冻结轨迹的变量保持常量，用
 输入与内部不变量主要使用 glog `CHECK`。这意味着配置、标定、frame 或 schema 错误属于
 不可恢复的批处理失败，进程非零退出；调用者应保留 stderr 并把失败视为数据质量问题，
 而不是重试同一输入。
-

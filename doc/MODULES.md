@@ -60,6 +60,10 @@ frontend/backend/mapping/scan_matching/serialization ─→ foundation
 一个 scan 可以同时插入两个活动 submap；旧 submap 达到配置容量后 finished，随后可建立
 回环搜索索引。
 
+层级关系为 `Trajectory → Submap → Node`：trajectory 表示一次建图或定位会话，而不是
+单个局部地图。普通建图通常只有一条 trajectory；已知地图定位会同时存在冻结的历史
+trajectory 和新的活动 trajectory。
+
 ## scan_matching：局部匹配与回环搜索
 
 **目的**：求 scan 相对栅格的最优二维位姿。
@@ -91,6 +95,11 @@ frontend/backend/mapping/scan_matching/serialization ─→ foundation
 约束的基本形式始终是 **node ↔ submap**，不是 submap ↔ submap。所谓“submap 回环”是
 通过历史 node 与非插入 submap 的约束将两段轨迹关联起来。多个不同 node-submap pair
 可并行筛选，但 PGO 在约束批次汇合后串行修改全局状态。
+
+`SubmapState::kNoConstraintSearch` 表示活动 submap 的栅格仍会变化，不能作为额外回环
+搜索目标，但它仍拥有当前 node 的 intra-submap 插入约束；`kFinished` 表示栅格固定，
+可以建立快速匹配索引并搜索 inter-submap 约束。从 `.swmap` 恢复的历史 submap 按
+finished 状态参与定位约束搜索。
 
 ## serialization：状态持久化
 
@@ -133,4 +142,3 @@ SlamSystem
 - 使用教程：[GETTING_STARTED.md](GETTING_STARTED.md)
 - 数据及时序：[BAG_PIPELINE_ARCHITECTURE.md](BAG_PIPELINE_ARCHITECTURE.md)
 - 主要接口：[API_REFERENCE.md](API_REFERENCE.md)
-
