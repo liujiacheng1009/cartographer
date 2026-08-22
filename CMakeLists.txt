@@ -71,7 +71,6 @@ set(ALL_LIBRARY_SRCS
   slam/pose_graph_workflow.cc
   slam/pose_graph_query.cc
   slam/pose_graph_trimmer.cc
-  slam/probability_grid_range_data_inserter_2d.cc
   slam/range_data_collator.cc
   slam/real_time_correlative_scan_matcher_2d.cc
   slam/submap_2d.cc
