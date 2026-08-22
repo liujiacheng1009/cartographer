@@ -168,7 +168,7 @@ void ValidateBagOnlyConfig(
 }
 
 void WriteTrajectory(const std::string& filename, int trajectory_id,
-                     carto::mapping::PoseGraphInterface* pose_graph) {
+                     carto::mapping::PoseGraph* pose_graph) {
   if (filename.empty()) return;
   std::ofstream output(filename);
   CHECK(output.good()) << "Cannot open trajectory output '" << filename << "'.";

@@ -211,7 +211,7 @@ std::map<int, int> MapBuilder::LoadStateFromFile(
         trajectory_remapping.at(constraint.submap_id.trajectory_id);
     constraint.node_id.trajectory_id =
         trajectory_remapping.at(constraint.node_id.trajectory_id);
-    if (constraint.tag == PoseGraph::Constraint::INTRA_SUBMAP) {
+    if (constraint.tag == Constraint::INTRA_SUBMAP) {
       pose_graph_->AddNodeToSubmap(constraint.node_id, constraint.submap_id);
     }
   }

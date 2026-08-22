@@ -248,7 +248,7 @@ void PoseGraph::AddLandmarkData(int trajectory_id,
     if (CanAddWorkItemModifying(trajectory_id)) {
       for (const auto& observation : landmark_data.landmark_observations) {
         data_.landmark_nodes[observation.id].landmark_observations.emplace_back(
-            PoseGraphInterface::LandmarkNode::LandmarkObservation{
+            LandmarkNode::LandmarkObservation{
                 trajectory_id, landmark_data.time,
                 observation.landmark_to_tracking_transform,
                 observation.translation_weight, observation.rotation_weight});
@@ -499,7 +499,7 @@ void PoseGraph::HandleWorkQueue(
     double inter_constraints_different_trajectory = 0;
     for (const auto& constraint : data_.constraints) {
       if (constraint.tag ==
-          cartographer::mapping::PoseGraph::Constraint::INTRA_SUBMAP) {
+          cartographer::mapping::Constraint::INTRA_SUBMAP) {
         continue;
       }
       if (constraint.node_id.trajectory_id ==
@@ -918,9 +918,9 @@ int PoseGraph::TrimmingHandle::num_submaps(const int trajectory_id) const {
   return submap_data.SizeOfTrajectoryOrZero(trajectory_id);
 }
 
-MapById<SubmapId, PoseGraphInterface::SubmapData>
+MapById<SubmapId, SubmapData>
 PoseGraph::TrimmingHandle::GetOptimizedSubmapData() const {
-  MapById<SubmapId, PoseGraphInterface::SubmapData> submaps;
+  MapById<SubmapId, SubmapData> submaps;
   for (const auto& submap_id_data : parent_->data_.submap_data) {
     if (submap_id_data.data.state != SubmapState::kFinished ||
         !parent_->data_.global_submap_poses_2d.Contains(submap_id_data.id)) {
@@ -951,7 +951,7 @@ PoseGraph::TrimmingHandle::GetTrajectoryNodes() const {
   return parent_->data_.trajectory_nodes;
 }
 
-const std::vector<PoseGraphInterface::Constraint>&
+const std::vector<Constraint>&
 PoseGraph::TrimmingHandle::GetConstraints() const {
   return parent_->data_.constraints;
 }
@@ -1059,9 +1059,9 @@ void PoseGraph::TrimmingHandle::TrimSubmap(const SubmapId& submap_id) {
   }
 }
 
-MapById<SubmapId, PoseGraphInterface::SubmapData>
+MapById<SubmapId, SubmapData>
 PoseGraph::GetSubmapDataUnderLock() const {
-  MapById<SubmapId, PoseGraphInterface::SubmapData> submaps;
+  MapById<SubmapId, SubmapData> submaps;
   for (const auto& submap_id_data : data_.submap_data) {
     submaps.Insert(submap_id_data.id,
                    GetSubmapDataUnderLock(submap_id_data.id));
@@ -1070,7 +1070,7 @@ PoseGraph::GetSubmapDataUnderLock() const {
 }
 
 void PoseGraph::SetGlobalSlamOptimizationCallback(
-    PoseGraphInterface::GlobalSlamOptimizationCallback callback) {
+    GlobalSlamOptimizationCallback callback) {
   global_slam_optimization_callback_ = callback;
 }
 

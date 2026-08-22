@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "cartographer/slam/id.h"
-#include "cartographer/slam/pose_graph_interface.h"
+#include "cartographer/slam/pose_graph_types.h"
 #include "cartographer/slam/trajectory_node.h"
 #include "cartographer/slam/xy_index.h"
 
@@ -45,8 +45,8 @@ struct SerializedState {
   std::vector<int> trajectory_ids;
   std::vector<SerializedSubmap2D> submaps;
   std::vector<SerializedNode> nodes;
-  std::vector<mapping::PoseGraphInterface::Constraint> constraints;
-  std::map<int, mapping::PoseGraphInterface::TrajectoryData> trajectory_data;
+  std::vector<mapping::Constraint> constraints;
+  std::map<int, mapping::TrajectoryData> trajectory_data;
   std::map<std::string, transform::Rigid3d> landmark_poses;
 };
 

@@ -18,7 +18,7 @@
 #define CARTOGRAPHER_MAPPING_POSE_GRAPH_TRIMMER_H_
 
 #include "cartographer/slam/id.h"
-#include "cartographer/slam/pose_graph_interface.h"
+#include "cartographer/slam/pose_graph_types.h"
 
 namespace cartographer {
 namespace mapping {
@@ -33,10 +33,10 @@ class Trimmable {
 
   virtual std::vector<SubmapId> GetSubmapIds(int trajectory_id) const = 0;
   // Returns finished submaps with optimized poses only.
-  virtual MapById<SubmapId, PoseGraphInterface::SubmapData>
+  virtual MapById<SubmapId, SubmapData>
   GetOptimizedSubmapData() const = 0;
   virtual const MapById<NodeId, TrajectoryNode>& GetTrajectoryNodes() const = 0;
-  virtual const std::vector<PoseGraphInterface::Constraint>& GetConstraints()
+  virtual const std::vector<Constraint>& GetConstraints()
       const = 0;
 
   // Trim 'submap_id' and corresponding intra-submap nodes. They
@@ -49,7 +49,7 @@ class Trimmable {
 
   // Sets the state for a specific trajectory.
   virtual void SetTrajectoryState(
-      int trajectory_id, PoseGraphInterface::TrajectoryState state) = 0;
+      int trajectory_id, TrajectoryState state) = 0;
 };
 
 // An interface to implement algorithms that choose how to trim the pose graph.

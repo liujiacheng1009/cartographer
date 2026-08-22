@@ -23,7 +23,7 @@
 
 #include "cartographer/slam/optimization_problem_2d.h"
 #include "cartographer/slam/trajectory_connectivity_state.h"
-#include "cartographer/slam/pose_graph_interface.h"
+#include "cartographer/slam/pose_graph_types.h"
 #include "cartographer/slam/submaps.h"
 
 namespace cartographer {
@@ -48,8 +48,8 @@ struct InternalTrajectoryState {
     WAIT_FOR_DELETION
   };
 
-  PoseGraphInterface::TrajectoryState state =
-      PoseGraphInterface::TrajectoryState::ACTIVE;
+  TrajectoryState state =
+      TrajectoryState::ACTIVE;
   DeletionState deletion_state = DeletionState::NORMAL;
 };
 
@@ -75,7 +75,7 @@ struct PoseGraphData {
   MapById<NodeId, TrajectoryNode> trajectory_nodes;
 
   // Global landmark poses with all observations.
-  std::map<std::string /* landmark ID */, PoseGraphInterface::LandmarkNode>
+  std::map<std::string /* landmark ID */, LandmarkNode>
       landmark_nodes;
 
   // How our various trajectories are related.
@@ -86,7 +86,7 @@ struct PoseGraphData {
   // Set of all initial trajectory poses.
   std::map<int, InitialTrajectoryPoseState> initial_trajectory_poses;
 
-  std::vector<PoseGraphInterface::Constraint> constraints;
+  std::vector<Constraint> constraints;
 };
 
 }  // namespace mapping

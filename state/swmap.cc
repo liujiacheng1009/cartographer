@@ -314,11 +314,11 @@ SerializedState ReadSwMap(const std::string& filename) {
     auto* s = constraints.get(); result.constraints.push_back({
       {sqlite3_column_int(s, 1), sqlite3_column_int(s, 2)}, {sqlite3_column_int(s, 3), sqlite3_column_int(s, 4)},
       {ReadPose(s, 5), sqlite3_column_double(s, 12), sqlite3_column_double(s, 13)},
-      static_cast<mapping::PoseGraphInterface::Constraint::Tag>(sqlite3_column_int(s, 14))});
+      static_cast<mapping::Constraint::Tag>(sqlite3_column_int(s, 14))});
   }
   Statement trajectory_data(db, "SELECT * FROM trajectory_data ORDER BY trajectory_id");
   while (sqlite3_step(trajectory_data.get()) == SQLITE_ROW) {
-    auto* s = trajectory_data.get(); mapping::PoseGraphInterface::TrajectoryData value; value.gravity_constant = sqlite3_column_double(s, 1);
+    auto* s = trajectory_data.get(); mapping::TrajectoryData value; value.gravity_constant = sqlite3_column_double(s, 1);
     for (int i = 0; i != 4; ++i) value.imu_calibration[i] = sqlite3_column_double(s, 2 + i);
     if (sqlite3_column_int(s, 6)) value.fixed_frame_origin_in_map = ReadPose(s, 7);
     result.trajectory_data.emplace(sqlite3_column_int(s, 0), value);

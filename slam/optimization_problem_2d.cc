@@ -41,9 +41,9 @@ namespace optimization {
 namespace {
 
 using ::cartographer::mapping::optimization::CeresPose;
-using LandmarkNode = ::cartographer::mapping::PoseGraphInterface::LandmarkNode;
+using LandmarkNode = ::cartographer::mapping::LandmarkNode;
 using TrajectoryData =
-    ::cartographer::mapping::PoseGraphInterface::TrajectoryData;
+    ::cartographer::mapping::TrajectoryData;
 
 // For fixed frame pose.
 std::unique_ptr<transform::Rigid3d> Interpolate(
@@ -239,7 +239,7 @@ void OptimizationProblem2D::SetMaxNumIterations(
 
 void OptimizationProblem2D::Solve(
     const std::vector<Constraint>& constraints,
-    const std::map<int, PoseGraphInterface::TrajectoryState>&
+    const std::map<int, TrajectoryState>&
         trajectories_state,
     const std::map<std::string, LandmarkNode>& landmark_nodes) {
   if (node_data_.empty()) {
@@ -249,7 +249,7 @@ void OptimizationProblem2D::Solve(
 
   std::set<int> frozen_trajectories;
   for (const auto& it : trajectories_state) {
-    if (it.second == PoseGraphInterface::TrajectoryState::FROZEN) {
+    if (it.second == TrajectoryState::FROZEN) {
       frozen_trajectories.insert(it.first);
     }
   }

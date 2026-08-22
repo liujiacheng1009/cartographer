@@ -28,7 +28,7 @@
 #include "cartographer/core/port.h"
 #include "cartographer/core/time.h"
 #include "cartographer/slam/id.h"
-#include "cartographer/slam/pose_graph_interface.h"
+#include "cartographer/slam/pose_graph_types.h"
 #include "cartographer/slam/options.h"
 #include "cartographer/core/sensor_data.h"
 #include "cartographer/core/map_by_time.h"
@@ -52,8 +52,8 @@ struct SubmapSpec2D {
 
 class OptimizationProblem2D {
  public:
-  using Constraint = PoseGraphInterface::Constraint;
-  using LandmarkNode = PoseGraphInterface::LandmarkNode;
+  using Constraint = ::cartographer::mapping::Constraint;
+  using LandmarkNode = ::cartographer::mapping::LandmarkNode;
   explicit OptimizationProblem2D(
       const OptimizationProblemOptions& options);
   ~OptimizationProblem2D();
@@ -78,7 +78,7 @@ class OptimizationProblem2D {
 
   void Solve(
       const std::vector<Constraint>& constraints,
-      const std::map<int, PoseGraphInterface::TrajectoryState>&
+      const std::map<int, TrajectoryState>&
           trajectories_state,
       const std::map<std::string, LandmarkNode>& landmark_nodes);
 
@@ -105,12 +105,12 @@ class OptimizationProblem2D {
       const sensor::FixedFramePoseData& fixed_frame_pose_data);
   void SetTrajectoryData(
       int trajectory_id,
-      const PoseGraphInterface::TrajectoryData& trajectory_data);
+      const TrajectoryData& trajectory_data);
   const sensor::MapByTime<sensor::FixedFramePoseData>& fixed_frame_pose_data()
       const {
     return fixed_frame_pose_data_;
   }
-  const std::map<int, PoseGraphInterface::TrajectoryData>& trajectory_data()
+  const std::map<int, TrajectoryData>& trajectory_data()
       const {
     return trajectory_data_;
   }
@@ -130,7 +130,7 @@ class OptimizationProblem2D {
   sensor::MapByTime<sensor::ImuData> empty_imu_data_;
   sensor::MapByTime<sensor::OdometryData> odometry_data_;
   sensor::MapByTime<sensor::FixedFramePoseData> fixed_frame_pose_data_;
-  std::map<int, PoseGraphInterface::TrajectoryData> trajectory_data_;
+  std::map<int, TrajectoryData> trajectory_data_;
 };
 
 }  // namespace optimization

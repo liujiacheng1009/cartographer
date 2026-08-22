@@ -21,7 +21,7 @@
 #include "Eigen/Geometry"
 #include "cartographer/slam/cost_helpers.h"
 #include "cartographer/slam/optimization_problem_2d.h"
-#include "cartographer/slam/pose_graph_interface.h"
+#include "cartographer/slam/pose_graph_types.h"
 #include "cartographer/core/rigid_transform.h"
 #include "cartographer/core/transform.h"
 #include "ceres/ceres.h"
@@ -37,7 +37,7 @@ namespace optimization {
 class LandmarkCostFunction2D {
  public:
   using LandmarkObservation =
-      PoseGraphInterface::LandmarkNode::LandmarkObservation;
+      LandmarkNode::LandmarkObservation;
 
   static ceres::CostFunction* CreateAutoDiffCostFunction(
       const LandmarkObservation& observation, const NodeSpec2D& prev_node,

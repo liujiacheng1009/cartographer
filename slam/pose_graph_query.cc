@@ -32,9 +32,9 @@ MapById<NodeId, TrajectoryNodePose> PoseGraph::GetTrajectoryNodePoses() const {
   return node_poses;
 }
 
-std::map<int, PoseGraphInterface::TrajectoryState>
+std::map<int, TrajectoryState>
 PoseGraph::GetTrajectoryStates() const {
-  std::map<int, PoseGraphInterface::TrajectoryState> trajectories_state;
+  std::map<int, TrajectoryState> trajectories_state;
   absl::MutexLock locker(&mutex_);
   for (const auto& it : data_.trajectories_state) {
     trajectories_state[it.first] = it.second.state;
@@ -74,13 +74,13 @@ sensor::MapByTime<sensor::OdometryData> PoseGraph::GetOdometryData() const {
   return optimization_problem_->odometry_data();
 }
 
-std::map<std::string, PoseGraphInterface::LandmarkNode>
+std::map<std::string, LandmarkNode>
 PoseGraph::GetLandmarkNodes() const {
   absl::MutexLock locker(&mutex_);
   return data_.landmark_nodes;
 }
 
-std::map<int, PoseGraphInterface::TrajectoryData>
+std::map<int, TrajectoryData>
 PoseGraph::GetTrajectoryData() const {
   absl::MutexLock locker(&mutex_);
   return optimization_problem_->trajectory_data();
@@ -92,8 +92,8 @@ PoseGraph::GetFixedFramePoseData() const {
   return optimization_problem_->fixed_frame_pose_data();
 }
 
-std::vector<PoseGraphInterface::Constraint> PoseGraph::constraints() const {
-  std::vector<PoseGraphInterface::Constraint> result;
+std::vector<Constraint> PoseGraph::constraints() const {
+  std::vector<Constraint> result;
   absl::MutexLock locker(&mutex_);
   for (const Constraint& constraint : data_.constraints) {
     result.push_back(Constraint{
@@ -149,19 +149,19 @@ std::vector<std::vector<int>> PoseGraph::GetConnectedTrajectories() const {
   return data_.trajectory_connectivity_state.Components();
 }
 
-PoseGraphInterface::SubmapData PoseGraph::GetSubmapData(
+SubmapData PoseGraph::GetSubmapData(
     const SubmapId& submap_id) const {
   absl::MutexLock locker(&mutex_);
   return GetSubmapDataUnderLock(submap_id);
 }
 
-MapById<SubmapId, PoseGraphInterface::SubmapData>
+MapById<SubmapId, SubmapData>
 PoseGraph::GetAllSubmapData() const {
   absl::MutexLock locker(&mutex_);
   return GetSubmapDataUnderLock();
 }
 
-MapById<SubmapId, PoseGraphInterface::SubmapPose>
+MapById<SubmapId, SubmapPose>
 PoseGraph::GetAllSubmapPoses() const {
   absl::MutexLock locker(&mutex_);
   MapById<SubmapId, SubmapPose> submap_poses;
@@ -196,7 +196,7 @@ transform::Rigid3d PoseGraph::ComputeLocalToGlobalTransform(
              .inverse();
 }
 
-PoseGraphInterface::SubmapData PoseGraph::GetSubmapDataUnderLock(
+SubmapData PoseGraph::GetSubmapDataUnderLock(
     const SubmapId& submap_id) const {
   const auto it = data_.submap_data.find(submap_id);
   if (it == data_.submap_data.end()) return {};
