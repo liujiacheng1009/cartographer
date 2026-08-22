@@ -68,8 +68,7 @@ p_parent = T_parent_child × p_child
   `T_reference_tracking = T_reference_child × inverse(T_tracking_child)`。
 
 矩阵旋转部分必须正交且行列式为 `+1`，平移单位固定为米，最后一行必须是
-`[0, 0, 0, 1]`。四元数只存在于源 bag 的标定提取阶段，不写入终态文件，从而避免
-`xyzw`/`wxyz` 顺序歧义。
+`[0, 0, 0, 1]`。文件不使用四元数，从而避免 `xyzw`/`wxyz` 顺序歧义。
 
 ## 时间约定
 
@@ -82,11 +81,12 @@ t_corrected = t_message + time_offset_seconds
 当前 IILABS3D 没有独立的时钟偏移标定，因此 lidar 和 odometry 均为 `0`。字段仍是
 必填项，便于以后接入硬件同步误差已知的数据集，而不改变 schema。
 
-## 生成与校验
+## 管理与校验
 
-`tools/cartographer_native_worker.py` 在构造 benchmark 的 `native_input` 时读取源 bag
-中的一次性静态标定，解析完整 frame 链并生成该文件。生成后，终态 bag 会删除
-`/tf` 和 `/tf_static`。
+标定文件是数据集的固定资产，必须直接放在对应 ROS 2 bag 目录中，例如
+`datasets/iilabs3d/ramp/ramp_2d/calibration.yaml`。修改标定应经过独立标定流程和评审，
+benchmark 不允许从 TF 临时重新生成。`tools/cartographer_native_worker.py` 构造
+`native_input` 时只原样复制该文件；终态 bag 不包含 `/tf` 或 `/tf_static`。
 
 runner 启动时会校验：
 

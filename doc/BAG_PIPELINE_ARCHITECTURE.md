@@ -93,10 +93,10 @@ MapBuilder
 
 ## 4. Bag 单遍读取
 
-benchmark worker 会生成只包含 `/scan` 和 `/odom` 的规范化 `native_input` bag，
-并在同目录生成 `calibration.yaml`。预处理阶段从源数据的静态标定中解析
-`T_tracking_lidar`，运行时不再读取 `/tf` 或 `/tf_static`。IILABS3D 的 odometry child
-frame 已经是配置的 `tracking_frame`（`eve/base_footprint`），因此对应外参为单位矩阵。
+每个源 bag 目录固定保存自己的 `calibration.yaml`。benchmark worker 生成只包含
+`/scan` 和 `/odom` 的规范化 `native_input` bag，并把源标定文件原样复制到同目录，
+不在运行时推导或改写标定。IILABS3D 的 odometry child frame 已经是配置的
+`tracking_frame`（`eve/base_footprint`），因此对应外参为单位矩阵。
 
 `bag_runner` 启动时读取一次标定文件，然后只打开一个 `rosbag2_cpp::Reader`：
 
