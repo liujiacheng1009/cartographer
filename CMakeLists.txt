@@ -54,7 +54,6 @@ set(ALL_LIBRARY_SRCS
   scan_matching/fast_correlative_scan_matcher_2d.cc
   trajectory/global_trajectory_builder.cc
   mapping/grid_2d.cc
-  local/imu_tracker.cc
   local/local_trajectory_builder_2d.cc
   mapping/map_builder.cc
   local/motion_filter.cc

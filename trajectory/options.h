@@ -109,7 +109,6 @@ struct SubmapsOptions2D {
 };
 
 struct ConstantVelocityPoseExtrapolatorOptions {
-  CARTOGRAPHER_OPTION_SCALAR(double, imu_gravity_time_constant)
   CARTOGRAPHER_OPTION_SCALAR(double, pose_queue_duration)
 };
 

@@ -48,8 +48,6 @@ CreateConstantVelocityPoseExtrapolatorOptions(
   ConstantVelocityPoseExtrapolatorOptions options;
   options.set_pose_queue_duration(
       parameter_dictionary->GetDouble("pose_queue_duration"));
-  options.set_imu_gravity_time_constant(
-      parameter_dictionary->GetDouble("imu_gravity_time_constant"));
   return options;
 }
 
@@ -57,6 +55,7 @@ CreateConstantVelocityPoseExtrapolatorOptions(
 
 PoseExtrapolatorOptions CreatePoseExtrapolatorOptions(
     common::ParameterDictionary* const parameter_dictionary) {
+  CHECK_EQ(parameter_dictionary->GetString("mode"), "planar_yaw_only");
   PoseExtrapolatorOptions options;
   *options.mutable_constant_velocity() =
       CreateConstantVelocityPoseExtrapolatorOptions(

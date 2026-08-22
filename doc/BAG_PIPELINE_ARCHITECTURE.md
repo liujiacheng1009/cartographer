@@ -167,18 +167,21 @@ dispatcher 使用 C++20 `std::variant<TimedPointCloudData, OdometryData>` 保存
 2. odometry 尚不足两条时，用 pose 队列首尾两个已匹配位姿的差分速度；
 3. 初始化阶段还没有足够时间跨度时，速度保持零，预测位姿等于最近位姿。
 
+当前配置显式指定 `pose_extrapolator.mode: planar_yaw_only`。这是严格 2D 产品的特殊
+假设：tracking frame 默认水平安装，roll/pitch 始终为零，只从 odometry 或历史匹配
+pose 的差分中提取 yaw 角速度。
+
 对最近校正位姿 `T_local_tracking(t₀) = (R₀, p₀)` 和时间差
-`Δt = t - t₀`，实现采用完整刚体恒速模型，而不只是平移速度补偿：
+`Δt = t - t₀`，平面恒速模型为：
 
 ```text
 p(t) = p₀ + v · Δt
-R(t) = R₀ · Exp(ω · Δt)
+R(t) = R₀ · RotZ(ωz · Δt)
 ```
 
-其中 `v` 和 `ω` 优先取 odometry 差分结果。代码使用 `ImuTracker` 积分角速度来实现
-旋转指数映射，但当前没有外部 IMU 输入；每次推进只注入 odometry/pose 推导出的角速度
-和固定 `UnitZ` 合成重力。因此这里的 gravity alignment 在 2D 产品中主要用于维持
-roll/pitch 与水平面一致，不能解释为真实 IMU 融合。
+其中 `v` 和 `ωz` 优先取 odometry 差分结果。这里不再构造 `ImuTracker`，也不注入
+`UnitZ` 伪造 IMU 观测；`AssumePlanarGravityAlignment()` 直接返回单位旋转。这个名字明确
+表达的是产品安装约束，而不是对重力方向进行了估计。
 
 因此每个点使用的都是包含位置和朝向的
 `T_local_tracking(tᵢ) = (R(tᵢ), p(tᵢ))`：
@@ -196,9 +199,14 @@ T_gravity_local = R_gravity_tracking(t_end) · inverse(T_local_tracking(t_end))
 p_gravity       = T_gravity_local · p_local
 ```
 
-其中 `R_gravity_tracking` 来自 `EstimateGravityOrientation()`。当前没有真实 IMU，因此它
-使用合成 `UnitZ` 约束 roll/pitch，yaw 仍由 odometry/历史 pose 的角速度推进。也就是说：
-运动补偿使用完整 3D 姿态，scan matching 前才将重力对齐后的帧末预测投影为 2D 位姿。
+其中当前的 `R_gravity_tracking` 来自 `AssumePlanarGravityAlignment()`，恒为单位旋转；
+运动补偿只使用平移和 yaw，不声称能够观测坡面上的 roll/pitch。因此该配置适用于传感器
+近似水平、只关心平面定位建图的产品，不能用于需要真实重力对齐的 3D 运动。
+
+未来接入 IMU 时，推荐由上游 odometry/状态估计器融合轮速与 IMU，并输出包含真实
+roll/pitch/yaw 的 tracking-frame 姿态。届时应增加独立的 extrapolator mode，让其消费
+融合后的姿态（以及对应角速度/有效性信息），而不是恢复“合成 IMU”；同时保留
+`planar_yaw_only` 作为无 IMU、水平安装数据集的明确兼容模式。
 
 预测有两个消费位置：
 

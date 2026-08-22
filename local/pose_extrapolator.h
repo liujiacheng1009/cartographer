@@ -18,34 +18,22 @@
 #define CARTOGRAPHER_MAPPING_POSE_EXTRAPOLATOR_H_
 
 #include <deque>
-#include <memory>
-
 #include "cartographer/core/rigid_transform.h"
-#include "cartographer/trajectory/options.h"
-#include "cartographer/local/imu_tracker.h"
 #include "cartographer/core/sensor_data.h"
-#include "cartographer/core/rigid_transform.h"
+#include "cartographer/trajectory/options.h"
 
 namespace cartographer {
 namespace mapping {
 
 // Keep poses for a certain duration to estimate linear and angular velocity.
-// Uses the velocities to extrapolate motion. Uses IMU and/or odometry data if
-// available to improve the extrapolation.
+// Strictly planar constant-velocity extrapolation. Roll and pitch are fixed to
+// zero; only yaw is extrapolated from odometry or matched poses.
 PoseExtrapolatorOptions CreatePoseExtrapolatorOptions(
     common::ParameterDictionary* parameter_dictionary);
 
 class PoseExtrapolator {
  public:
-  struct ExtrapolationResult {
-    std::vector<transform::Rigid3f> previous_poses;
-    transform::Rigid3d current_pose;
-    Eigen::Vector3d current_velocity;
-    Eigen::Quaterniond gravity_from_tracking;
-  };
-
-  explicit PoseExtrapolator(common::Duration pose_queue_duration,
-                            double imu_gravity_time_constant);
+  explicit PoseExtrapolator(common::Duration pose_queue_duration);
 
   PoseExtrapolator(const PoseExtrapolator&) = delete;
   PoseExtrapolator& operator=(const PoseExtrapolator&) = delete;
@@ -59,19 +47,13 @@ class PoseExtrapolator {
   void AddOdometryData(const sensor::OdometryData& odometry_data);
   transform::Rigid3d ExtrapolatePose(common::Time time);
 
-  ExtrapolationResult ExtrapolatePosesWithGravity(
-      const std::vector<common::Time>& times);
-
-  // Returns the current gravity alignment estimate as a rotation from
-  // the tracking frame into a gravity aligned frame.
-  Eigen::Quaterniond EstimateGravityOrientation(common::Time time);
+  // The current product assumes tracking is level: roll = pitch = 0.
+  Eigen::Quaterniond AssumePlanarGravityAlignment() const;
 
  private:
   void UpdateVelocitiesFromPoses();
   void TrimOdometryData();
-  void AdvanceImuTracker(common::Time time, ImuTracker* imu_tracker) const;
-  Eigen::Quaterniond ExtrapolateRotation(common::Time time,
-                                         ImuTracker* imu_tracker) const;
+  Eigen::Quaterniond ExtrapolateRotation(common::Time time) const;
   Eigen::Vector3d ExtrapolateTranslation(common::Time time);
 
   const common::Duration pose_queue_duration_;
@@ -83,10 +65,7 @@ class PoseExtrapolator {
   Eigen::Vector3d linear_velocity_from_poses_ = Eigen::Vector3d::Zero();
   Eigen::Vector3d angular_velocity_from_poses_ = Eigen::Vector3d::Zero();
 
-  const double gravity_time_constant_;
-  std::unique_ptr<ImuTracker> imu_tracker_;
-  std::unique_ptr<ImuTracker> odometry_imu_tracker_;
-  std::unique_ptr<ImuTracker> extrapolation_imu_tracker_;
+  common::Time last_extrapolated_time_ = common::Time::min();
   TimedPose cached_extrapolated_pose_;
 
   std::deque<sensor::OdometryData> odometry_data_;
