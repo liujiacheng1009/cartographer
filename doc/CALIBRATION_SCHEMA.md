@@ -1,5 +1,8 @@
 # Bag 传感器标定文件规范
 
+> 文档导航：[首页](README.md) · [入门教程](GETTING_STARTED.md) ·
+> [Bag 输入架构](BAG_PIPELINE_ARCHITECTURE.md) · [配置参考](CONFIGURATION_REFERENCE.md)
+
 ## 文件位置
 
 规范化数据包目录必须同时包含：

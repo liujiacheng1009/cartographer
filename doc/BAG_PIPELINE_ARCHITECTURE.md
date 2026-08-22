@@ -1,5 +1,9 @@
 # Cartographer Bag 输入架构
 
+> 文档导航：[首页](README.md) · [入门教程](GETTING_STARTED.md) ·
+> [模块索引](MODULES.md) · [配置参考](CONFIGURATION_REFERENCE.md) ·
+> [C++ API](API_REFERENCE.md)
+
 ## 1. 文档范围
 
 本文描述 SweepNav 当前裁剪版 Cartographer 从 ROS 2 bag 输入到轨迹和 `.swmap`
