@@ -28,8 +28,8 @@ struct SerializedGrid2D {
 
 struct SerializedSubmap2D {
   mapping::SubmapId id{0, 0};
-  transform::Rigid3d global_pose;
-  transform::Rigid3d local_pose;
+  transform::Rigid2d global_pose;
+  transform::Rigid2d local_pose;
   int num_range_data;
   bool finished;
   SerializedGrid2D grid;
@@ -37,7 +37,7 @@ struct SerializedSubmap2D {
 
 struct SerializedNode {
   mapping::NodeId id{0, 0};
-  transform::Rigid3d global_pose;
+  transform::Rigid2d global_pose;
   mapping::TrajectoryNode::Data data;
 };
 
@@ -46,7 +46,6 @@ struct SerializedState {
   std::vector<SerializedSubmap2D> submaps;
   std::vector<SerializedNode> nodes;
   std::vector<mapping::Constraint> constraints;
-  std::map<int, mapping::TrajectoryData> trajectory_data;
 };
 
 bool WriteSwMap(const std::string& filename,

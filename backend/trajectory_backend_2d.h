@@ -95,8 +95,6 @@ class TrajectoryBackend2D {
       EXCLUSIVE_LOCKS_REQUIRED(mutex_);
   void AddSerializedSubmap(const io::SerializedSubmap2D& submap);
   void AddSerializedNode(const io::SerializedNode& node);
-  void SetSerializedTrajectoryData(int trajectory_id,
-                                   const TrajectoryData& data);
   void AddNodeToSubmap(const NodeId& node_id,
                        const SubmapId& submap_id);
   void AddSerializedConstraints(
@@ -111,7 +109,7 @@ class TrajectoryBackend2D {
       LOCKS_EXCLUDED(mutex_);
   MapById<SubmapId, SubmapPose> GetAllSubmapPoses() const
       LOCKS_EXCLUDED(mutex_);
-  transform::Rigid3d GetLocalToGlobalTransform(int trajectory_id) const
+  transform::Rigid2d GetLocalToGlobalTransform(int trajectory_id) const
       LOCKS_EXCLUDED(mutex_);
   MapById<NodeId, TrajectoryNode> GetTrajectoryNodes() const
       LOCKS_EXCLUDED(mutex_);
@@ -121,16 +119,14 @@ class TrajectoryBackend2D {
       LOCKS_EXCLUDED(mutex_);
   sensor::MapByTime<sensor::OdometryData> GetOdometryData() const
       LOCKS_EXCLUDED(mutex_);
-  std::map<int, TrajectoryData> GetTrajectoryData() const
-      LOCKS_EXCLUDED(mutex_);
   std::vector<Constraint> constraints() const LOCKS_EXCLUDED(mutex_);
   void SetInitialTrajectoryPose(int from_trajectory_id, int to_trajectory_id,
-                                const transform::Rigid3d& pose,
+                                const transform::Rigid2d& pose,
                                 const common::Time time)
       LOCKS_EXCLUDED(mutex_);
   void SetGlobalSlamOptimizationCallback(
       GlobalSlamOptimizationCallback callback);
-  transform::Rigid3d GetInterpolatedGlobalTrajectoryPose(
+  transform::Rigid2d GetInterpolatedGlobalTrajectoryPose(
       int trajectory_id, const common::Time time) const
       EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
@@ -163,7 +159,7 @@ class TrajectoryBackend2D {
       std::shared_ptr<const TrajectoryNode::Data> constant_data,
       int trajectory_id,
       const std::vector<std::shared_ptr<const Submap2D>>& insertion_submaps,
-      const transform::Rigid3d& optimized_pose) LOCKS_EXCLUDED(mutex_);
+      const transform::Rigid2d& optimized_pose) LOCKS_EXCLUDED(mutex_);
 
   // Grows the optimization problem to have an entry for every element of
   // 'insertion_submaps'. Returns the IDs for the 'insertion_submaps'.
@@ -209,7 +205,7 @@ class TrajectoryBackend2D {
 
   // Computes the local to global map frame transform based on the given
   // 'global_submap_poses'.
-  transform::Rigid3d ComputeLocalToGlobalTransform(
+  transform::Rigid2d ComputeLocalToGlobalTransform(
       const MapById<SubmapId, optimization::SubmapSpec2D>& global_submap_poses,
       int trajectory_id) const EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 

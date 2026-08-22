@@ -97,13 +97,6 @@ Eigen::Quaternion<T> AngleAxisVectorToRotationQuaternion(
                               quaternion_xyz.z());
 }
 
-// Projects 'transform' onto the XY plane.
-template <typename T>
-Rigid2<T> Project2D(const Rigid3<T>& transform) {
-  return Rigid2<T>(transform.translation().template head<2>(),
-                   GetYaw(transform));
-}
-
 // Embeds 'transform' into 3D space in the XY plane.
 template <typename T>
 Rigid3<T> Embed3D(const Rigid2<T>& transform) {

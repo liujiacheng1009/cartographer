@@ -14,7 +14,7 @@ namespace io {
 namespace {
 
 constexpr int kApplicationId = 0x53574d50;  // SWMP
-constexpr int kSchemaVersion = 3;
+constexpr int kSchemaVersion = 4;
 
 void Check(int result, sqlite3* db, const char* operation) {
   CHECK(result == SQLITE_OK || result == SQLITE_DONE || result == SQLITE_ROW)
@@ -121,41 +121,17 @@ sensor::PointCloud DecodePointCloud(const void* bytes, int size) {
   return sensor::PointCloud(std::move(points), std::move(intensities));
 }
 
-std::string EncodeVector(const Eigen::VectorXf& values) {
-  std::string result;
-  AppendU32(&result, values.size());
-  for (int i = 0; i != values.size(); ++i) AppendFloat(&result, values[i]);
-  return result;
-}
-Eigen::VectorXf DecodeVector(const void* bytes, int size) {
-  const std::string data(static_cast<const char*>(bytes), size);
-  size_t offset = 0;
-  Eigen::VectorXf result(ReadU32(data, &offset));
-  for (int i = 0; i != result.size(); ++i) result[i] = ReadFloat(data, &offset);
-  CHECK_EQ(offset, data.size());
-  return result;
-}
-
-void BindPose(sqlite3_stmt* s, int first, const transform::Rigid3d& pose) {
+void BindPose(sqlite3_stmt* s, int first, const transform::Rigid2d& pose) {
   const auto& t = pose.translation();
-  const auto& q = pose.rotation();
   sqlite3_bind_double(s, first, t.x());
   sqlite3_bind_double(s, first + 1, t.y());
-  sqlite3_bind_double(s, first + 2, t.z());
-  sqlite3_bind_double(s, first + 3, q.w());
-  sqlite3_bind_double(s, first + 4, q.x());
-  sqlite3_bind_double(s, first + 5, q.y());
-  sqlite3_bind_double(s, first + 6, q.z());
+  sqlite3_bind_double(s, first + 2, pose.rotation().angle());
 }
-transform::Rigid3d ReadPose(sqlite3_stmt* s, int first) {
-  return transform::Rigid3d(
-      Eigen::Vector3d(sqlite3_column_double(s, first),
-                      sqlite3_column_double(s, first + 1),
-                      sqlite3_column_double(s, first + 2)),
-      Eigen::Quaterniond(sqlite3_column_double(s, first + 3),
-                         sqlite3_column_double(s, first + 4),
-                         sqlite3_column_double(s, first + 5),
-                         sqlite3_column_double(s, first + 6)));
+transform::Rigid2d ReadPose(sqlite3_stmt* s, int first) {
+  return transform::Rigid2d(
+      Eigen::Vector2d(sqlite3_column_double(s, first),
+                      sqlite3_column_double(s, first + 1)),
+      sqlite3_column_double(s, first + 2));
 }
 void BindBlob(sqlite3_stmt* s, int index, const std::string& value) {
   Check(sqlite3_bind_blob(s, index, value.data(), value.size(), SQLITE_TRANSIENT),
@@ -185,33 +161,31 @@ bool WriteSwMap(const std::string& filename, const mapping::TrajectoryBackend2D&
                 bool include_unfinished_submaps) {
   std::filesystem::remove(filename);
   sqlite3* db = Open(filename, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE);
-  Exec(db, "PRAGMA application_id=1398230352; PRAGMA user_version=3;"
+  Exec(db, "PRAGMA application_id=1398230352; PRAGMA user_version=4;"
            "PRAGMA journal_mode=DELETE; BEGIN IMMEDIATE;"
            "CREATE TABLE metadata(key TEXT PRIMARY KEY,value TEXT NOT NULL);"
            "INSERT INTO metadata VALUES('format','sweepnav_2d_map');"
-           "INSERT INTO metadata VALUES('schema_version','3');"
+           "INSERT INTO metadata VALUES('schema_version','4');"
            "CREATE TABLE trajectories(trajectory_id INTEGER PRIMARY KEY);"
            "CREATE TABLE submaps(trajectory_id INTEGER,submap_index INTEGER,"
-           "gtx REAL,gty REAL,gtz REAL,gqw REAL,gqx REAL,gqy REAL,gqz REAL,"
-           "ltx REAL,lty REAL,ltz REAL,lqw REAL,lqx REAL,lqy REAL,lqz REAL,"
+           "global_x REAL,global_y REAL,global_yaw REAL,"
+           "local_x REAL,local_y REAL,local_yaw REAL,"
            "num_range_data INTEGER,finished INTEGER,resolution REAL,max_x REAL,max_y REAL,"
            "num_x INTEGER,num_y INTEGER,min_cost REAL,max_cost REAL,"
            "box_min_x INTEGER,box_min_y INTEGER,box_max_x INTEGER,box_max_y INTEGER,cells BLOB,"
            "PRIMARY KEY(trajectory_id,submap_index));"
            "CREATE TABLE nodes(trajectory_id INTEGER,node_index INTEGER,time INTEGER,"
-           "gtx REAL,gty REAL,gtz REAL,gqw REAL,gqx REAL,gqy REAL,gqz REAL,"
-           "ltx REAL,lty REAL,ltz REAL,lqw REAL,lqx REAL,lqy REAL,lqz REAL,"
-           "aqw REAL,aqx REAL,aqy REAL,aqz REAL,filtered BLOB,high_resolution BLOB,"
-           "low_resolution BLOB,histogram BLOB,PRIMARY KEY(trajectory_id,node_index));"
+           "global_x REAL,global_y REAL,global_yaw REAL,"
+           "local_x REAL,local_y REAL,local_yaw REAL,filtered BLOB,"
+           "PRIMARY KEY(trajectory_id,node_index));"
            "CREATE TABLE constraints(sequence INTEGER PRIMARY KEY,submap_trajectory_id INTEGER,"
            "submap_index INTEGER,node_trajectory_id INTEGER,node_index INTEGER,"
-           "tx REAL,ty REAL,tz REAL,qw REAL,qx REAL,qy REAL,qz REAL,"
+           "x REAL,y REAL,yaw REAL,"
            "translation_weight REAL,rotation_weight REAL,tag INTEGER);"
-           "CREATE TABLE trajectory_data(trajectory_id INTEGER PRIMARY KEY,gravity_constant REAL,"
-           "iqw REAL,iqx REAL,iqy REAL,iqz REAL);");
+           "");
 
   std::set<int> trajectory_ids;
-  Statement submap(db, "INSERT INTO submaps VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+  Statement submap(db, "INSERT INTO submaps VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
   std::set<mapping::SubmapId> included_submaps;
   for (const auto& item : pose_graph.GetAllSubmapData()) {
     const auto* value = dynamic_cast<const mapping::Submap2D*>(item.data.submap.get());
@@ -221,50 +195,39 @@ bool WriteSwMap(const std::string& filename, const mapping::TrajectoryBackend2D&
     included_submaps.insert(item.id);
     auto* s = submap.get();
     sqlite3_bind_int(s, 1, item.id.trajectory_id); sqlite3_bind_int(s, 2, item.id.submap_index);
-    BindPose(s, 3, item.data.pose); BindPose(s, 10, value->local_pose());
-    sqlite3_bind_int(s, 17, value->num_range_data()); sqlite3_bind_int(s, 18, value->insertion_finished());
+    BindPose(s, 3, item.data.pose); BindPose(s, 6, value->local_pose());
+    sqlite3_bind_int(s, 9, value->num_range_data()); sqlite3_bind_int(s, 10, value->insertion_finished());
     const auto* grid = value->grid(); CHECK(grid != nullptr);
-    sqlite3_bind_double(s, 19, grid->limits().resolution());
-    sqlite3_bind_double(s, 20, grid->limits().max().x()); sqlite3_bind_double(s, 21, grid->limits().max().y());
-    sqlite3_bind_int(s, 22, grid->limits().cell_limits().num_x_cells); sqlite3_bind_int(s, 23, grid->limits().cell_limits().num_y_cells);
-    sqlite3_bind_double(s, 24, grid->GetMinCorrespondenceCost()); sqlite3_bind_double(s, 25, grid->GetMaxCorrespondenceCost());
+    sqlite3_bind_double(s, 11, grid->limits().resolution());
+    sqlite3_bind_double(s, 12, grid->limits().max().x()); sqlite3_bind_double(s, 13, grid->limits().max().y());
+    sqlite3_bind_int(s, 14, grid->limits().cell_limits().num_x_cells); sqlite3_bind_int(s, 15, grid->limits().cell_limits().num_y_cells);
+    sqlite3_bind_double(s, 16, grid->GetMinCorrespondenceCost()); sqlite3_bind_double(s, 17, grid->GetMaxCorrespondenceCost());
     const auto& box = grid->known_cells_box_for_serialization();
-    sqlite3_bind_int(s, 26, box.isEmpty() ? 0 : box.min().x()); sqlite3_bind_int(s, 27, box.isEmpty() ? 0 : box.min().y());
-    sqlite3_bind_int(s, 28, box.isEmpty() ? -1 : box.max().x()); sqlite3_bind_int(s, 29, box.isEmpty() ? -1 : box.max().y());
-    BindBlob(s, 30, EncodeCells(grid->cells_for_serialization())); submap.Run();
+    sqlite3_bind_int(s, 18, box.isEmpty() ? 0 : box.min().x()); sqlite3_bind_int(s, 19, box.isEmpty() ? 0 : box.min().y());
+    sqlite3_bind_int(s, 20, box.isEmpty() ? -1 : box.max().x()); sqlite3_bind_int(s, 21, box.isEmpty() ? -1 : box.max().y());
+    BindBlob(s, 22, EncodeCells(grid->cells_for_serialization())); submap.Run();
   }
 
-  Statement node(db, "INSERT INTO nodes VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+  Statement node(db, "INSERT INTO nodes VALUES(?,?,?,?,?,?,?,?,?,?)");
   for (const auto& item : pose_graph.GetTrajectoryNodes()) {
     trajectory_ids.insert(item.id.trajectory_id);
     auto* s = node.get(); const auto& d = *item.data.constant_data;
     sqlite3_bind_int(s, 1, item.id.trajectory_id); sqlite3_bind_int(s, 2, item.id.node_index);
-    sqlite3_bind_int64(s, 3, common::ToUniversal(d.time)); BindPose(s, 4, item.data.global_pose); BindPose(s, 11, d.local_pose);
-    sqlite3_bind_double(s, 18, d.gravity_alignment.w()); sqlite3_bind_double(s, 19, d.gravity_alignment.x());
-    sqlite3_bind_double(s, 20, d.gravity_alignment.y()); sqlite3_bind_double(s, 21, d.gravity_alignment.z());
-    BindBlob(s, 22, EncodePointCloud(d.filtered_gravity_aligned_point_cloud));
-    BindBlob(s, 23, EncodePointCloud(d.high_resolution_point_cloud)); BindBlob(s, 24, EncodePointCloud(d.low_resolution_point_cloud));
-    BindBlob(s, 25, EncodeVector(d.rotational_scan_matcher_histogram)); node.Run();
+    sqlite3_bind_int64(s, 3, common::ToUniversal(d.time)); BindPose(s, 4, item.data.global_pose); BindPose(s, 7, d.local_pose);
+    BindBlob(s, 10, EncodePointCloud(d.filtered_point_cloud)); node.Run();
   }
 
-  Statement constraint(db, "INSERT INTO constraints VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+  Statement constraint(db, "INSERT INTO constraints VALUES(?,?,?,?,?,?,?,?,?,?,?)");
   int sequence = 0;
   for (const auto& value : pose_graph.constraints()) {
     if (!included_submaps.count(value.submap_id)) continue;
     auto* s = constraint.get(); sqlite3_bind_int(s, 1, sequence++);
     sqlite3_bind_int(s, 2, value.submap_id.trajectory_id); sqlite3_bind_int(s, 3, value.submap_id.submap_index);
     sqlite3_bind_int(s, 4, value.node_id.trajectory_id); sqlite3_bind_int(s, 5, value.node_id.node_index);
-    BindPose(s, 6, value.pose.zbar_ij); sqlite3_bind_double(s, 13, value.pose.translation_weight);
-    sqlite3_bind_double(s, 14, value.pose.rotation_weight); sqlite3_bind_int(s, 15, value.tag); constraint.Run();
+    BindPose(s, 6, value.pose.zbar_ij); sqlite3_bind_double(s, 9, value.pose.translation_weight);
+    sqlite3_bind_double(s, 10, value.pose.rotation_weight); sqlite3_bind_int(s, 11, value.tag); constraint.Run();
   }
 
-  Statement trajectory_data(db, "INSERT INTO trajectory_data VALUES(?,?,?,?,?,?)");
-  for (const auto& item : pose_graph.GetTrajectoryData()) {
-    trajectory_ids.insert(item.first); auto* s = trajectory_data.get();
-    sqlite3_bind_int(s, 1, item.first); sqlite3_bind_double(s, 2, item.second.gravity_constant);
-    for (int i = 0; i != 4; ++i) sqlite3_bind_double(s, 3 + i, item.second.imu_calibration[i]);
-    trajectory_data.Run();
-  }
   Statement trajectory(db, "INSERT INTO trajectories VALUES(?)");
   for (int id : trajectory_ids) { sqlite3_bind_int(trajectory.get(), 1, id); trajectory.Run(); }
   Exec(db, "COMMIT;");
@@ -279,38 +242,28 @@ SerializedState ReadSwMap(const std::string& filename) {
   Statement submaps(db, "SELECT * FROM submaps ORDER BY trajectory_id,submap_index");
   while (sqlite3_step(submaps.get()) == SQLITE_ROW) {
     auto* s = submaps.get(); SerializedSubmap2D value;
-    value.id = {sqlite3_column_int(s, 0), sqlite3_column_int(s, 1)}; value.global_pose = ReadPose(s, 2); value.local_pose = ReadPose(s, 9);
-    value.num_range_data = sqlite3_column_int(s, 16); value.finished = sqlite3_column_int(s, 17);
-    value.grid.resolution = sqlite3_column_double(s, 18); value.grid.max = {sqlite3_column_double(s, 19), sqlite3_column_double(s, 20)};
-    value.grid.cell_limits = {sqlite3_column_int(s, 21), sqlite3_column_int(s, 22)};
-    value.grid.min_correspondence_cost = sqlite3_column_double(s, 23); value.grid.max_correspondence_cost = sqlite3_column_double(s, 24);
-    const Eigen::Vector2i box_min(sqlite3_column_int(s, 25), sqlite3_column_int(s, 26)); const Eigen::Vector2i box_max(sqlite3_column_int(s, 27), sqlite3_column_int(s, 28));
+    value.id = {sqlite3_column_int(s, 0), sqlite3_column_int(s, 1)}; value.global_pose = ReadPose(s, 2); value.local_pose = ReadPose(s, 5);
+    value.num_range_data = sqlite3_column_int(s, 8); value.finished = sqlite3_column_int(s, 9);
+    value.grid.resolution = sqlite3_column_double(s, 10); value.grid.max = {sqlite3_column_double(s, 11), sqlite3_column_double(s, 12)};
+    value.grid.cell_limits = {sqlite3_column_int(s, 13), sqlite3_column_int(s, 14)};
+    value.grid.min_correspondence_cost = sqlite3_column_double(s, 15); value.grid.max_correspondence_cost = sqlite3_column_double(s, 16);
+    const Eigen::Vector2i box_min(sqlite3_column_int(s, 17), sqlite3_column_int(s, 18)); const Eigen::Vector2i box_max(sqlite3_column_int(s, 19), sqlite3_column_int(s, 20));
     if ((box_min.array() <= box_max.array()).all()) value.grid.known_cells_box = Eigen::AlignedBox2i(box_min, box_max);
-    value.grid.cells = DecodeCells(sqlite3_column_blob(s, 29), sqlite3_column_bytes(s, 29)); result.submaps.push_back(std::move(value));
+    value.grid.cells = DecodeCells(sqlite3_column_blob(s, 21), sqlite3_column_bytes(s, 21)); result.submaps.push_back(std::move(value));
   }
   Statement nodes(db, "SELECT * FROM nodes ORDER BY trajectory_id,node_index");
   while (sqlite3_step(nodes.get()) == SQLITE_ROW) {
     auto* s = nodes.get(); SerializedNode value;
     value.id = {sqlite3_column_int(s, 0), sqlite3_column_int(s, 1)}; value.data.time = common::FromUniversal(sqlite3_column_int64(s, 2));
-    value.global_pose = ReadPose(s, 3); value.data.local_pose = ReadPose(s, 10);
-    value.data.gravity_alignment = Eigen::Quaterniond(sqlite3_column_double(s, 17), sqlite3_column_double(s, 18), sqlite3_column_double(s, 19), sqlite3_column_double(s, 20));
-    value.data.filtered_gravity_aligned_point_cloud = DecodePointCloud(sqlite3_column_blob(s, 21), sqlite3_column_bytes(s, 21));
-    value.data.high_resolution_point_cloud = DecodePointCloud(sqlite3_column_blob(s, 22), sqlite3_column_bytes(s, 22));
-    value.data.low_resolution_point_cloud = DecodePointCloud(sqlite3_column_blob(s, 23), sqlite3_column_bytes(s, 23));
-    value.data.rotational_scan_matcher_histogram = DecodeVector(sqlite3_column_blob(s, 24), sqlite3_column_bytes(s, 24)); result.nodes.push_back(std::move(value));
+    value.global_pose = ReadPose(s, 3); value.data.local_pose = ReadPose(s, 6);
+    value.data.filtered_point_cloud = DecodePointCloud(sqlite3_column_blob(s, 9), sqlite3_column_bytes(s, 9)); result.nodes.push_back(std::move(value));
   }
   Statement constraints(db, "SELECT * FROM constraints ORDER BY sequence");
   while (sqlite3_step(constraints.get()) == SQLITE_ROW) {
     auto* s = constraints.get(); result.constraints.push_back({
       {sqlite3_column_int(s, 1), sqlite3_column_int(s, 2)}, {sqlite3_column_int(s, 3), sqlite3_column_int(s, 4)},
-      {ReadPose(s, 5), sqlite3_column_double(s, 12), sqlite3_column_double(s, 13)},
-      static_cast<mapping::Constraint::Tag>(sqlite3_column_int(s, 14))});
-  }
-  Statement trajectory_data(db, "SELECT * FROM trajectory_data ORDER BY trajectory_id");
-  while (sqlite3_step(trajectory_data.get()) == SQLITE_ROW) {
-    auto* s = trajectory_data.get(); mapping::TrajectoryData value; value.gravity_constant = sqlite3_column_double(s, 1);
-    for (int i = 0; i != 4; ++i) value.imu_calibration[i] = sqlite3_column_double(s, 2 + i);
-    result.trajectory_data.emplace(sqlite3_column_int(s, 0), value);
+      {ReadPose(s, 5), sqlite3_column_double(s, 8), sqlite3_column_double(s, 9)},
+      static_cast<mapping::Constraint::Tag>(sqlite3_column_int(s, 10))});
   }
   CHECK_EQ(sqlite3_close_v2(db), SQLITE_OK); return result;
 }

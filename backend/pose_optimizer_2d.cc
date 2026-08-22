@@ -106,7 +106,7 @@ class SpaCostFunction2D {
                   T* e) const {
     const std::array<T, 3> error =
         ScaleError(ComputeUnscaledError(
-                       transform::Project2D(observed_relative_pose_.zbar_ij),
+                       observed_relative_pose_.zbar_ij,
                        start_pose, end_pose),
                    observed_relative_pose_.translation_weight,
                    observed_relative_pose_.rotation_weight);
@@ -125,7 +125,7 @@ class AnalyticalSpaCostFunction2D
  public:
   explicit AnalyticalSpaCostFunction2D(
       const Constraint::Pose& constraint_pose)
-      : observed_relative_pose_(transform::Project2D(constraint_pose.zbar_ij)),
+      : observed_relative_pose_(constraint_pose.zbar_ij),
         translation_weight_(constraint_pose.translation_weight),
         rotation_weight_(constraint_pose.rotation_weight) {}
   virtual ~AnalyticalSpaCostFunction2D() {}
@@ -251,25 +251,17 @@ void PoseOptimizer2D::AddOdometryData(
 void PoseOptimizer2D::AddTrajectoryNode(const int trajectory_id,
                                               const NodeSpec2D& node_data) {
   node_data_.Append(trajectory_id, node_data);
-  trajectory_data_[trajectory_id];
-}
-
-void PoseOptimizer2D::SetTrajectoryData(
-    int trajectory_id, const TrajectoryData& trajectory_data) {
-  trajectory_data_[trajectory_id] = trajectory_data;
 }
 
 void PoseOptimizer2D::InsertTrajectoryNode(const NodeId& node_id,
                                                  const NodeSpec2D& node_data) {
   node_data_.Insert(node_id, node_data);
-  trajectory_data_[node_id.trajectory_id];
 }
 
 void PoseOptimizer2D::TrimTrajectoryNode(const NodeId& node_id) {
   odometry_data_.Trim(node_data_, node_id);
   node_data_.Trim(node_id);
   if (node_data_.SizeOfTrajectoryOrZero(node_id.trajectory_id) == 0) {
-    trajectory_data_.erase(node_id.trajectory_id);
   }
 }
 
@@ -372,22 +364,23 @@ void PoseOptimizer2D::Solve(
       }
 
       // Add a relative pose constraint based on the odometry (if available).
-      std::unique_ptr<transform::Rigid3d> relative_odometry =
+      std::unique_ptr<transform::Rigid2d> relative_odometry =
           CalculateOdometryBetweenNodes(trajectory_id, first_node_data,
                                         second_node_data);
       if (relative_odometry != nullptr) {
         problem.AddResidualBlock(
             CreateAutoDiffSpaCostFunction(Constraint::Pose{
-                *relative_odometry, options_.odometry_translation_weight(),
+                *relative_odometry,
+                options_.odometry_translation_weight(),
                 options_.odometry_rotation_weight()}),
             nullptr /* loss function */, C_nodes.at(first_node_id).data(),
             C_nodes.at(second_node_id).data());
       }
 
       // Add a relative pose constraint based on consecutive local SLAM poses.
-      const transform::Rigid3d relative_local_slam_pose =
-          transform::Embed3D(first_node_data.local_pose_2d.inverse() *
-                             second_node_data.local_pose_2d);
+      const transform::Rigid2d relative_local_slam_pose =
+          first_node_data.local_pose_2d.inverse() *
+          second_node_data.local_pose_2d;
       problem.AddResidualBlock(
           CreateAutoDiffSpaCostFunction(
               Constraint::Pose{relative_local_slam_pose,
@@ -418,7 +411,7 @@ void PoseOptimizer2D::Solve(
   }
 }
 
-std::unique_ptr<transform::Rigid3d> PoseOptimizer2D::InterpolateOdometry(
+std::unique_ptr<transform::Rigid2d> PoseOptimizer2D::InterpolateOdometry(
     const int trajectory_id, const common::Time time) const {
   const auto it = odometry_data_.lower_bound(trajectory_id, time);
   if (it == odometry_data_.EndOfTrajectory(trajectory_id)) {
@@ -426,33 +419,37 @@ std::unique_ptr<transform::Rigid3d> PoseOptimizer2D::InterpolateOdometry(
   }
   if (it == odometry_data_.BeginOfTrajectory(trajectory_id)) {
     if (it->time == time) {
-      return absl::make_unique<transform::Rigid3d>(it->pose);
+      return absl::make_unique<transform::Rigid2d>(it->pose);
     }
     return nullptr;
   }
   const auto prev_it = std::prev(it);
-  return absl::make_unique<transform::Rigid3d>(
-      Interpolate(transform::TimestampedTransform{prev_it->time, prev_it->pose},
-                  transform::TimestampedTransform{it->time, it->pose}, time)
-          .transform);
+  const double factor = common::ToSeconds(time - prev_it->time) /
+                        common::ToSeconds(it->time - prev_it->time);
+  const Eigen::Vector2d translation =
+      prev_it->pose.translation() +
+      factor * (it->pose.translation() - prev_it->pose.translation());
+  const double yaw = prev_it->pose.rotation().angle() +
+      factor * common::NormalizeAngleDifference(
+                   it->pose.rotation().angle() -
+                   prev_it->pose.rotation().angle());
+  return absl::make_unique<transform::Rigid2d>(
+      translation, Eigen::Rotation2Dd(yaw));
 }
 
-std::unique_ptr<transform::Rigid3d>
+std::unique_ptr<transform::Rigid2d>
 PoseOptimizer2D::CalculateOdometryBetweenNodes(
     const int trajectory_id, const NodeSpec2D& first_node_data,
     const NodeSpec2D& second_node_data) const {
   if (odometry_data_.HasTrajectory(trajectory_id)) {
-    const std::unique_ptr<transform::Rigid3d> first_node_odometry =
+    const std::unique_ptr<transform::Rigid2d> first_node_odometry =
         InterpolateOdometry(trajectory_id, first_node_data.time);
-    const std::unique_ptr<transform::Rigid3d> second_node_odometry =
+    const std::unique_ptr<transform::Rigid2d> second_node_odometry =
         InterpolateOdometry(trajectory_id, second_node_data.time);
     if (first_node_odometry != nullptr && second_node_odometry != nullptr) {
-      transform::Rigid3d relative_odometry =
-          transform::Rigid3d::Rotation(first_node_data.gravity_alignment) *
-          first_node_odometry->inverse() * (*second_node_odometry) *
-          transform::Rigid3d::Rotation(
-              second_node_data.gravity_alignment.inverse());
-      return absl::make_unique<transform::Rigid3d>(relative_odometry);
+      transform::Rigid2d relative_odometry =
+          first_node_odometry->inverse() * (*second_node_odometry);
+      return absl::make_unique<transform::Rigid2d>(relative_odometry);
     }
   }
   return nullptr;

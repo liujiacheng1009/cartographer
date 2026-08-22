@@ -392,13 +392,12 @@ SubmapsOptions2D CreateSubmapsOptions2D(
 
 Submap2D::Submap2D(const Eigen::Vector2f& origin, std::unique_ptr<Grid2D> grid,
                    ValueConversionTables* conversion_tables)
-    : Submap(transform::Rigid3d::Translation(
-          Eigen::Vector3d(origin.x(), origin.y(), 0.))),
+    : Submap(transform::Rigid2d::Translation(origin.cast<double>())),
       conversion_tables_(conversion_tables) {
   grid_ = std::move(grid);
 }
 
-Submap2D::Submap2D(const transform::Rigid3d& local_pose, int num_range_data,
+Submap2D::Submap2D(const transform::Rigid2d& local_pose, int num_range_data,
                    bool finished, std::unique_ptr<Grid2D> grid,
                    ValueConversionTables* conversion_tables)
     : Submap(local_pose),
@@ -409,7 +408,7 @@ Submap2D::Submap2D(const transform::Rigid3d& local_pose, int num_range_data,
 }
 
 void Submap2D::ToSubmapTextureResponse(
-    const transform::Rigid3d&,
+    const transform::Rigid2d&,
     SubmapTextureResponse* const response) const {
   if (!grid_) return;
   response->submap_version = num_range_data();

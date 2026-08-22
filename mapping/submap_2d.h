@@ -104,12 +104,12 @@ class Submap2D : public Submap {
  public:
   Submap2D(const Eigen::Vector2f& origin, std::unique_ptr<Grid2D> grid,
            ValueConversionTables* conversion_tables);
-  Submap2D(const transform::Rigid3d& local_pose, int num_range_data,
+  Submap2D(const transform::Rigid2d& local_pose, int num_range_data,
            bool finished, std::unique_ptr<Grid2D> grid,
            ValueConversionTables* conversion_tables);
 
   void ToSubmapTextureResponse(
-      const transform::Rigid3d& global_submap_pose,
+      const transform::Rigid2d& global_submap_pose,
       SubmapTextureResponse* response) const override;
 
   const Grid2D* grid() const { return grid_.get(); }

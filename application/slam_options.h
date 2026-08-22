@@ -109,7 +109,6 @@ struct SubmapsOptions2D {
 };
 
 struct ConstantVelocityPoseExtrapolatorOptions {
-  CARTOGRAPHER_OPTION_SCALAR(double, imu_gravity_time_constant)
   CARTOGRAPHER_OPTION_SCALAR(double, pose_queue_duration)
 };
 
@@ -249,7 +248,7 @@ struct SlamSystemOptions {
 };
 
 struct InitialTrajectoryPose {
-  transform::Rigid3d relative_pose = transform::Rigid3d::Identity();
+  transform::Rigid2d relative_pose = transform::Rigid2d::Identity();
   int to_trajectory_id = 0;
   common::Time timestamp;
 };

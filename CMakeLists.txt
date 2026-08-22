@@ -50,7 +50,6 @@ set(ALL_LIBRARY_SRCS
   scan_matching/correlative_scan_matcher_2d.cc
   scan_matching/fast_correlative_scan_matcher_2d.cc
   mapping/grid_2d.cc
-  frontend/imu_tracker.cc
   frontend/local_slam_2d.cc
   application/slam_system.cc
   frontend/motion_filter.cc

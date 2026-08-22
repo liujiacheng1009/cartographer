@@ -45,7 +45,7 @@ class LocalSlam2D {
   };
   struct MatchingResult {
     common::Time time;
-    transform::Rigid3d local_pose;
+    transform::Rigid2d local_pose;
     sensor::RangeData range_data_in_local;
     // 'nullptr' if dropped by the motion filter.
     std::unique_ptr<const InsertionResult> insertion_result;
@@ -71,22 +71,20 @@ class LocalSlam2D {
 
  private:
   std::unique_ptr<MatchingResult> AddAccumulatedRangeData(
-      common::Time time, const sensor::RangeData& gravity_aligned_range_data,
-      const transform::Rigid3d& gravity_alignment);
-  sensor::RangeData TransformToGravityAlignedFrameAndFilter(
-      const transform::Rigid3f& transform_to_gravity_aligned_frame,
+      common::Time time, const sensor::RangeData& tracking_range_data);
+  sensor::RangeData TransformToCurrentTrackingFrameAndFilter(
+      const transform::Rigid3f& transform_to_current_tracking_frame,
       const sensor::RangeData& range_data) const;
   std::unique_ptr<InsertionResult> InsertIntoSubmap(
       common::Time time, const sensor::RangeData& range_data_in_local,
-      const sensor::PointCloud& filtered_gravity_aligned_point_cloud,
-      const transform::Rigid3d& pose_estimate,
-      const Eigen::Quaterniond& gravity_alignment);
+      const sensor::PointCloud& filtered_point_cloud,
+      const transform::Rigid2d& pose_estimate);
 
-  // Scan matches 'filtered_gravity_aligned_point_cloud' and returns the
+  // Scan matches 'filtered_point_cloud' and returns the
   // observed pose, or nullptr on failure.
   std::unique_ptr<transform::Rigid2d> ScanMatch(
       common::Time time, const transform::Rigid2d& pose_prediction,
-      const sensor::PointCloud& filtered_gravity_aligned_point_cloud);
+      const sensor::PointCloud& filtered_point_cloud);
 
   // Lazily constructs a PoseExtrapolator.
   void InitializeExtrapolator(common::Time time);

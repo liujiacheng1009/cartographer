@@ -34,7 +34,7 @@ class Frontend2D {
   };
 
   using LocalSlamResultCallback =
-      std::function<void(int, common::Time, transform::Rigid3d,
+      std::function<void(int, common::Time, transform::Rigid2d,
                          sensor::RangeData,
                          std::unique_ptr<const InsertionResult>)>;
 

@@ -79,10 +79,10 @@ std::vector<SubmapId> TrajectoryBackend2D::InitializeGlobalSubmapPoses(
             time);
       }
       optimization_problem_->AddSubmap(
-          trajectory_id, transform::Project2D(
-                             ComputeLocalToGlobalTransform(
-                                 data_.global_submap_poses_2d, trajectory_id) *
-                             insertion_submaps[0]->local_pose()));
+          trajectory_id,
+          ComputeLocalToGlobalTransform(data_.global_submap_poses_2d,
+                                        trajectory_id) *
+              insertion_submaps[0]->local_pose());
     }
     CHECK_EQ(1, submap_data.SizeOfTrajectoryOrZero(trajectory_id));
     const SubmapId submap_id{trajectory_id, 0};
@@ -101,8 +101,8 @@ std::vector<SubmapId> TrajectoryBackend2D::InitializeGlobalSubmapPoses(
     optimization_problem_->AddSubmap(
         trajectory_id,
         first_submap_pose *
-            constraints::ComputeSubmapPose(*insertion_submaps[0]).inverse() *
-            constraints::ComputeSubmapPose(*insertion_submaps[1]));
+            insertion_submaps[0]->local_pose().inverse() *
+            insertion_submaps[1]->local_pose());
     return {last_submap_id,
             SubmapId{trajectory_id, last_submap_id.submap_index + 1}};
   }
@@ -119,7 +119,7 @@ NodeId TrajectoryBackend2D::AppendNode(
     std::shared_ptr<const TrajectoryNode::Data> constant_data,
     const int trajectory_id,
     const std::vector<std::shared_ptr<const Submap2D>>& insertion_submaps,
-    const transform::Rigid3d& optimized_pose) {
+    const transform::Rigid2d& optimized_pose) {
   absl::MutexLock locker(&mutex_);
   AddTrajectoryIfNeeded(trajectory_id);
   if (!CanAddWorkItemModifying(trajectory_id)) {
@@ -146,7 +146,7 @@ NodeId TrajectoryBackend2D::AddNode(
     std::shared_ptr<const TrajectoryNode::Data> constant_data,
     const int trajectory_id,
     const std::vector<std::shared_ptr<const Submap2D>>& insertion_submaps) {
-  const transform::Rigid3d optimized_pose(
+  const transform::Rigid2d optimized_pose(
       GetLocalToGlobalTransform(trajectory_id) * constant_data->local_pose);
 
   const NodeId node_id = AppendNode(constant_data, trajectory_id,
@@ -269,19 +269,15 @@ TrajectoryBackend2D::ComputeConstraintsForNode(
         node_id.trajectory_id, constant_data->time, insertion_submaps);
     CHECK_EQ(submap_ids.size(), insertion_submaps.size());
     const SubmapId matching_id = submap_ids.front();
-    const transform::Rigid2d local_pose_2d =
-        transform::Project2D(constant_data->local_pose *
-                             transform::Rigid3d::Rotation(
-                                 constant_data->gravity_alignment.inverse()));
+    const transform::Rigid2d local_pose_2d = constant_data->local_pose;
     const transform::Rigid2d global_pose_2d =
         optimization_problem_->submap_data().at(matching_id).global_pose *
-        constraints::ComputeSubmapPose(*insertion_submaps.front()).inverse() *
+        insertion_submaps.front()->local_pose().inverse() *
         local_pose_2d;
     optimization_problem_->AddTrajectoryNode(
         matching_id.trajectory_id,
         optimization::NodeSpec2D{constant_data->time, local_pose_2d,
-                                 global_pose_2d,
-                                 constant_data->gravity_alignment});
+                                 global_pose_2d});
     for (size_t i = 0; i < insertion_submaps.size(); ++i) {
       const SubmapId submap_id = submap_ids[i];
       // Even if this was the last node added to 'submap_id', the submap will
@@ -290,12 +286,12 @@ TrajectoryBackend2D::ComputeConstraintsForNode(
             SubmapState::kNoConstraintSearch);
       data_.submap_data.at(submap_id).node_ids.emplace(node_id);
       const transform::Rigid2d constraint_transform =
-          constraints::ComputeSubmapPose(*insertion_submaps[i]).inverse() *
+          insertion_submaps[i]->local_pose().inverse() *
           local_pose_2d;
       data_.constraints.push_back(
           Constraint{submap_id,
                      node_id,
-                     {transform::Embed3D(constraint_transform),
+                     {constraint_transform,
                       options_.matcher_translation_weight(),
                       options_.matcher_rotation_weight()},
                      Constraint::INTRA_SUBMAP});
@@ -610,7 +606,7 @@ bool TrajectoryBackend2D::IsTrajectoryFrozen(const int trajectory_id) const {
 }
 
 void TrajectoryBackend2D::AddSerializedSubmap(const io::SerializedSubmap2D& value) {
-  const transform::Rigid2d global_pose = transform::Project2D(value.global_pose);
+  const transform::Rigid2d global_pose = value.global_pose;
   auto grid = absl::make_unique<ProbabilityGrid>(
       MapLimits(value.grid.resolution, value.grid.max, value.grid.cell_limits),
       value.grid.cells, value.grid.known_cells_box,
@@ -650,27 +646,9 @@ void TrajectoryBackend2D::AddSerializedNode(const io::SerializedNode& value) {
                   LOCKS_EXCLUDED(mutex_) {
     absl::MutexLock locker(&mutex_);
     const auto& data = data_.trajectory_nodes.at(id).constant_data;
-    const auto gravity_alignment_inverse = transform::Rigid3d::Rotation(
-        data->gravity_alignment.inverse());
     optimization_problem_->InsertTrajectoryNode(
-        id, optimization::NodeSpec2D{
-                data->time,
-                transform::Project2D(data->local_pose *
-                                     gravity_alignment_inverse),
-                transform::Project2D(global_pose *
-                                     gravity_alignment_inverse),
-                data->gravity_alignment});
-    return WorkItem::Result::kDoNotRunOptimization;
-  });
-}
-
-void TrajectoryBackend2D::SetSerializedTrajectoryData(
-    int trajectory_id, const TrajectoryData& trajectory_data) {
-  AddWorkItem([this, trajectory_id, trajectory_data]() LOCKS_EXCLUDED(mutex_) {
-    absl::MutexLock locker(&mutex_);
-    if (CanAddWorkItemModifying(trajectory_id)) {
-      optimization_problem_->SetTrajectoryData(trajectory_id, trajectory_data);
-    }
+        id, optimization::NodeSpec2D{data->time, data->local_pose,
+                                     global_pose});
     return WorkItem::Result::kDoNotRunOptimization;
   });
 }
@@ -706,12 +684,7 @@ void TrajectoryBackend2D::AddSerializedConstraints(
           UpdateTrajectoryConnectivity(constraint);
           break;
       }
-      const Constraint::Pose pose = {
-          constraint.pose.zbar_ij *
-              transform::Rigid3d::Rotation(
-                  data_.trajectory_nodes.at(constraint.node_id)
-                      .constant_data->gravity_alignment.inverse()),
-          constraint.pose.translation_weight, constraint.pose.rotation_weight};
+      const Constraint::Pose pose = constraint.pose;
       data_.constraints.push_back(Constraint{
           constraint.submap_id, constraint.node_id, pose, constraint.tag});
     }
@@ -767,10 +740,7 @@ void TrajectoryBackend2D::RunOptimization() {
   for (const int trajectory_id : node_data.trajectory_ids()) {
     for (const auto& node : node_data.trajectory(trajectory_id)) {
       auto& mutable_trajectory_node = data_.trajectory_nodes.at(node.id);
-      mutable_trajectory_node.global_pose =
-          transform::Embed3D(node.data.global_pose_2d) *
-          transform::Rigid3d::Rotation(
-              mutable_trajectory_node.constant_data->gravity_alignment);
+      mutable_trajectory_node.global_pose = node.data.global_pose_2d;
     }
 
     // Extrapolate all point cloud poses that were not included in the
@@ -779,7 +749,7 @@ void TrajectoryBackend2D::RunOptimization() {
         ComputeLocalToGlobalTransform(submap_data, trajectory_id);
     const auto local_to_old_global = ComputeLocalToGlobalTransform(
         data_.global_submap_poses_2d, trajectory_id);
-    const transform::Rigid3d old_global_to_new_global =
+    const transform::Rigid2d old_global_to_new_global =
         local_to_new_global * local_to_old_global.inverse();
 
     const NodeId last_optimized_node_id =
@@ -843,9 +813,9 @@ TrajectoryBackend2D::TrimmingHandle::GetOptimizedSubmapData() const {
     submaps.Insert(
         submap_id_data.id,
         SubmapData{submap_id_data.data.submap,
-                   transform::Embed3D(parent_->data_.global_submap_poses_2d
-                                          .at(submap_id_data.id)
-                                          .global_pose)});
+                   parent_->data_.global_submap_poses_2d
+                       .at(submap_id_data.id)
+                       .global_pose});
   }
   return submaps;
 }

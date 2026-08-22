@@ -57,17 +57,17 @@ inline uint8 ProbabilityToLogOddsInteger(const float probability) {
 // closing.
 class Submap {
  public:
-  Submap(const transform::Rigid3d& local_submap_pose)
+  Submap(const transform::Rigid2d& local_submap_pose)
       : local_pose_(local_submap_pose) {}
   virtual ~Submap() {}
 
   // Fills data into the 'response'.
   virtual void ToSubmapTextureResponse(
-      const transform::Rigid3d& global_submap_pose,
+      const transform::Rigid2d& global_submap_pose,
       SubmapTextureResponse* response) const = 0;
 
   // Pose of this submap in the local map frame.
-  transform::Rigid3d local_pose() const { return local_pose_; }
+  transform::Rigid2d local_pose() const { return local_pose_; }
 
   // Number of RangeData inserted.
   int num_range_data() const { return num_range_data_; }
@@ -81,7 +81,7 @@ class Submap {
   }
 
  private:
-  const transform::Rigid3d local_pose_;
+  const transform::Rigid2d local_pose_;
   int num_range_data_ = 0;
   bool insertion_finished_ = false;
 };

@@ -43,10 +43,6 @@ namespace cartographer {
 namespace mapping {
 namespace constraints {
 
-// Returns (map <- submap) where 'submap' is a coordinate system at the origin
-// of the Submap.
-transform::Rigid2d ComputeSubmapPose(const Submap2D& submap);
-
 // Asynchronously computes constraints.
 //
 // Intermingle an arbitrary number of calls to 'MaybeAddConstraint',

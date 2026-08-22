@@ -14,7 +14,7 @@ struct SubmapTexture {
   int width = 0;
   int height = 0;
   double resolution = 0.;
-  transform::Rigid3d slice_pose;
+  transform::Rigid2d slice_pose;
 };
 
 struct SubmapTextureResponse {

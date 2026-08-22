@@ -168,7 +168,7 @@ struct RangeData {
 
 struct OdometryData {
   common::Time time;
-  transform::Rigid3d pose;
+  transform::Rigid2d pose;
 };
 
 struct TimedPointCloudData {

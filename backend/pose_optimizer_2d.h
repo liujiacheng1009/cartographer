@@ -43,7 +43,6 @@ struct NodeSpec2D {
   common::Time time;
   transform::Rigid2d local_pose_2d;
   transform::Rigid2d global_pose_2d;
-  Eigen::Quaterniond gravity_alignment;
 };
 
 struct SubmapSpec2D {
@@ -89,19 +88,11 @@ class PoseOptimizer2D {
     return odometry_data_;
   }
 
-  void SetTrajectoryData(
-      int trajectory_id,
-      const TrajectoryData& trajectory_data);
-  const std::map<int, TrajectoryData>& trajectory_data()
-      const {
-    return trajectory_data_;
-  }
-
  private:
-  std::unique_ptr<transform::Rigid3d> InterpolateOdometry(
+  std::unique_ptr<transform::Rigid2d> InterpolateOdometry(
       int trajectory_id, common::Time time) const;
   // Computes the relative pose between two nodes based on odometry data.
-  std::unique_ptr<transform::Rigid3d> CalculateOdometryBetweenNodes(
+  std::unique_ptr<transform::Rigid2d> CalculateOdometryBetweenNodes(
       int trajectory_id, const NodeSpec2D& first_node_data,
       const NodeSpec2D& second_node_data) const;
 
@@ -109,7 +100,6 @@ class PoseOptimizer2D {
   MapById<NodeId, NodeSpec2D> node_data_;
   MapById<SubmapId, SubmapSpec2D> submap_data_;
   sensor::MapByTime<sensor::OdometryData> odometry_data_;
-  std::map<int, TrajectoryData> trajectory_data_;
 };
 
 }  // namespace optimization

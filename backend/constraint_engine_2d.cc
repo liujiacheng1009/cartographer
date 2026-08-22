@@ -40,10 +40,6 @@ namespace cartographer {
 namespace mapping {
 namespace constraints {
 
-transform::Rigid2d ComputeSubmapPose(const Submap2D& submap) {
-  return transform::Project2D(submap.local_pose());
-}
-
 ConstraintEngine2D::ConstraintEngine2D(
     const ConstraintBuilderOptions& options,
     common::TaskExecutor* const task_executor)
@@ -179,10 +175,10 @@ void ConstraintEngine2D::ComputeConstraint(
     std::unique_ptr<ConstraintEngine2D::Constraint>* constraint) {
   CHECK(submap_scan_matcher.fast_correlative_scan_matcher);
   const transform::Rigid2d initial_pose =
-      ComputeSubmapPose(*submap) * initial_relative_pose;
+      submap->local_pose() * initial_relative_pose;
 
   // The 'constraint_transform' (submap i <- node j) is computed from:
-  // - a 'filtered_gravity_aligned_point_cloud' in node j,
+  // - a filtered point cloud in node j,
   // - the initial guess 'initial_pose' for (map <- node j),
   // - the result 'pose_estimate' of Match() (map <- node j).
   // - the ComputeSubmapPose() (map <- submap i)
@@ -195,7 +191,7 @@ void ConstraintEngine2D::ComputeConstraint(
   // 3. Refine.
   if (match_full_submap) {
     if (submap_scan_matcher.fast_correlative_scan_matcher->MatchFullSubmap(
-            constant_data->filtered_gravity_aligned_point_cloud,
+            constant_data->filtered_point_cloud,
             options_.global_localization_min_score(), &score, &pose_estimate)) {
       CHECK_GT(score, options_.global_localization_min_score());
       CHECK_GE(node_id.trajectory_id, 0);
@@ -205,7 +201,7 @@ void ConstraintEngine2D::ComputeConstraint(
     }
   } else {
     if (submap_scan_matcher.fast_correlative_scan_matcher->Match(
-            initial_pose, constant_data->filtered_gravity_aligned_point_cloud,
+            initial_pose, constant_data->filtered_point_cloud,
             options_.min_score(), &score, &pose_estimate)) {
       // We've reported a successful local match.
       CHECK_GT(score, options_.min_score());
@@ -218,15 +214,15 @@ void ConstraintEngine2D::ComputeConstraint(
   // CSM estimate.
   ceres::Solver::Summary unused_summary;
   ceres_scan_matcher_.Match(pose_estimate.translation(), pose_estimate,
-                            constant_data->filtered_gravity_aligned_point_cloud,
+                            constant_data->filtered_point_cloud,
                             *submap_scan_matcher.grid, &pose_estimate,
                             &unused_summary);
 
   const transform::Rigid2d constraint_transform =
-      ComputeSubmapPose(*submap).inverse() * pose_estimate;
+      submap->local_pose().inverse() * pose_estimate;
   constraint->reset(new Constraint{submap_id,
                                    node_id,
-                                   {transform::Embed3D(constraint_transform),
+                                   {constraint_transform,
                                     options_.loop_closure_translation_weight(),
                                     options_.loop_closure_rotation_weight()},
                                    Constraint::INTER_SUBMAP});
@@ -234,7 +230,7 @@ void ConstraintEngine2D::ComputeConstraint(
   if (options_.log_matches()) {
     std::ostringstream info;
     info << "Node " << node_id << " with "
-         << constant_data->filtered_gravity_aligned_point_cloud.size()
+         << constant_data->filtered_point_cloud.size()
          << " points on submap " << submap_id << std::fixed;
     if (match_full_submap) {
       info << " matches";

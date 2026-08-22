@@ -74,25 +74,23 @@ std::set<SubmapId> AddSubmapsToSubmapCoverageGrid2D(
       continue;
     }
 
-    const transform::Rigid3d& global_frame_from_submap_frame = submap.data.pose;
-    const transform::Rigid3d submap_frame_from_local_frame =
+    const transform::Rigid2d& global_frame_from_submap_frame = submap.data.pose;
+    const transform::Rigid2d submap_frame_from_local_frame =
         submap.data.submap->local_pose().inverse();
     for (const Eigen::Array2i& xy_index : XYIndexRangeIterator(cell_limits)) {
       const Eigen::Array2i index = xy_index + offset;
       if (!grid.IsKnown(index)) continue;
 
-      const transform::Rigid3d center_of_cell_in_local_frame =
-          transform::Rigid3d::Translation(Eigen::Vector3d(
+      const transform::Rigid2d center_of_cell_in_local_frame =
+          transform::Rigid2d::Translation(Eigen::Vector2d(
               grid.limits().max().x() -
                   grid.limits().resolution() * (index.y() + 0.5),
               grid.limits().max().y() -
-                  grid.limits().resolution() * (index.x() + 0.5),
-              0));
+                  grid.limits().resolution() * (index.x() + 0.5)));
 
       const transform::Rigid2d center_of_cell_in_global_frame =
-          transform::Project2D(global_frame_from_submap_frame *
-                               submap_frame_from_local_frame *
-                               center_of_cell_in_local_frame);
+          global_frame_from_submap_frame * submap_frame_from_local_frame *
+          center_of_cell_in_local_frame;
       coverage_grid->AddPoint(center_of_cell_in_global_frame.translation(),
                               submap.id, freshness->second);
     }

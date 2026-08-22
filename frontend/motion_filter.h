@@ -38,14 +38,14 @@ class MotionFilter {
   // If the accumulated motion (linear, rotational, or time) is above the
   // threshold, returns false. Otherwise the relative motion is accumulated and
   // true is returned.
-  bool IsSimilar(common::Time time, const transform::Rigid3d& pose);
+  bool IsSimilar(common::Time time, const transform::Rigid2d& pose);
 
  private:
   const MotionFilterOptions options_;
   int num_total_ = 0;
   int num_different_ = 0;
   common::Time last_time_;
-  transform::Rigid3d last_pose_;
+  transform::Rigid2d last_pose_;
 };
 
 }  // namespace mapping

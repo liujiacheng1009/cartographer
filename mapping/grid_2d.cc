@@ -294,7 +294,7 @@ std::unique_ptr<Grid2D> ProbabilityGrid::ComputeCroppedGrid() const {
 
 bool ProbabilityGrid::DrawToSubmapTexture(
     SubmapTexture* const texture,
-    transform::Rigid3d local_pose) const {
+    transform::Rigid2d local_pose) const {
   Eigen::Array2i offset;
   CellLimits cell_limits;
   ComputeCroppedLimits(&offset, &cell_limits);
@@ -328,7 +328,7 @@ bool ProbabilityGrid::DrawToSubmapTexture(
   const double max_x = limits().max().x() - resolution * offset.y();
   const double max_y = limits().max().y() - resolution * offset.x();
   texture->slice_pose = local_pose.inverse() *
-      transform::Rigid3d::Translation(Eigen::Vector3d(max_x, max_y, 0.));
+      transform::Rigid2d::Translation(Eigen::Vector2d(max_x, max_y));
 
   return true;
 }

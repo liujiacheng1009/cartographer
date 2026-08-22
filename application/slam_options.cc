@@ -70,8 +70,6 @@ CreateConstantVelocityPoseExtrapolatorOptions(
   ConstantVelocityPoseExtrapolatorOptions options;
   options.set_pose_queue_duration(
       parameter_dictionary->GetDouble("pose_queue_duration"));
-  options.set_imu_gravity_time_constant(
-      parameter_dictionary->GetDouble("imu_gravity_time_constant"));
   return options;
 }
 

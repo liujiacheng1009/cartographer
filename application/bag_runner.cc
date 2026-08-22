@@ -50,10 +50,19 @@ double ToUnixSeconds(carto::common::Time time) {
          1e-7;
 }
 
-carto::transform::Rigid3d ToRigid3d(const geometry_msgs::msg::Pose& pose) {
-  return {{pose.position.x, pose.position.y, pose.position.z},
-          {pose.orientation.w, pose.orientation.x, pose.orientation.y,
-           pose.orientation.z}};
+carto::transform::Rigid2d ToRigid2d(const geometry_msgs::msg::Pose& pose) {
+  const Eigen::Quaterniond rotation(pose.orientation.w, pose.orientation.x,
+                                    pose.orientation.y, pose.orientation.z);
+  CHECK(std::isfinite(pose.position.x) && std::isfinite(pose.position.y));
+  CHECK(rotation.coeffs().allFinite());
+  CHECK_GT(rotation.norm(), 1e-9);
+  const Eigen::Quaterniond normalized = rotation.normalized();
+  const double yaw = std::atan2(
+      2. * (normalized.w() * normalized.z() +
+            normalized.x() * normalized.y()),
+      1. - 2. * (normalized.y() * normalized.y() +
+                 normalized.z() * normalized.z()));
+  return {{pose.position.x, pose.position.y}, Eigen::Rotation2Dd(yaw)};
 }
 
 std::string NormalizeFrame(std::string frame) {
@@ -82,36 +91,23 @@ struct Calibration {
   std::string lidar_topic;
   std::string lidar_frame;
   double lidar_time_offset_seconds;
-  carto::transform::Rigid3d tracking_from_lidar;
+  carto::transform::Rigid2d tracking_from_lidar;
   std::string odometry_topic;
   std::string odometry_reference_frame;
   std::string odometry_child_frame;
   double odometry_time_offset_seconds;
-  carto::transform::Rigid3d tracking_from_odometry_child;
+  carto::transform::Rigid2d tracking_from_odometry_child;
 };
 
-carto::transform::Rigid3d ReadRigidTransform(const YAML::Node& node,
-                                             const std::string& name) {
-  CHECK(node.IsSequence() && node.size() == 4)
-      << name << " must be a 4x4 matrix.";
-  Eigen::Matrix4d matrix;
-  for (int row = 0; row != 4; ++row) {
-    CHECK(node[row].IsSequence() && node[row].size() == 4)
-        << name << " must be a 4x4 matrix.";
-    for (int column = 0; column != 4; ++column) {
-      matrix(row, column) = node[row][column].as<double>();
-      CHECK(std::isfinite(matrix(row, column))) << name << " is not finite.";
-    }
-  }
-  CHECK(matrix.row(3).isApprox(Eigen::RowVector4d(0., 0., 0., 1.), 1e-9))
-      << name << " must have homogeneous last row [0, 0, 0, 1].";
-  const Eigen::Matrix3d rotation = matrix.topLeftCorner<3, 3>();
-  CHECK((rotation.transpose() * rotation).isApprox(Eigen::Matrix3d::Identity(),
-                                                    1e-6))
-      << name << " rotation is not orthonormal.";
-  CHECK_LE(std::abs(rotation.determinant() - 1.), 1e-6)
-      << name << " rotation determinant must be +1.";
-  return {matrix.topRightCorner<3, 1>(), Eigen::Quaterniond(rotation)};
+carto::transform::Rigid2d ReadPlanarTransform(const YAML::Node& node,
+                                              const std::string& name) {
+  CHECK(node.IsMap()) << name << " must contain x, y and yaw.";
+  const double x = node["x"].as<double>();
+  const double y = node["y"].as<double>();
+  const double yaw = node["yaw"].as<double>();
+  CHECK(std::isfinite(x) && std::isfinite(y) && std::isfinite(yaw))
+      << name << " is not finite.";
+  return {{x, y}, Eigen::Rotation2Dd(yaw)};
 }
 
 Calibration LoadCalibration(const std::string& filename) {
@@ -122,10 +118,10 @@ Calibration LoadCalibration(const std::string& filename) {
     LOG(FATAL) << "Failed to load calibration '" << filename
                << "': " << error.what();
   }
-  CHECK_EQ(root["schema_version"].as<int>(), 1);
+  CHECK_EQ(root["schema_version"].as<int>(), 2);
   CHECK_EQ(root["convention"].as<std::string>(), "T_parent_child");
   CHECK_EQ(root["units"]["translation"].as<std::string>(), "meter");
-  CHECK_EQ(root["units"]["rotation"].as<std::string>(), "unitless");
+  CHECK_EQ(root["units"]["rotation"].as<std::string>(), "radian");
   const auto lidar = root["lidar"];
   const auto odometry = root["odometry"];
   CHECK_EQ(lidar["message_type"].as<std::string>(),
@@ -139,12 +135,12 @@ Calibration LoadCalibration(const std::string& filename) {
       lidar["topic"].as<std::string>(),
       NormalizeFrame(lidar["frame"].as<std::string>()),
       lidar["time_offset_seconds"].as<double>(),
-      ReadRigidTransform(lidar["T_tracking_sensor"], "T_tracking_sensor"),
+      ReadPlanarTransform(lidar["T_tracking_sensor"], "T_tracking_sensor"),
       odometry["topic"].as<std::string>(),
       NormalizeFrame(odometry["reference_frame"].as<std::string>()),
       NormalizeFrame(odometry["child_frame"].as<std::string>()),
       odometry["time_offset_seconds"].as<double>(),
-      ReadRigidTransform(odometry["T_tracking_child"], "T_tracking_child")};
+      ReadPlanarTransform(odometry["T_tracking_child"], "T_tracking_child")};
 }
 
 carto::sensor::TimedPointCloudData ConvertScan(
@@ -169,7 +165,8 @@ carto::sensor::TimedPointCloudData ConvertScan(
     time += carto::common::FromSeconds(duration);
     for (auto& point : points) point.time -= duration;
   }
-  const auto sensor_to_tracking = calibration.tracking_from_lidar.cast<float>();
+  const auto sensor_to_tracking = carto::transform::Embed3D(
+      calibration.tracking_from_lidar.cast<float>());
   return {time, sensor_to_tracking.translation(),
           carto::sensor::TransformTimedPointCloud(points, sensor_to_tracking),
           {}};
@@ -185,7 +182,7 @@ carto::sensor::OdometryData ConvertOdometry(
   return {FromRos(odometry.header.stamp) +
               carto::common::FromSeconds(
                   calibration.odometry_time_offset_seconds),
-          ToRigid3d(odometry.pose.pose) *
+          ToRigid2d(odometry.pose.pose) *
               calibration.tracking_from_odometry_child.inverse()};
 }
 
@@ -217,9 +214,7 @@ void WriteTrajectory(const std::string& filename, int trajectory_id,
   for (const auto& item : backend->GetTrajectoryNodes()) {
     if (item.id.trajectory_id != trajectory_id) continue;
     const auto& pose = item.data.global_pose;
-    const auto& q = pose.rotation();
-    const double yaw = std::atan2(2. * (q.w() * q.z() + q.x() * q.y()),
-                                  1. - 2. * (q.y() * q.y() + q.z() * q.z()));
+    const double yaw = pose.rotation().angle();
     output << ToUnixSeconds(item.data.time()) << ',' << pose.translation().x()
            << ',' << pose.translation().y() << ',' << yaw << '\n';
   }

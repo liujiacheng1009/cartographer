@@ -40,12 +40,12 @@ LocalSlam2D::LocalSlam2D(
 LocalSlam2D::~LocalSlam2D() {}
 
 sensor::RangeData
-LocalSlam2D::TransformToGravityAlignedFrameAndFilter(
-    const transform::Rigid3f& transform_to_gravity_aligned_frame,
+LocalSlam2D::TransformToCurrentTrackingFrameAndFilter(
+    const transform::Rigid3f& transform_to_current_tracking_frame,
     const sensor::RangeData& range_data) const {
   const sensor::RangeData cropped =
       sensor::CropRangeData(sensor::TransformRangeData(
-                                range_data, transform_to_gravity_aligned_frame),
+                                range_data, transform_to_current_tracking_frame),
                             options_.min_z(), options_.max_z());
   return sensor::RangeData{
       cropped.origin,
@@ -55,7 +55,7 @@ LocalSlam2D::TransformToGravityAlignedFrameAndFilter(
 
 std::unique_ptr<transform::Rigid2d> LocalSlam2D::ScanMatch(
     const common::Time time, const transform::Rigid2d& pose_prediction,
-    const sensor::PointCloud& filtered_gravity_aligned_point_cloud) {
+    const sensor::PointCloud& filtered_point_cloud) {
   if (active_submaps_.submaps().empty()) {
     return absl::make_unique<transform::Rigid2d>(pose_prediction);
   }
@@ -67,14 +67,14 @@ std::unique_ptr<transform::Rigid2d> LocalSlam2D::ScanMatch(
 
   if (options_.use_online_correlative_scan_matching()) {
     real_time_correlative_scan_matcher_.Match(
-        pose_prediction, filtered_gravity_aligned_point_cloud,
+        pose_prediction, filtered_point_cloud,
         *matching_submap->grid(), &initial_ceres_pose);
   }
 
   auto pose_observation = absl::make_unique<transform::Rigid2d>();
   ceres::Solver::Summary summary;
   ceres_scan_matcher_.Match(pose_prediction.translation(), initial_ceres_pose,
-                            filtered_gravity_aligned_point_cloud,
+                            filtered_point_cloud,
                             *matching_submap->grid(), pose_observation.get(),
                             &summary);
   return pose_observation;
@@ -120,7 +120,8 @@ LocalSlam2D::AddRangeData(
       time_point = extrapolator_->GetLastExtrapolatedTime();
     }
     range_data_poses.push_back(
-        extrapolator_->ExtrapolatePose(time_point).cast<float>());
+        transform::Embed3D(
+            extrapolator_->ExtrapolatePose(time_point).cast<float>()));
   }
 
   if (num_accumulated_ == 0) {
@@ -154,73 +155,59 @@ LocalSlam2D::AddRangeData(
 
   if (num_accumulated_ >= options_.num_accumulated_range_data()) {
     num_accumulated_ = 0;
-    const transform::Rigid3d gravity_alignment = transform::Rigid3d::Rotation(
-        extrapolator_->EstimateGravityOrientation(time));
     // TODO(gaschler): This assumes that 'range_data_poses.back()' is at time
     // 'time'.
     accumulated_range_data_.origin = range_data_poses.back().translation();
     return AddAccumulatedRangeData(
         time,
-        TransformToGravityAlignedFrameAndFilter(
-            gravity_alignment.cast<float>() * range_data_poses.back().inverse(),
-            accumulated_range_data_),
-        gravity_alignment);
+        TransformToCurrentTrackingFrameAndFilter(
+            range_data_poses.back().inverse(), accumulated_range_data_));
   }
   return nullptr;
 }
 
 std::unique_ptr<LocalSlam2D::MatchingResult>
 LocalSlam2D::AddAccumulatedRangeData(
-    const common::Time time,
-    const sensor::RangeData& gravity_aligned_range_data,
-    const transform::Rigid3d& gravity_alignment) {
-  if (gravity_aligned_range_data.returns.empty()) {
+    const common::Time time, const sensor::RangeData& tracking_range_data) {
+  if (tracking_range_data.returns.empty()) {
     LOG(WARNING) << "Dropped empty horizontal range data.";
     return nullptr;
   }
 
-  // Computes a gravity aligned pose prediction.
-  const transform::Rigid3d non_gravity_aligned_pose_prediction =
-      extrapolator_->ExtrapolatePose(time);
-  const transform::Rigid2d pose_prediction = transform::Project2D(
-      non_gravity_aligned_pose_prediction * gravity_alignment.inverse());
+  const transform::Rigid2d pose_prediction = extrapolator_->ExtrapolatePose(time);
 
-  const sensor::PointCloud& filtered_gravity_aligned_point_cloud =
-      sensor::AdaptiveVoxelFilter(gravity_aligned_range_data.returns,
+  const sensor::PointCloud& filtered_point_cloud =
+      sensor::AdaptiveVoxelFilter(tracking_range_data.returns,
                                   options_.adaptive_voxel_filter_options());
-  if (filtered_gravity_aligned_point_cloud.empty()) {
+  if (filtered_point_cloud.empty()) {
     return nullptr;
   }
 
-  // local map frame <- gravity-aligned frame
   std::unique_ptr<transform::Rigid2d> pose_estimate_2d =
-      ScanMatch(time, pose_prediction, filtered_gravity_aligned_point_cloud);
+      ScanMatch(time, pose_prediction, filtered_point_cloud);
   if (pose_estimate_2d == nullptr) {
     LOG(WARNING) << "Scan matching failed.";
     return nullptr;
   }
-  const transform::Rigid3d pose_estimate =
-      transform::Embed3D(*pose_estimate_2d) * gravity_alignment;
-  extrapolator_->AddPose(time, pose_estimate);
+  extrapolator_->AddPose(time, *pose_estimate_2d);
 
   sensor::RangeData range_data_in_local =
-      TransformRangeData(gravity_aligned_range_data,
+      TransformRangeData(tracking_range_data,
                          transform::Embed3D(pose_estimate_2d->cast<float>()));
   std::unique_ptr<InsertionResult> insertion_result = InsertIntoSubmap(
-      time, range_data_in_local, filtered_gravity_aligned_point_cloud,
-      pose_estimate, gravity_alignment.rotation());
+      time, range_data_in_local, filtered_point_cloud,
+      *pose_estimate_2d);
 
   return absl::make_unique<MatchingResult>(
-      MatchingResult{time, pose_estimate, std::move(range_data_in_local),
+      MatchingResult{time, *pose_estimate_2d, std::move(range_data_in_local),
                      std::move(insertion_result)});
 }
 
 std::unique_ptr<LocalSlam2D::InsertionResult>
 LocalSlam2D::InsertIntoSubmap(
     const common::Time time, const sensor::RangeData& range_data_in_local,
-    const sensor::PointCloud& filtered_gravity_aligned_point_cloud,
-    const transform::Rigid3d& pose_estimate,
-    const Eigen::Quaterniond& gravity_alignment) {
+    const sensor::PointCloud& filtered_point_cloud,
+    const transform::Rigid2d& pose_estimate) {
   if (motion_filter_.IsSimilar(time, pose_estimate)) {
     return nullptr;
   }
@@ -228,13 +215,7 @@ LocalSlam2D::InsertIntoSubmap(
       active_submaps_.InsertRangeData(range_data_in_local);
   return absl::make_unique<InsertionResult>(InsertionResult{
       std::make_shared<const TrajectoryNode::Data>(TrajectoryNode::Data{
-          time,
-          gravity_alignment,
-          filtered_gravity_aligned_point_cloud,
-          {},  // 'high_resolution_point_cloud' is only used in 3D.
-          {},  // 'low_resolution_point_cloud' is only used in 3D.
-          {},  // 'rotational_scan_matcher_histogram' is only used in 3D.
-          pose_estimate}),
+          time, filtered_point_cloud, pose_estimate}),
       std::move(insertion_submaps)});
 }
 
@@ -255,11 +236,8 @@ void LocalSlam2D::InitializeExtrapolator(const common::Time time) {
   extrapolator_ = absl::make_unique<PoseExtrapolator>(
       ::cartographer::common::FromSeconds(options_.pose_extrapolator_options()
                                               .constant_velocity()
-                                              .pose_queue_duration()),
-      options_.pose_extrapolator_options()
-          .constant_velocity()
-          .imu_gravity_time_constant());
-  extrapolator_->AddPose(time, transform::Rigid3d::Identity());
+                                              .pose_queue_duration()));
+  extrapolator_->AddPose(time, transform::Rigid2d::Identity());
 }
 
 }  // namespace mapping

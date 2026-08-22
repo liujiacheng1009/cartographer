@@ -31,7 +31,7 @@ namespace mapping {
 
 struct InitialTrajectoryPoseState {
   int to_trajectory_id;
-  transform::Rigid3d relative_pose;
+  transform::Rigid2d relative_pose;
   common::Time time;
 };
 

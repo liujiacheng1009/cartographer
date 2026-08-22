@@ -187,10 +187,6 @@ std::map<int, int> SlamSystem::LoadStateFromFile(
     node.id.trajectory_id = trajectory_remapping.at(node.id.trajectory_id);
     backend_->AddSerializedNode(node);
   }
-  for (const auto& item : state.trajectory_data) {
-    backend_->SetSerializedTrajectoryData(
-        trajectory_remapping.at(item.first), item.second);
-  }
   for (auto constraint : state.constraints) {
     constraint.submap_id.trajectory_id =
         trajectory_remapping.at(constraint.submap_id.trajectory_id);

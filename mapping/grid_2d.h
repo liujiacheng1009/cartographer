@@ -481,7 +481,7 @@ class Grid2D {
 
   virtual bool DrawToSubmapTexture(
       SubmapTexture* const texture,
-      transform::Rigid3d local_pose) const = 0;
+      transform::Rigid2d local_pose) const = 0;
 
  protected:
   void GrowLimits(const Eigen::Vector2f& point,
@@ -584,7 +584,7 @@ class ProbabilityGrid : public Grid2D {
   std::unique_ptr<Grid2D> ComputeCroppedGrid() const override;
   bool DrawToSubmapTexture(
       SubmapTexture* const texture,
-      transform::Rigid3d local_pose) const override;
+      transform::Rigid2d local_pose) const override;
 
  private:
   ValueConversionTables* conversion_tables_;
