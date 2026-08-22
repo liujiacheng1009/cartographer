@@ -26,7 +26,7 @@ flowchart LR
     READ[bag 单遍读取]
     CONVERT[反序列化与坐标转换]
     DISPATCH[DataDispatcher<br/>按时间排序 scan/odom]
-    FRONTEND[TrajectoryFrontend2D<br/>单一前端边界]
+    FRONTEND[Frontend2D<br/>单一前端边界]
     SUBMAP[ActiveSubmaps2D<br/>栅格与子图]
     GRAPH[TrajectoryBackend2D<br/>约束与回环]
     OPT[PoseOptimizer2D<br/>Ceres 全局优化]
@@ -51,19 +51,19 @@ flowchart LR
     GRAPH --> SWMAP
 ```
 
-核心所有权关系是：`SlamSystem` 同时拥有线程池、一个 `DataDispatcher`、一个
-`TrajectoryBackend2D` 和前端数组。每条轨迹只对应一个 `TrajectoryFrontend2D`。它登记排序回调、
+核心所有权关系是：`SlamSystem` 同时拥有任务执行器、一个 `DataDispatcher`、一个
+`TrajectoryBackend2D` 和前端数组。每条轨迹只对应一个 `Frontend2D`。它登记排序回调、
 执行局部 SLAM，并把 node/odometry 转交共享的 `TrajectoryBackend2D`，不再经过多层 builder 包装
 和虚接口。
 
 ```text
 SlamSystem
-├── ThreadPool
+├── TaskExecutor
 ├── DataDispatcher
 ├── TrajectoryBackend2D
 │   ├── ConstraintEngine2D（内部约束引擎）
 │   └── PoseOptimizer2D（内部 Ceres 求解器）
-└── TrajectoryFrontend2D[trajectory_id]
+└── Frontend2D[trajectory_id]
     ├── sensor ordering callback
     ├── PoseExtrapolator
     ├── scan matchers
@@ -78,11 +78,11 @@ SlamSystem
 1. 解析命令行参数并读取 YAML；
 2. 生成 `SlamSystemOptions` 和 `TrajectoryBuilderOptions`；
 3. 校验配置只声明当前支持的输入；
-4. 创建 `SlamSystem`；其内部持有后台线程池，并将线程池作为执行资源注入
+4. 创建 `SlamSystem`；其内部持有后台 `TaskExecutor`，并将其作为执行资源注入
    `TrajectoryBackend2D` 的内部任务引擎；
 5. 如果指定 `--offline_load_state_filename`，先读取并冻结旧地图；
 6. 为 `scan` 和 `odom` 注册一条新轨迹；
-7. 创建一个 `TrajectoryFrontend2D` 并注册 scan/odom 排序回调；
+7. 创建一个 `Frontend2D` 并注册 scan/odom 排序回调；
 8. 加载标定文件，单遍回放传感器数据。
 
 传给 `AddTrajectoryBuilder()` 的 sensor ID 是内部稳定名称 `scan` 和 `odom`。
@@ -95,25 +95,25 @@ SlamSystem
 ```text
 SlamSystem（装配与生命周期容器）
 ├── owns DataDispatcher                    ← scan/odom 时间排序
-├── owns TrajectoryFrontend2D[]            ← 唯一公开 SLAM 前端
+├── owns Frontend2D[]            ← 唯一公开 SLAM 前端
 ├── owns TrajectoryBackend2D               ← 唯一公开 SLAM 后端
-└── owns ThreadPool                        ← 后端执行资源
+└── owns TaskExecutor                        ← 后端执行资源
 
-TrajectoryFrontend2D
+Frontend2D
 ├── borrows DataDispatcher                 ← 注册回调并提交传感器数据
 └── borrows TrajectoryBackend2D            ← 提交 node 和 odometry
 
 TrajectoryBackend2D
-└── borrows ThreadPool                     ← 约束搜索与后端工作队列
+└── borrows TaskExecutor                     ← 约束搜索与后端工作队列
 ```
 
-`SlamSystem` 是唯一所有者和装配入口；`TrajectoryFrontend2D`、
-`TrajectoryBackend2D` 是并列的算法边界，`DataDispatcher` 和 `ThreadPool` 分别是它们的
+`SlamSystem` 是唯一所有者和装配入口；`Frontend2D`、
+`TrajectoryBackend2D` 是并列的算法边界，`DataDispatcher` 和 `TaskExecutor` 分别是它们的
 执行基础设施。前后端并行指的是 bag 回放和前端继续处理 scan 时，后端可以在线程池中
 推进已提交 node 的约束工作。所有 `borrows` 指针都不参与所有权，生命周期由
 `SlamSystem` 的成员顺序和结束同步屏障保证。
 
-`SlamSystem` 是装配和生命周期入口，本身不执行具体 SLAM 算法。它持有线程池、
+`SlamSystem` 是装配和生命周期入口，本身不执行具体 SLAM 算法。它持有任务执行器、
 `TrajectoryBackend2D`、`DataDispatcher` 以及各条 frontend，负责创建轨迹、结束轨迹、
 加载/保存 `.swmap`。当前虽然只有一条轨迹，仍由它统一保证这些对象的析构顺序：必须先
 等待图计算完成，才能销毁被后台任务引用的 submap、node 和 scan matcher。
@@ -124,7 +124,7 @@ TrajectoryBackend2D
 TrajectoryBackend2D 则负责“历史 node/submap 整体怎样保持一致并闭环”。
 
 `ConstraintEngine2D` 和 `PoseOptimizer2D` 是后端私有实现组件：前者生成候选约束，后者
-求解已经确定的约束。`SlamSystem`、`TrajectoryFrontend2D`、bag runner 和序列化层都只
+求解已经确定的约束。`SlamSystem`、`Frontend2D`、bag runner 和序列化层都只
 依赖 `TrajectoryBackend2D`，不能直接访问这两个组件。这样对外只有一个后端边界，同时
 避免把并发任务状态与 Ceres 数值状态混进同一个巨型类。
 
@@ -142,7 +142,7 @@ TrajectoryBackend2D 则负责“历史 node/submap 整体怎样保持一致并�
 完成后才能优化”的依赖关系，并非单纯封装 `std::thread`。
 
 线程池不是 SLAM 数学上的必要条件：可以重写成单线程同步流水线，但不能只删除
-`ThreadPool`。那样需要同时改写 `ConstraintEngine2D::WhenDone()`、TrajectoryBackend2D 工作队列和
+`TaskExecutor`。那样需要同时改写 `ConstraintEngine2D::WhenDone()`、TrajectoryBackend2D 工作队列和
 `WaitForAllComputations()` 的完成协议。当前保留它的核心理由是约束计算吞吐和已有任务依赖
 语义，而不是因为 bag 输入本身需要多线程。
 
@@ -155,7 +155,7 @@ bag/前端主线程
   └── AddNode / AddOdometryData
         └── 只追加到 TrajectoryBackend2D work queue
 
-后端 ThreadPool（num_background_threads: 4）
+后端 TaskExecutor（num_background_threads: 4）
   ├── 单任务 DrainWorkQueue，串行修改后端图状态
   ├── 并行构建 submap 快速相关匹配器
   └── 并行计算多个 node-submap 约束/回环候选
@@ -238,7 +238,7 @@ LaserScan 的数据时间定义为最后一个有效扫描点所在时刻；各�
 
 ## 5. 时间排序与分派
 
-`TrajectoryFrontend2D` 把两种强类型数据直接提交给 `DataDispatcher`。
+`Frontend2D` 把两种强类型数据直接提交给 `DataDispatcher`。
 dispatcher 使用 C++20 `std::variant<TimedPointCloudData, OdometryData>` 保存数据，
 为 `(trajectory_id, sensor_id)` 各维护一个无锁 `std::deque`，并保证：
 
@@ -247,7 +247,7 @@ dispatcher 使用 C++20 `std::variant<TimedPointCloudData, OdometryData>` 保存
 - 单个队列缺数据时暂停分派；
 - `FinishTrajectory()` 标记所有队列结束并排空剩余数据。
 
-排序后的数据通过 `std::visit` 进入 `TrajectoryFrontend2D::ProcessSensorData()` 的强类型
+排序后的数据通过 `std::visit` 进入 `Frontend2D::ProcessSensorData()` 的强类型
 重载，不再创建 `sensor::Data` 虚对象，也不经过 builder 虚接口、`BlockingQueue` 或
 `OrderedMultiQueue`。bag 文件中消息的物理排列可以交错，但每个
 传感器自身仍必须保持时间有序。当前 bag reader 是唯一生产者，后台 TrajectoryBackend2D 不会写
@@ -255,7 +255,7 @@ dispatcher 使用 C++20 `std::variant<TimedPointCloudData, OdometryData>` 保存
 
 ## 6. `/scan` 的局部 SLAM 路径
 
-一次 scan 进入 `TrajectoryFrontend2D` 后，由内部局部匹配实现依次经过：
+一次 scan 进入 `Frontend2D` 后，由内部局部匹配实现依次经过：
 
 1. 校验输入是唯一的 `scan` sensor，且帧内点时间单调递增；
 2. `PoseExtrapolator` 根据已有 pose 和 odometry 预测扫描期间姿态；
@@ -345,7 +345,7 @@ p_gravity       = T_gravity_local · p_local
 
 ## 7. `/odom` 的双路径
 
-Odometry 经 `TrajectoryFrontend2D` 后分成两路：
+Odometry 经 `Frontend2D` 后分成两路：
 
 - 送入前端内部的局部匹配实现，供 `PoseExtrapolator` 做实时姿态预测；
 - 送入 `TrajectoryBackend2D` 保存为全局优化的 odometry 约束数据。
@@ -355,7 +355,7 @@ Odometry 经 `TrajectoryFrontend2D` 后分成两路：
 
 ## 8. 从局部结果到 TrajectoryBackend2D
 
-`TrajectoryFrontend2D` 是唯一的前端入口，也是前端与后端的边界：
+`Frontend2D` 是唯一的前端入口，也是前端与后端的边界：
 
 - 只有产生 `MatchingResult` 的 scan 才形成一次局部 SLAM 输出；
 - 只有通过 motion filter、带 `InsertionResult` 的结果才调用
@@ -404,7 +404,7 @@ bag 读完后的顺序不可交换：
 ## 11. 线程和阻塞边界
 
 - bag 读取、消息反序列化、标定变换、`DataDispatcher` 分派和局部 SLAM 在主线程推进；
-- TrajectoryBackend2D 通过 `ThreadPool` 并行计算候选约束；
+- TrajectoryBackend2D 通过 `TaskExecutor` 并行计算候选约束；
 - TrajectoryBackend2D 的 work queue 串行化会修改全局图状态的操作；
 - `RunFinalOptimization()` 是最终同步屏障，返回后才能导出稳定轨迹和地图；
 - `DataDispatcher` 若等待某个 sensor queue，会停止整个轨迹的数据分派，因此缺失 `/scan` 或
@@ -415,8 +415,10 @@ bag 读完后的顺序不可交换：
 | 目录 | 在 bag 链路中的职责 |
 |---|---|
 | `application/` | `SlamSystem` 装配、bag 单遍读取、ROS 消息转换和生命周期控制 |
-| `core/` | 时间、传感器数据、DataDispatcher、点云、变换、线程池和指标 |
-| `trajectory/` | 前端入口、局部 SLAM、姿态预测、运动过滤和前端配置 |
+| `foundation/` | 时间、几何、传感器值类型、体素过滤和运行统计 |
+| `frontend/` | 数据排序、单一前端、局部 SLAM、姿态预测和运动过滤 |
+| `application/` | bag 入口、系统装配、配置解析和 SLAM 参数 |
+| `backend/` | 轨迹状态、约束、优化、历史数据和异步任务执行 |
 | `scan_matching/` | 局部匹配及全局约束搜索使用的匹配算法 |
 | `mapping/` | 栅格、子图及其插入生命周期 |
 | `backend/` | 节点/子图约束、回环、全局优化与裁剪 |
@@ -431,9 +433,9 @@ bag 读完后的顺序不可交换：
 |---|---|
 | bag 主流程 | `application/bag_runner.cc` |
 | 栈装配与状态加载 | `application/slam_system.cc` |
-| 时间排序 | `core/data_dispatcher.cc` |
-| 单一前端与前后端桥接 | `trajectory/trajectory_frontend_2d.{h,cc}` |
-| 局部 SLAM | `trajectory/local_slam_2d.cc` |
+| 时间排序 | `frontend/data_dispatcher.cc` |
+| 单一前端与前后端桥接 | `frontend/frontend_2d.{h,cc}` |
+| 局部 SLAM | `frontend/local_slam_2d.cc` |
 | 子图和栅格 | `mapping/submap_2d.cc`、`mapping/grid_2d.cc` |
 | 单一后端入口与工作流 | `backend/trajectory_backend_2d.{h,cc}` |
 | 后端只读查询 | `backend/trajectory_backend_query_2d.cc` |
