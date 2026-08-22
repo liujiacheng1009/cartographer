@@ -26,7 +26,6 @@
 #include "cartographer/slam/global_trajectory_builder.h"
 #include "cartographer/slam/motion_filter.h"
 #include "cartographer/core/collator.h"
-#include "cartographer/core/trajectory_collator.h"
 #include "cartographer/core/voxel_filter.h"
 #include "cartographer/core/rigid_transform.h"
 #include "cartographer/core/transform.h"
@@ -92,11 +91,8 @@ MapBuilder::MapBuilder(const MapBuilderOptions& options)
       absl::make_unique<optimization::OptimizationProblem2D>(
           options_.pose_graph_options().optimization_problem_options()),
       &thread_pool_);
-  if (options.collate_by_trajectory()) {
-    sensor_collator_ = absl::make_unique<sensor::TrajectoryCollator>();
-  } else {
-    sensor_collator_ = absl::make_unique<sensor::Collator>();
-  }
+  CHECK(!options.collate_by_trajectory());
+  sensor_collator_ = absl::make_unique<sensor::Collator>();
 }
 
 int MapBuilder::AddTrajectoryBuilder(

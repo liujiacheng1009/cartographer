@@ -52,7 +52,6 @@ set(ALL_LIBRARY_SRCS
   core/thread_pool.cc
   core/time.cc
   core/timestamped_transform.cc
-  core/trajectory_collator.cc
   core/voxel_filter.cc
   slam/ceres_pose.cc
   slam/ceres_scan_matcher_2d.cc

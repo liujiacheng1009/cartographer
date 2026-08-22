@@ -27,7 +27,7 @@
 #include "cartographer/core/port.h"
 #include "cartographer/slam/submaps.h"
 #include "cartographer/slam/trajectory_builder_interface.h"
-#include "cartographer/core/collator_interface.h"
+#include "cartographer/core/collator.h"
 #include "cartographer/core/dispatchable.h"
 
 namespace cartographer {
@@ -41,7 +41,7 @@ class CollatedTrajectoryBuilder : public TrajectoryBuilderInterface {
 
   CollatedTrajectoryBuilder(
       const TrajectoryBuilderOptions& trajectory_options,
-      sensor::CollatorInterface* sensor_collator, int trajectory_id,
+      sensor::Collator* sensor_collator, int trajectory_id,
       const std::set<SensorId>& expected_sensor_ids,
       std::unique_ptr<TrajectoryBuilderInterface> wrapped_trajectory_builder);
   ~CollatedTrajectoryBuilder() override {}
@@ -92,7 +92,7 @@ class CollatedTrajectoryBuilder : public TrajectoryBuilderInterface {
   void HandleCollatedSensorData(const std::string& sensor_id,
                                 std::unique_ptr<sensor::Data> data);
 
-  sensor::CollatorInterface* const sensor_collator_;
+  sensor::Collator* const sensor_collator_;
   const bool collate_landmarks_;
   const bool collate_fixed_frame_;
   const int trajectory_id_;
