@@ -88,22 +88,30 @@ MapBuilder
 传给 `AddTrajectoryBuilder()` 的 sensor ID 是内部稳定名称 `scan` 和 `odom`。
 它们同时也是 `DataDispatcher` 的队列键，不是从 bag 中动态发现的任意话题名称。
 
-### 3.1 MapBuilder、TrajectoryBackend2D 和线程池的职责
+### 3.1 模块职责、所有权与依赖
 
-三者不是平行的 SLAM 模块，前后端边界和所有权关系如下：
+重构后的公开模块、所有权和非拥有依赖如下：
 
 ```text
 MapBuilder（装配与生命周期容器）
-├── DataDispatcher
-├── TrajectoryFrontend2D                   ← SLAM 前端
-├── TrajectoryBackend2D                    ← 唯一公开 SLAM 后端
-└── ThreadPool                             ← 后端执行资源
-     └── 注入 TrajectoryBackend2D
+├── owns DataDispatcher                    ← scan/odom 时间排序
+├── owns TrajectoryFrontend2D[]            ← 唯一公开 SLAM 前端
+├── owns TrajectoryBackend2D               ← 唯一公开 SLAM 后端
+└── owns ThreadPool                        ← 后端执行资源
+
+TrajectoryFrontend2D
+├── borrows DataDispatcher                 ← 注册回调并提交传感器数据
+└── borrows TrajectoryBackend2D            ← 提交 node 和 odometry
+
+TrajectoryBackend2D
+└── borrows ThreadPool                     ← 约束搜索与后端工作队列
 ```
 
-因此，前后端并行指的是 bag 回放和 `TrajectoryFrontend2D` 继续处理 scan 时，
-`TrajectoryBackend2D` 可以在后台推进已提交 node 的约束工作；不是说 `MapBuilder`、`TrajectoryBackend2D` 和
-`ThreadPool` 分别代表三个同级模块。
+`MapBuilder` 是唯一所有者和装配入口；`TrajectoryFrontend2D`、
+`TrajectoryBackend2D` 是并列的算法边界，`DataDispatcher` 和 `ThreadPool` 分别是它们的
+执行基础设施。前后端并行指的是 bag 回放和前端继续处理 scan 时，后端可以在线程池中
+推进已提交 node 的约束工作。所有 `borrows` 指针都不参与所有权，生命周期由
+`MapBuilder` 的成员顺序和结束同步屏障保证。
 
 `MapBuilder` 是装配和生命周期入口，本身不执行具体 SLAM 算法。它持有线程池、
 `TrajectoryBackend2D`、`DataDispatcher` 以及各条 frontend，负责创建轨迹、结束轨迹、
