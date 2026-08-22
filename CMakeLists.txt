@@ -79,7 +79,6 @@ set(ALL_LIBRARY_SRCS
   slam/probability_grid_range_data_inserter_2d.cc
   slam/probability_values.cc
   slam/range_data_collator.cc
-  slam/ray_to_pixel_mask.cc
   slam/real_time_correlative_scan_matcher_2d.cc
   slam/spa_cost_function_2d.cc
   slam/submap_2d.cc
