@@ -43,7 +43,6 @@ set(ALL_LIBRARY_SRCS
   core/fixed_ratio_sampler.cc
   core/histogram.cc
   core/metrics.cc
-  core/ordered_multi_queue.cc
   core/parameter_dictionary.cc
   core/point_cloud.cc
   core/range_data.cc

@@ -28,7 +28,6 @@
 #include "cartographer/slam/submaps.h"
 #include "cartographer/slam/trajectory_builder_interface.h"
 #include "cartographer/core/collator.h"
-#include "cartographer/core/dispatchable.h"
 
 namespace cartographer {
 namespace mapping {
