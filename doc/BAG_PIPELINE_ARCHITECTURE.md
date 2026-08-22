@@ -149,6 +149,58 @@ dispatcher 使用 C++20 `std::variant<TimedPointCloudData, OdometryData>` 保存
 
 局部 SLAM 输出的是 `local` 坐标系下的连续位姿。它不会直接修改全局优化结果。
 
+### 6.1 PoseExtrapolator 的预测原理
+
+一帧 LaserScan 不是瞬时拍摄：每个点带有相对帧末时间 `δtᵢ ≤ 0`。机器人在扫描
+期间仍然运动，如果把所有点都当成帧末同一姿态采集，墙面会被拉弯或重影。
+`PoseExtrapolator` 的首要用途就是为每个点计算采样时刻
+`tᵢ = t_scan_end + δtᵢ` 的预测位姿，完成逐点运动补偿（deskew）。
+
+预测器维护一个短时 pose 队列，队列中的 pose 是此前 scan matching 已经校正过的局部
+位姿。初始化时在第一帧 scan 的结束时间加入单位位姿。此后每次 scan matching 成功，
+新的 `pose_estimate` 都通过 `AddPose()` 反馈进队列，重新估计速度。
+
+速度来源有优先级：
+
+1. 至少有两条 odometry 时，用最早和最新 odometry 的相对变换估计 tracking frame 下
+   的线速度与角速度；
+2. odometry 尚不足两条时，用 pose 队列首尾两个已匹配位姿的差分速度；
+3. 初始化阶段还没有足够时间跨度时，速度保持零，预测位姿等于最近位姿。
+
+对最近校正位姿 `T₀ = (R₀, p₀)` 和时间差 `Δt = t - t₀`，实现采用局部恒速模型：
+
+```text
+p(t) = p₀ + v · Δt
+R(t) = R₀ · Exp(ω · Δt)
+```
+
+其中 `v` 和 `ω` 优先取 odometry 差分结果。代码使用 `ImuTracker` 积分角速度来实现
+旋转指数映射，但当前没有外部 IMU 输入；每次推进只注入 odometry/pose 推导出的角速度
+和固定 `UnitZ` 合成重力。因此这里的 gravity alignment 在 2D 产品中主要用于维持
+roll/pitch 与水平面一致，不能解释为真实 IMU 融合。
+
+预测有两个消费位置：
+
+- 对 scan 内每个点调用 `ExtrapolatePose(tᵢ)`，把点和雷达原点变换到运动补偿后的
+  local 坐标；
+- 对帧末调用 `ExtrapolatePose(t_scan_end)`，投影为 2D 后作为 scan matcher 的搜索
+  初值。
+
+它不是最终位姿来源。最终局部位姿由 scan matcher 对活动子图校正：
+
+```text
+上一帧匹配位姿 + odometry 恒速预测
+                  ↓
+           scan matching 初值
+                  ↓
+       子图观测校正后的 pose_estimate
+                  ↓
+         回写 PoseExtrapolator
+```
+
+因此 odometry 短时稳定时可缩小匹配搜索范围；odometry 有累计漂移时，激光与子图匹配会
+持续校正局部预测，而后端 PoseGraph 再负责更长时间尺度的回环和全局一致性。
+
 ## 7. `/odom` 的双路径
 
 Odometry 经 `GlobalTrajectoryBuilder` 后分成两路：
