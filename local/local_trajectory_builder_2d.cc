@@ -183,7 +183,7 @@ LocalTrajectoryBuilder2D::AddRangeData(
     last_sensor_time_ = current_sensor_time;
     num_accumulated_ = 0;
     const transform::Rigid3d gravity_alignment = transform::Rigid3d::Rotation(
-        extrapolator_->AssumePlanarGravityAlignment());
+        extrapolator_->EstimateGravityOrientation(time));
     // TODO(gaschler): This assumes that 'range_data_poses.back()' is at time
     // 'time'.
     accumulated_range_data_.origin = range_data_poses.back().translation();
@@ -305,7 +305,10 @@ void LocalTrajectoryBuilder2D::InitializeExtrapolator(const common::Time time) {
   extrapolator_ = absl::make_unique<PoseExtrapolator>(
       ::cartographer::common::FromSeconds(options_.pose_extrapolator_options()
                                               .constant_velocity()
-                                              .pose_queue_duration()));
+                                              .pose_queue_duration()),
+      options_.pose_extrapolator_options()
+          .constant_velocity()
+          .imu_gravity_time_constant());
   extrapolator_->AddPose(time, transform::Rigid3d::Identity());
 }
 

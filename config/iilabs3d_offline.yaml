@@ -81,8 +81,8 @@ trajectory_builder:
       max_distance_meters: 0.06
       max_angle_radians: 0.05235987755982989
     pose_extrapolator:
-      mode: planar_yaw_only
       constant_velocity:
+        imu_gravity_time_constant: 10.0
         pose_queue_duration: 0.001
     submaps:
       num_range_data: 35
