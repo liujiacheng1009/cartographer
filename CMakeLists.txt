@@ -49,31 +49,31 @@ set(ALL_LIBRARY_SRCS
   core/rigid_transform.cc
   core/thread_pool.cc
   core/voxel_filter.cc
-  slam/ceres_scan_matcher_2d.cc
-  slam/collated_trajectory_builder.cc
-  slam/constraint_builder_2d.cc
-  slam/constraint_builder.cc
-  slam/correlative_scan_matcher_2d.cc
-  slam/fast_correlative_scan_matcher_2d.cc
-  slam/global_trajectory_builder.cc
-  slam/grid_2d.cc
-  slam/imu_tracker.cc
-  slam/local_trajectory_builder_2d.cc
-  slam/map_builder.cc
-  slam/motion_filter.cc
-  slam/optimization_problem_2d.cc
-  slam/options.cc
-  slam/overlapping_submaps_trimmer_2d.cc
-  slam/pose_extrapolator.cc
-  slam/pose_graph_workflow.cc
-  slam/pose_graph_query.cc
-  slam/pose_graph_trimmer.cc
-  slam/range_data_collator.cc
-  slam/real_time_correlative_scan_matcher_2d.cc
-  slam/submap_2d.cc
-  slam/trajectory_builder_interface.cc
-  slam/trajectory_connectivity_state.cc
-  state/swmap.cc
+  scan_matching/ceres_scan_matcher_2d.cc
+  trajectory/collated_trajectory_builder.cc
+  pose_graph/constraint_builder_2d.cc
+  pose_graph/constraint_builder.cc
+  scan_matching/correlative_scan_matcher_2d.cc
+  scan_matching/fast_correlative_scan_matcher_2d.cc
+  trajectory/global_trajectory_builder.cc
+  mapping/grid_2d.cc
+  local/imu_tracker.cc
+  local/local_trajectory_builder_2d.cc
+  mapping/map_builder.cc
+  local/motion_filter.cc
+  pose_graph/optimization_problem_2d.cc
+  trajectory/options.cc
+  pose_graph/overlapping_submaps_trimmer_2d.cc
+  local/pose_extrapolator.cc
+  pose_graph/pose_graph_workflow.cc
+  pose_graph/pose_graph_query.cc
+  pose_graph/pose_graph_trimmer.cc
+  local/range_data_collator.cc
+  scan_matching/real_time_correlative_scan_matcher_2d.cc
+  mapping/submap_2d.cc
+  trajectory/trajectory_builder_interface.cc
+  pose_graph/trajectory_connectivity_state.cc
+  serialization/swmap.cc
 )
 
 add_library(cartographer_offline_core STATIC ${ALL_LIBRARY_SRCS})

@@ -92,7 +92,7 @@ class Data {
 #ifndef CARTOGRAPHER_SENSOR_INTERNAL_DISPATCHABLE_H_
 #define CARTOGRAPHER_SENSOR_INTERNAL_DISPATCHABLE_H_
 
-#include "cartographer/slam/trajectory_builder_interface.h"
+#include "cartographer/trajectory/trajectory_builder_interface.h"
 
 namespace cartographer {
 namespace sensor {

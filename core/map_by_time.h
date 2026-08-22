@@ -25,7 +25,7 @@
 
 #include "cartographer/core/port.h"
 #include "cartographer/core/rigid_transform.h"
-#include "cartographer/slam/id.h"
+#include "cartographer/pose_graph/id.h"
 #include "glog/logging.h"
 
 namespace cartographer {

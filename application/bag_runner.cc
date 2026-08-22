@@ -15,7 +15,7 @@
 #include "cartographer/core/parameter_dictionary.h"
 #include "cartographer/core/rigid_transform.h"
 #include "cartographer/core/transform.h"
-#include "cartographer/slam/map_builder.h"
+#include "cartographer/mapping/map_builder.h"
 #include "gflags/gflags.h"
 #include "glog/logging.h"
 #include "nav_msgs/msg/odometry.hpp"
