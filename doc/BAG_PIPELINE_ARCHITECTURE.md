@@ -146,6 +146,47 @@ TrajectoryBackend2D 则负责“历史 node/submap 整体怎样保持一致并�
 `WaitForAllComputations()` 的完成协议。当前保留它的核心理由是约束计算吞吐和已有任务依赖
 语义，而不是因为 bag 输入本身需要多线程。
 
+### 3.2 后端线程、回环与 PGO 时序
+
+当前有三种执行上下文，不能把“后端线程池”和“PGO 线程”视为同一层：
+
+```text
+bag/前端主线程
+  └── AddNode / AddOdometryData
+        └── 只追加到 TrajectoryBackend2D work queue
+
+后端 ThreadPool（num_background_threads: 4）
+  ├── 单任务 DrainWorkQueue，串行修改后端图状态
+  ├── 并行构建 submap 快速相关匹配器
+  └── 并行计算多个 node-submap 约束/回环候选
+
+PGO：PoseOptimizer2D::Solve
+  └── Ceres 求解器线程（ceres_solver_options.num_threads: 7）
+```
+
+前端调用 `AddNode()` 时会先在互斥锁保护下登记 node，然后把“为该 node 建约束”的
+work item 放入队列。线程池中同时只允许一个 `DrainWorkQueue()` 消费这条队列，因此新增
+node、odometry、冻结轨迹和删除轨迹等图状态修改仍保持确定顺序；并行的是耗时且彼此独立
+的 node-submap 匹配任务，而不是对图容器的无序写入。
+
+这里的回环最终表现为 `INTER_SUBMAP` 约束：
+
+- 同一轨迹的 node 与已经结束的旧 submap 做带初值、有限窗口的局部约束搜索；
+- 新活动轨迹与冻结地图等不同轨迹之间，在满足时间间隔和采样条件时做全 submap 的全局
+  搜索；
+- 快速相关匹配先筛选候选，Ceres scan matcher 再细化相对位姿；不同候选可在线程池中
+  并行计算。
+
+当累计 node 数超过 `optimize_every_n_nodes`（当前配置为 20）时，work queue 暂停继续
+修改图，并通过 `ConstraintEngine2D::WhenDone()` 等待本轮所有约束任务完成。随后把约束
+一次性并入后端，调用 `PoseOptimizer2D::Solve()` 做 PGO，联合优化 submap pose、node pose
+和 odometry 关系。PGO 完成后才更新连通性、执行 trimmer，并继续排空后续 work item。
+
+因此线程关系是：约束候选之间可以并行；约束汇总、PGO 和后端图状态提交按批次串行。
+bag 主线程在 PGO 期间仍可继续产生局部结果并把 work item 追加到队列，但这些结果要等
+当前 PGO 完成后才会进入下一批后端处理。最终 `RunFinalOptimization()` 会等待 work queue
+和约束任务全部清空，再运行最终 PGO，保证导出的轨迹和 `.swmap` 已稳定。
+
 ## 4. Bag 单遍读取
 
 每个源 bag 目录固定保存自己的 `calibration.yaml`。benchmark worker 生成只包含
