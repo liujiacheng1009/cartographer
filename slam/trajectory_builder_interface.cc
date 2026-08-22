@@ -60,10 +60,6 @@ TrajectoryBuilderOptions CreateTrajectoryBuilderOptions(
   *options.mutable_trajectory_builder_2d_options() =
       CreateLocalTrajectoryBuilderOptions2D(
           parameter_dictionary->GetDictionary("trajectory_builder_2d").get());
-  options.set_collate_fixed_frame(
-      parameter_dictionary->GetBool("collate_fixed_frame"));
-  options.set_collate_landmarks(
-      parameter_dictionary->GetBool("collate_landmarks"));
   PopulatePureLocalizationTrimmerOptions(&options, parameter_dictionary);
   PopulatePoseGraphOdometryMotionFilterOptions(&options, parameter_dictionary);
   return options;

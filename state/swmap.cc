@@ -14,7 +14,7 @@ namespace io {
 namespace {
 
 constexpr int kApplicationId = 0x53574d50;  // SWMP
-constexpr int kSchemaVersion = 2;
+constexpr int kSchemaVersion = 3;
 
 void Check(int result, sqlite3* db, const char* operation) {
   CHECK(result == SQLITE_OK || result == SQLITE_DONE || result == SQLITE_ROW)
@@ -185,11 +185,11 @@ bool WriteSwMap(const std::string& filename, const mapping::PoseGraph& pose_grap
                 bool include_unfinished_submaps) {
   std::filesystem::remove(filename);
   sqlite3* db = Open(filename, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE);
-  Exec(db, "PRAGMA application_id=1398230352; PRAGMA user_version=2;"
+  Exec(db, "PRAGMA application_id=1398230352; PRAGMA user_version=3;"
            "PRAGMA journal_mode=DELETE; BEGIN IMMEDIATE;"
            "CREATE TABLE metadata(key TEXT PRIMARY KEY,value TEXT NOT NULL);"
            "INSERT INTO metadata VALUES('format','sweepnav_2d_map');"
-           "INSERT INTO metadata VALUES('schema_version','2');"
+           "INSERT INTO metadata VALUES('schema_version','3');"
            "CREATE TABLE trajectories(trajectory_id INTEGER PRIMARY KEY);"
            "CREATE TABLE submaps(trajectory_id INTEGER,submap_index INTEGER,"
            "gtx REAL,gty REAL,gtz REAL,gqw REAL,gqx REAL,gqy REAL,gqz REAL,"
@@ -208,10 +208,7 @@ bool WriteSwMap(const std::string& filename, const mapping::PoseGraph& pose_grap
            "tx REAL,ty REAL,tz REAL,qw REAL,qx REAL,qy REAL,qz REAL,"
            "translation_weight REAL,rotation_weight REAL,tag INTEGER);"
            "CREATE TABLE trajectory_data(trajectory_id INTEGER PRIMARY KEY,gravity_constant REAL,"
-           "iqw REAL,iqx REAL,iqy REAL,iqz REAL,has_origin INTEGER,"
-           "tx REAL,ty REAL,tz REAL,qw REAL,qx REAL,qy REAL,qz REAL);"
-           "CREATE TABLE landmarks(landmark_id TEXT PRIMARY KEY,tx REAL,ty REAL,tz REAL,"
-           "qw REAL,qx REAL,qy REAL,qz REAL);");
+           "iqw REAL,iqx REAL,iqy REAL,iqz REAL);");
 
   std::set<int> trajectory_ids;
   Statement submap(db, "INSERT INTO submaps VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
@@ -261,19 +258,12 @@ bool WriteSwMap(const std::string& filename, const mapping::PoseGraph& pose_grap
     sqlite3_bind_double(s, 14, value.pose.rotation_weight); sqlite3_bind_int(s, 15, value.tag); constraint.Run();
   }
 
-  Statement trajectory_data(db, "INSERT INTO trajectory_data VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+  Statement trajectory_data(db, "INSERT INTO trajectory_data VALUES(?,?,?,?,?,?)");
   for (const auto& item : pose_graph.GetTrajectoryData()) {
     trajectory_ids.insert(item.first); auto* s = trajectory_data.get();
     sqlite3_bind_int(s, 1, item.first); sqlite3_bind_double(s, 2, item.second.gravity_constant);
     for (int i = 0; i != 4; ++i) sqlite3_bind_double(s, 3 + i, item.second.imu_calibration[i]);
-    sqlite3_bind_int(s, 7, item.second.fixed_frame_origin_in_map.has_value());
-    if (item.second.fixed_frame_origin_in_map) BindPose(s, 8, *item.second.fixed_frame_origin_in_map);
     trajectory_data.Run();
-  }
-  Statement landmark(db, "INSERT INTO landmarks VALUES(?,?,?,?,?,?,?,?)");
-  for (const auto& item : pose_graph.GetLandmarkPoses()) {
-    sqlite3_bind_text(landmark.get(), 1, item.first.c_str(), -1, SQLITE_TRANSIENT);
-    BindPose(landmark.get(), 2, item.second); landmark.Run();
   }
   Statement trajectory(db, "INSERT INTO trajectories VALUES(?)");
   for (int id : trajectory_ids) { sqlite3_bind_int(trajectory.get(), 1, id); trajectory.Run(); }
@@ -320,12 +310,8 @@ SerializedState ReadSwMap(const std::string& filename) {
   while (sqlite3_step(trajectory_data.get()) == SQLITE_ROW) {
     auto* s = trajectory_data.get(); mapping::TrajectoryData value; value.gravity_constant = sqlite3_column_double(s, 1);
     for (int i = 0; i != 4; ++i) value.imu_calibration[i] = sqlite3_column_double(s, 2 + i);
-    if (sqlite3_column_int(s, 6)) value.fixed_frame_origin_in_map = ReadPose(s, 7);
     result.trajectory_data.emplace(sqlite3_column_int(s, 0), value);
   }
-  Statement landmarks(db, "SELECT * FROM landmarks ORDER BY landmark_id");
-  while (sqlite3_step(landmarks.get()) == SQLITE_ROW)
-    result.landmark_poses.emplace(reinterpret_cast<const char*>(sqlite3_column_text(landmarks.get(), 0)), ReadPose(landmarks.get(), 1));
   CHECK_EQ(sqlite3_close_v2(db), SQLITE_OK); return result;
 }
 

@@ -60,9 +60,7 @@ class TrajectoryBuilderInterface {
     enum class SensorType {
       RANGE = 0,
       IMU,
-      ODOMETRY,
-      FIXED_FRAME_POSE,
-      LANDMARK
+      ODOMETRY
     };
 
     SensorType type;
@@ -93,11 +91,6 @@ class TrajectoryBuilderInterface {
                              const sensor::ImuData& imu_data) = 0;
   virtual void AddSensorData(const std::string& sensor_id,
                              const sensor::OdometryData& odometry_data) = 0;
-  virtual void AddSensorData(
-      const std::string& sensor_id,
-      const sensor::FixedFramePoseData& fixed_frame_pose) = 0;
-  virtual void AddSensorData(const std::string& sensor_id,
-                             const sensor::LandmarkData& landmark_data) = 0;
 };
 
 }  // namespace mapping

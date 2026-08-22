@@ -172,11 +172,6 @@ struct OptimizationProblemOptions {
   CARTOGRAPHER_OPTION_SCALAR(double, local_slam_pose_rotation_weight)
   CARTOGRAPHER_OPTION_SCALAR(double, odometry_translation_weight)
   CARTOGRAPHER_OPTION_SCALAR(double, odometry_rotation_weight)
-  CARTOGRAPHER_OPTION_SCALAR(double, fixed_frame_pose_translation_weight)
-  CARTOGRAPHER_OPTION_SCALAR(double, fixed_frame_pose_rotation_weight)
-  CARTOGRAPHER_OPTION_SCALAR(bool, fixed_frame_pose_use_tolerant_loss)
-  CARTOGRAPHER_OPTION_SCALAR(double, fixed_frame_pose_tolerant_loss_param_a)
-  CARTOGRAPHER_OPTION_SCALAR(double, fixed_frame_pose_tolerant_loss_param_b)
   CARTOGRAPHER_OPTION_SCALAR(bool, log_solver_summary)
   CARTOGRAPHER_OPTION_FIELD(CeresSolverOptions, ceres_solver_options)
   CeresSolverOptions* mutable_ceres_solver_options() {
@@ -266,8 +261,6 @@ struct TrajectoryBuilderOptions {
   };
 
   CARTOGRAPHER_OPTION_SCALAR(bool, pure_localization)
-  CARTOGRAPHER_OPTION_SCALAR(bool, collate_fixed_frame)
-  CARTOGRAPHER_OPTION_SCALAR(bool, collate_landmarks)
   CARTOGRAPHER_OPTION_FIELD(LocalTrajectoryBuilderOptions2D,
                             trajectory_builder_2d_options)
   bool has_trajectory_builder_2d_options() const { return true; }

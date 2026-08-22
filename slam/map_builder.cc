@@ -187,9 +187,6 @@ std::map<int, int> MapBuilder::LoadStateFromFile(
     CHECK(trajectory_remapping.emplace(old_id, new_id).second);
     pose_graph_->FreezeTrajectory(new_id);
   }
-  for (const auto& landmark : state.landmark_poses) {
-    pose_graph_->SetLandmarkPose(landmark.first, landmark.second, true);
-  }
   for (auto& submap : state.submaps) {
     submap.id.trajectory_id = trajectory_remapping.at(submap.id.trajectory_id);
     pose_graph_->AddSerializedSubmap(submap);

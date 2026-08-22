@@ -228,36 +228,6 @@ void PoseGraph::AddOdometryData(const int trajectory_id,
   });
 }
 
-void PoseGraph::AddFixedFramePoseData(
-    const int trajectory_id,
-    const sensor::FixedFramePoseData& fixed_frame_pose_data) {
-  AddWorkItem([=]() LOCKS_EXCLUDED(mutex_) {
-    absl::MutexLock locker(&mutex_);
-    if (CanAddWorkItemModifying(trajectory_id)) {
-      optimization_problem_->AddFixedFramePoseData(trajectory_id,
-                                                   fixed_frame_pose_data);
-    }
-    return WorkItem::Result::kDoNotRunOptimization;
-  });
-}
-
-void PoseGraph::AddLandmarkData(int trajectory_id,
-                                  const sensor::LandmarkData& landmark_data) {
-  AddWorkItem([=]() LOCKS_EXCLUDED(mutex_) {
-    absl::MutexLock locker(&mutex_);
-    if (CanAddWorkItemModifying(trajectory_id)) {
-      for (const auto& observation : landmark_data.landmark_observations) {
-        data_.landmark_nodes[observation.id].landmark_observations.emplace_back(
-            LandmarkNode::LandmarkObservation{
-                trajectory_id, landmark_data.time,
-                observation.landmark_to_tracking_transform,
-                observation.translation_weight, observation.rotation_weight});
-      }
-    }
-    return WorkItem::Result::kDoNotRunOptimization;
-  });
-}
-
 void PoseGraph::ComputeConstraint(const NodeId& node_id,
                                     const SubmapId& submap_id) {
   bool maybe_add_local_constraint = false;
@@ -838,11 +808,10 @@ void PoseGraph::RunOptimization() {
   }
 
   // No other thread is accessing the optimization_problem_,
-  // data_.constraints, data_.frozen_trajectories and data_.landmark_nodes
+  // data_.constraints and data_.frozen_trajectories
   // when executing the Solve. Solve is time consuming, so not taking the mutex
   // before Solve to avoid blocking foreground processing.
-  optimization_problem_->Solve(data_.constraints, GetTrajectoryStates(),
-                               data_.landmark_nodes);
+  optimization_problem_->Solve(data_.constraints, GetTrajectoryStates());
   absl::MutexLock locker(&mutex_);
 
   const auto& submap_data = optimization_problem_->submap_data();
@@ -875,9 +844,6 @@ void PoseGraph::RunOptimization() {
       mutable_trajectory_node.global_pose =
           old_global_to_new_global * mutable_trajectory_node.global_pose;
     }
-  }
-  for (const auto& landmark : optimization_problem_->landmark_data()) {
-    data_.landmark_nodes[landmark.first].global_landmark_pose = landmark.second;
   }
   data_.global_submap_poses_2d = submap_data;
 }

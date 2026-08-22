@@ -42,28 +42,6 @@ PoseGraph::GetTrajectoryStates() const {
   return trajectories_state;
 }
 
-std::map<std::string, transform::Rigid3d> PoseGraph::GetLandmarkPoses() const {
-  std::map<std::string, transform::Rigid3d> landmark_poses;
-  absl::MutexLock locker(&mutex_);
-  for (const auto& landmark : data_.landmark_nodes) {
-    if (!landmark.second.global_landmark_pose.has_value()) continue;
-    landmark_poses[landmark.first] =
-        landmark.second.global_landmark_pose.value();
-  }
-  return landmark_poses;
-}
-
-void PoseGraph::SetLandmarkPose(const std::string& landmark_id,
-                                const transform::Rigid3d& global_pose,
-                                const bool frozen) {
-  AddWorkItem([=]() LOCKS_EXCLUDED(mutex_) {
-    absl::MutexLock locker(&mutex_);
-    data_.landmark_nodes[landmark_id].global_landmark_pose = global_pose;
-    data_.landmark_nodes[landmark_id].frozen = frozen;
-    return WorkItem::Result::kDoNotRunOptimization;
-  });
-}
-
 sensor::MapByTime<sensor::ImuData> PoseGraph::GetImuData() const {
   absl::MutexLock locker(&mutex_);
   return optimization_problem_->imu_data();
@@ -74,22 +52,10 @@ sensor::MapByTime<sensor::OdometryData> PoseGraph::GetOdometryData() const {
   return optimization_problem_->odometry_data();
 }
 
-std::map<std::string, LandmarkNode>
-PoseGraph::GetLandmarkNodes() const {
-  absl::MutexLock locker(&mutex_);
-  return data_.landmark_nodes;
-}
-
 std::map<int, TrajectoryData>
 PoseGraph::GetTrajectoryData() const {
   absl::MutexLock locker(&mutex_);
   return optimization_problem_->trajectory_data();
-}
-
-sensor::MapByTime<sensor::FixedFramePoseData>
-PoseGraph::GetFixedFramePoseData() const {
-  absl::MutexLock locker(&mutex_);
-  return optimization_problem_->fixed_frame_pose_data();
 }
 
 std::vector<Constraint> PoseGraph::constraints() const {

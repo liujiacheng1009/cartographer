@@ -53,7 +53,6 @@ struct SubmapSpec2D {
 class OptimizationProblem2D {
  public:
   using Constraint = ::cartographer::mapping::Constraint;
-  using LandmarkNode = ::cartographer::mapping::LandmarkNode;
   explicit OptimizationProblem2D(
       const OptimizationProblemOptions& options);
   ~OptimizationProblem2D();
@@ -78,19 +77,13 @@ class OptimizationProblem2D {
 
   void Solve(
       const std::vector<Constraint>& constraints,
-      const std::map<int, TrajectoryState>&
-          trajectories_state,
-      const std::map<std::string, LandmarkNode>& landmark_nodes);
+      const std::map<int, TrajectoryState>& trajectories_state);
 
   const MapById<NodeId, NodeSpec2D>& node_data() const {
     return node_data_;
   }
   const MapById<SubmapId, SubmapSpec2D>& submap_data() const {
     return submap_data_;
-  }
-  const std::map<std::string, transform::Rigid3d>& landmark_data()
-      const {
-    return landmark_data_;
   }
   const sensor::MapByTime<sensor::ImuData>& imu_data() const {
     return empty_imu_data_;
@@ -100,16 +93,9 @@ class OptimizationProblem2D {
     return odometry_data_;
   }
 
-  void AddFixedFramePoseData(
-      int trajectory_id,
-      const sensor::FixedFramePoseData& fixed_frame_pose_data);
   void SetTrajectoryData(
       int trajectory_id,
       const TrajectoryData& trajectory_data);
-  const sensor::MapByTime<sensor::FixedFramePoseData>& fixed_frame_pose_data()
-      const {
-    return fixed_frame_pose_data_;
-  }
   const std::map<int, TrajectoryData>& trajectory_data()
       const {
     return trajectory_data_;
@@ -126,10 +112,8 @@ class OptimizationProblem2D {
   OptimizationProblemOptions options_;
   MapById<NodeId, NodeSpec2D> node_data_;
   MapById<SubmapId, SubmapSpec2D> submap_data_;
-  std::map<std::string, transform::Rigid3d> landmark_data_;
   sensor::MapByTime<sensor::ImuData> empty_imu_data_;
   sensor::MapByTime<sensor::OdometryData> odometry_data_;
-  sensor::MapByTime<sensor::FixedFramePoseData> fixed_frame_pose_data_;
   std::map<int, TrajectoryData> trajectory_data_;
 };
 

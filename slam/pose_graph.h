@@ -89,13 +89,6 @@ class PoseGraph {
   void AddOdometryData(int trajectory_id,
                        const sensor::OdometryData& odometry_data)
       LOCKS_EXCLUDED(mutex_);
-  void AddFixedFramePoseData(
-      int trajectory_id,
-      const sensor::FixedFramePoseData& fixed_frame_pose_data)
-      LOCKS_EXCLUDED(mutex_);
-  void AddLandmarkData(int trajectory_id,
-                       const sensor::LandmarkData& landmark_data)
-      LOCKS_EXCLUDED(mutex_);
 
   void DeleteTrajectory(int trajectory_id);
   void FinishTrajectory(int trajectory_id);
@@ -130,20 +123,10 @@ class PoseGraph {
       LOCKS_EXCLUDED(mutex_);
   std::map<int, TrajectoryState> GetTrajectoryStates() const
       LOCKS_EXCLUDED(mutex_);
-  std::map<std::string, transform::Rigid3d> GetLandmarkPoses() const
-      LOCKS_EXCLUDED(mutex_);
-  void SetLandmarkPose(const std::string& landmark_id,
-                       const transform::Rigid3d& global_pose,
-                       const bool frozen = false)
-      LOCKS_EXCLUDED(mutex_);
   sensor::MapByTime<sensor::ImuData> GetImuData() const
       LOCKS_EXCLUDED(mutex_);
   sensor::MapByTime<sensor::OdometryData> GetOdometryData() const
       LOCKS_EXCLUDED(mutex_);
-  sensor::MapByTime<sensor::FixedFramePoseData> GetFixedFramePoseData() const
-      LOCKS_EXCLUDED(mutex_);
-  std::map<std::string /* landmark ID */, LandmarkNode>
-  GetLandmarkNodes() const LOCKS_EXCLUDED(mutex_);
   std::map<int, TrajectoryData> GetTrajectoryData() const
       LOCKS_EXCLUDED(mutex_);
   std::vector<Constraint> constraints() const LOCKS_EXCLUDED(mutex_);

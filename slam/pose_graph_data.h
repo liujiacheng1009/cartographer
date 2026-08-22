@@ -74,9 +74,6 @@ struct PoseGraphData {
   // Data that are currently being shown.
   MapById<NodeId, TrajectoryNode> trajectory_nodes;
 
-  // Global landmark poses with all observations.
-  std::map<std::string /* landmark ID */, LandmarkNode>
-      landmark_nodes;
 
   // How our various trajectories are related.
   TrajectoryConnectivityState trajectory_connectivity_state;

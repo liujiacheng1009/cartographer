@@ -29,19 +29,6 @@ struct Constraint {
   enum Tag { INTRA_SUBMAP, INTER_SUBMAP } tag;
 };
 
-struct LandmarkNode {
-  struct LandmarkObservation {
-    int trajectory_id;
-    common::Time time;
-    transform::Rigid3d landmark_to_tracking_transform;
-    double translation_weight;
-    double rotation_weight;
-  };
-  std::vector<LandmarkObservation> landmark_observations;
-  absl::optional<transform::Rigid3d> global_landmark_pose;
-  bool frozen = false;
-};
-
 struct SubmapPose {
   int version;
   transform::Rigid3d pose;
@@ -55,7 +42,6 @@ struct SubmapData {
 struct TrajectoryData {
   double gravity_constant = 9.8;
   std::array<double, 4> imu_calibration{{1., 0., 0., 0.}};
-  absl::optional<transform::Rigid3d> fixed_frame_origin_in_map;
 };
 
 enum class TrajectoryState { ACTIVE, FINISHED, FROZEN, DELETED };

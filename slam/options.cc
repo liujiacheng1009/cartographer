@@ -186,16 +186,6 @@ OptimizationProblemOptions CreateOptimizationProblemOptions(
       parameter_dictionary->GetDouble("local_slam_pose_translation_weight"));
   options.set_local_slam_pose_rotation_weight(
       parameter_dictionary->GetDouble("local_slam_pose_rotation_weight"));
-  options.set_fixed_frame_pose_translation_weight(
-      parameter_dictionary->GetDouble("fixed_frame_pose_translation_weight"));
-  options.set_fixed_frame_pose_rotation_weight(
-      parameter_dictionary->GetDouble("fixed_frame_pose_rotation_weight"));
-  options.set_fixed_frame_pose_use_tolerant_loss(
-      parameter_dictionary->GetBool("fixed_frame_pose_use_tolerant_loss"));
-  options.set_fixed_frame_pose_tolerant_loss_param_a(
-      parameter_dictionary->GetDouble("fixed_frame_pose_tolerant_loss_param_a"));
-  options.set_fixed_frame_pose_tolerant_loss_param_b(
-      parameter_dictionary->GetDouble("fixed_frame_pose_tolerant_loss_param_b"));
   options.set_log_solver_summary(
       parameter_dictionary->GetBool("log_solver_summary"));
   *options.mutable_ceres_solver_options() =

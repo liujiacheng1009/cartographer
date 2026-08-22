@@ -47,7 +47,6 @@ struct SerializedState {
   std::vector<SerializedNode> nodes;
   std::vector<mapping::Constraint> constraints;
   std::map<int, mapping::TrajectoryData> trajectory_data;
-  std::map<std::string, transform::Rigid3d> landmark_poses;
 };
 
 bool WriteSwMap(const std::string& filename,

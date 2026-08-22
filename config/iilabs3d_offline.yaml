@@ -35,11 +35,6 @@ map_builder:
       local_slam_pose_rotation_weight: 100000.0
       odometry_translation_weight: 100.0
       odometry_rotation_weight: 10.0
-      fixed_frame_pose_translation_weight: 10.0
-      fixed_frame_pose_rotation_weight: 100.0
-      fixed_frame_pose_use_tolerant_loss: false
-      fixed_frame_pose_tolerant_loss_param_a: 1.0
-      fixed_frame_pose_tolerant_loss_param_b: 1.0
       log_solver_summary: false
       ceres_solver_options:
         use_nonmonotonic_steps: false
@@ -101,7 +96,5 @@ trajectory_builder:
           insert_free_space: true
           hit_probability: 0.55
           miss_probability: 0.49
-  collate_fixed_frame: true
-  collate_landmarks: false
 
 tracking_frame: eve/base_footprint
