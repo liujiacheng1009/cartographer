@@ -25,7 +25,6 @@
 #include <vector>
 
 #include "cartographer/application/slam_options.h"
-#include "cartographer/foundation/runtime_stats.h"
 #include "cartographer/foundation/math.h"
 /*
  * Copyright 2016 The Cartographer Authors

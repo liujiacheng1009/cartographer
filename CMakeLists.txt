@@ -38,7 +38,6 @@ find_package(ZLIB REQUIRED)
 set(ALL_LIBRARY_SRCS
   frontend/data_dispatcher.cc
   foundation/sampling.cc
-  foundation/runtime_stats.cc
   application/config.cc
   foundation/sensor_data.cc
   foundation/geometry.cc
