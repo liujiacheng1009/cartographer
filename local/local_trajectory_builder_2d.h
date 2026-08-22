@@ -19,21 +19,19 @@
 
 #include <chrono>
 #include <memory>
+#include <string>
 
 #include "cartographer/core/rigid_transform.h"
 #include "cartographer/mapping/submap_2d.h"
 #include "cartographer/scan_matching/ceres_scan_matcher_2d.h"
 #include "cartographer/scan_matching/real_time_correlative_scan_matcher_2d.h"
 #include "cartographer/local/motion_filter.h"
-#include "cartographer/local/range_data_collator.h"
 #include "cartographer/local/pose_extrapolator.h"
 #include "cartographer/trajectory/options.h"
 #include "cartographer/core/metrics.h"
 #include "cartographer/core/sensor_data.h"
 #include "cartographer/core/voxel_filter.h"
-#include "cartographer/core/sensor_data.h"
 #include "cartographer/core/range_data.h"
-#include "cartographer/core/rigid_transform.h"
 
 namespace cartographer {
 namespace mapping {
@@ -57,7 +55,7 @@ class LocalTrajectoryBuilder2D {
 
   explicit LocalTrajectoryBuilder2D(
       const LocalTrajectoryBuilderOptions2D& options,
-      const std::vector<std::string>& expected_range_sensor_ids);
+      std::string expected_range_sensor_id);
   ~LocalTrajectoryBuilder2D();
 
   LocalTrajectoryBuilder2D(const LocalTrajectoryBuilder2D&) = delete;
@@ -115,7 +113,7 @@ class LocalTrajectoryBuilder2D {
   absl::optional<double> last_thread_cpu_time_seconds_;
   absl::optional<common::Time> last_sensor_time_;
 
-  RangeDataCollator range_data_collator_;
+  const std::string expected_range_sensor_id_;
 };
 
 }  // namespace mapping

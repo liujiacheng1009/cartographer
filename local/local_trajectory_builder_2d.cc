@@ -16,6 +16,7 @@
 
 #include "cartographer/local/local_trajectory_builder_2d.h"
 
+#include <algorithm>
 #include <limits>
 #include <memory>
 
@@ -37,14 +38,14 @@ static auto* kScanMatcherResidualAngleMetric = metrics::Histogram::Null();
 
 LocalTrajectoryBuilder2D::LocalTrajectoryBuilder2D(
     const LocalTrajectoryBuilderOptions2D& options,
-    const std::vector<std::string>& expected_range_sensor_ids)
+    std::string expected_range_sensor_id)
     : options_(options),
       active_submaps_(options.submaps_options()),
       motion_filter_(options_.motion_filter_options()),
       real_time_correlative_scan_matcher_(
           options_.real_time_correlative_scan_matcher_options()),
       ceres_scan_matcher_(options_.ceres_scan_matcher_options()),
-      range_data_collator_(expected_range_sensor_ids) {}
+      expected_range_sensor_id_(std::move(expected_range_sensor_id)) {}
 
 LocalTrajectoryBuilder2D::~LocalTrajectoryBuilder2D() {}
 
@@ -104,33 +105,33 @@ std::unique_ptr<transform::Rigid2d> LocalTrajectoryBuilder2D::ScanMatch(
 std::unique_ptr<LocalTrajectoryBuilder2D::MatchingResult>
 LocalTrajectoryBuilder2D::AddRangeData(
     const std::string& sensor_id,
-    const sensor::TimedPointCloudData& unsynchronized_data) {
-  auto synchronized_data =
-      range_data_collator_.AddRangeData(sensor_id, unsynchronized_data);
-  if (synchronized_data.ranges.empty()) {
-    LOG(INFO) << "Range data collator filling buffer.";
-    return nullptr;
-  }
+    const sensor::TimedPointCloudData& range_data) {
+  CHECK_EQ(sensor_id, expected_range_sensor_id_);
+  if (range_data.ranges.empty()) return nullptr;
+  CHECK(std::is_sorted(
+      range_data.ranges.begin(), range_data.ranges.end(),
+      [](const sensor::TimedRangefinderPoint& lhs,
+         const sensor::TimedRangefinderPoint& rhs) {
+        return lhs.time < rhs.time;
+      })) << "LaserScan points must be ordered by relative time.";
 
-  const common::Time& time = synchronized_data.time;
+  const common::Time& time = range_data.time;
   InitializeExtrapolator(time);
 
-  CHECK(!synchronized_data.ranges.empty());
   // TODO(gaschler): Check if this can strictly be 0.
-  CHECK_LE(synchronized_data.ranges.back().point_time.time, 0.f);
+  CHECK_LE(range_data.ranges.back().time, 0.f);
   const common::Time time_first_point =
-      time +
-      common::FromSeconds(synchronized_data.ranges.front().point_time.time);
+      time + common::FromSeconds(range_data.ranges.front().time);
   if (time_first_point < extrapolator_->GetLastPoseTime()) {
     LOG(INFO) << "Extrapolator is still initializing.";
     return nullptr;
   }
 
   std::vector<transform::Rigid3f> range_data_poses;
-  range_data_poses.reserve(synchronized_data.ranges.size());
+  range_data_poses.reserve(range_data.ranges.size());
   bool warned = false;
-  for (const auto& range : synchronized_data.ranges) {
-    common::Time time_point = time + common::FromSeconds(range.point_time.time);
+  for (const auto& point : range_data.ranges) {
+    common::Time time_point = time + common::FromSeconds(point.time);
     if (time_point < extrapolator_->GetLastExtrapolatedTime()) {
       if (!warned) {
         LOG(ERROR)
@@ -152,12 +153,10 @@ LocalTrajectoryBuilder2D::AddRangeData(
 
   // Drop any returns below the minimum range and convert returns beyond the
   // maximum range into misses.
-  for (size_t i = 0; i < synchronized_data.ranges.size(); ++i) {
-    const sensor::TimedRangefinderPoint& hit =
-        synchronized_data.ranges[i].point_time;
+  for (size_t i = 0; i < range_data.ranges.size(); ++i) {
+    const sensor::TimedRangefinderPoint& hit = range_data.ranges[i];
     const Eigen::Vector3f origin_in_local =
-        range_data_poses[i] *
-        synchronized_data.origins.at(synchronized_data.ranges[i].origin_index);
+        range_data_poses[i] * range_data.origin;
     sensor::RangefinderPoint hit_in_local =
         range_data_poses[i] * sensor::ToRangefinderPoint(hit);
     const Eigen::Vector3f delta = hit_in_local.position - origin_in_local;
@@ -176,7 +175,7 @@ LocalTrajectoryBuilder2D::AddRangeData(
   ++num_accumulated_;
 
   if (num_accumulated_ >= options_.num_accumulated_range_data()) {
-    const common::Time current_sensor_time = synchronized_data.time;
+    const common::Time current_sensor_time = range_data.time;
     absl::optional<common::Duration> sensor_duration;
     if (last_sensor_time_.has_value()) {
       sensor_duration = current_sensor_time - last_sensor_time_.value();

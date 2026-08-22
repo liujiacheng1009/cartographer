@@ -65,7 +65,6 @@ set(ALL_LIBRARY_SRCS
   pose_graph/pose_graph_workflow.cc
   pose_graph/pose_graph_query.cc
   pose_graph/pose_graph_trimmer.cc
-  local/range_data_collator.cc
   scan_matching/real_time_correlative_scan_matcher_2d.cc
   mapping/submap_2d.cc
   trajectory/trajectory_builder_interface.cc

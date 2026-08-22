@@ -69,7 +69,7 @@ MapBuilder
     └── GlobalTrajectoryBuilder
         └── LocalTrajectoryBuilder2D
             ├── PoseExtrapolator
-            ├── RangeDataCollator
+            ├── single scan input
             ├── scan matchers
             └── ActiveSubmaps2D
 ```
@@ -136,7 +136,7 @@ dispatcher 使用 C++20 `std::variant<TimedPointCloudData, OdometryData>` 保存
 
 一次 scan 进入 `LocalTrajectoryBuilder2D::AddRangeData()` 后依次经过：
 
-1. `RangeDataCollator` 汇聚当前 range sensor 数据；
+1. 校验输入是唯一的 `scan` sensor，且帧内点时间单调递增；
 2. `PoseExtrapolator` 根据已有 pose 和 odometry 预测扫描期间姿态；
 3. 把逐点数据变换到重力对齐坐标系并做距离过滤；
 4. 按配置累积若干帧并做 voxel filtering；

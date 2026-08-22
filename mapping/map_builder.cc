@@ -51,7 +51,7 @@ MapBuilderOptions CreateMapBuilderOptions(
 namespace {
 
 
-std::vector<std::string> SelectRangeSensorIds(
+std::string SelectRangeSensorId(
     const std::set<MapBuilder::SensorId>& expected_sensor_ids) {
   std::vector<std::string> range_sensor_ids;
   for (const MapBuilder::SensorId& sensor_id : expected_sensor_ids) {
@@ -59,7 +59,9 @@ std::vector<std::string> SelectRangeSensorIds(
       range_sensor_ids.push_back(sensor_id.id);
     }
   }
-  return range_sensor_ids;
+  CHECK_EQ(range_sensor_ids.size(), 1u)
+      << "The bag application requires exactly one range sensor.";
+  return range_sensor_ids.front();
 }
 
 void MaybeAddPureLocalizationTrimmer(
@@ -112,7 +114,7 @@ int MapBuilder::AddTrajectoryBuilder(
   if (trajectory_options.has_trajectory_builder_2d_options()) {
     local_trajectory_builder = absl::make_unique<LocalTrajectoryBuilder2D>(
         trajectory_options.trajectory_builder_2d_options(),
-        SelectRangeSensorIds(expected_sensor_ids));
+        SelectRangeSensorId(expected_sensor_ids));
   }
   DCHECK(dynamic_cast<PoseGraph*>(pose_graph_.get()));
   trajectory_builders_.push_back(absl::make_unique<CollatedTrajectoryBuilder>(
