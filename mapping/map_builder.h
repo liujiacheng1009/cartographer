@@ -24,7 +24,7 @@
 
 #include "cartographer/core/parameter_dictionary.h"
 #include "cartographer/core/thread_pool.h"
-#include "cartographer/core/collator.h"
+#include "cartographer/core/data_dispatcher.h"
 #include "cartographer/pose_graph/id.h"
 #include "cartographer/trajectory/options.h"
 #include "cartographer/pose_graph/pose_graph.h"
@@ -86,7 +86,7 @@ class MapBuilder {
 
   std::unique_ptr<PoseGraph> pose_graph_;
 
-  std::unique_ptr<sensor::Collator> sensor_collator_;
+  std::unique_ptr<sensor::DataDispatcher> data_dispatcher_;
   std::vector<std::unique_ptr<mapping::TrajectoryBuilderInterface>>
       trajectory_builders_;
 };

@@ -30,10 +30,10 @@ constexpr double kSensorDataRatesLoggingPeriodSeconds = 15.;
 
 CollatedTrajectoryBuilder::CollatedTrajectoryBuilder(
     const TrajectoryBuilderOptions& trajectory_options,
-    sensor::Collator* const sensor_collator, const int trajectory_id,
+    sensor::DataDispatcher* const data_dispatcher, const int trajectory_id,
     const std::set<SensorId>& expected_sensor_ids,
     std::unique_ptr<TrajectoryBuilderInterface> wrapped_trajectory_builder)
-    : sensor_collator_(sensor_collator),
+    : data_dispatcher_(data_dispatcher),
       trajectory_id_(trajectory_id),
       wrapped_trajectory_builder_(std::move(wrapped_trajectory_builder)),
       last_logging_time_(std::chrono::steady_clock::now()) {
@@ -41,19 +41,15 @@ CollatedTrajectoryBuilder::CollatedTrajectoryBuilder(
   for (const auto& sensor_id : expected_sensor_ids) {
     expected_sensor_id_strings.insert(sensor_id.id);
   }
-  sensor_collator_->AddTrajectory(
+  data_dispatcher_->AddTrajectory(
       trajectory_id, expected_sensor_id_strings,
-      [this](const std::string& sensor_id, std::unique_ptr<sensor::Data> data) {
-        HandleCollatedSensorData(sensor_id, std::move(data));
+      [this](const std::string& sensor_id, sensor::SensorData data) {
+        HandleSensorData(sensor_id, std::move(data));
       });
 }
 
-void CollatedTrajectoryBuilder::AddData(std::unique_ptr<sensor::Data> data) {
-  sensor_collator_->AddSensorData(trajectory_id_, std::move(data));
-}
-
-void CollatedTrajectoryBuilder::HandleCollatedSensorData(
-    const std::string& sensor_id, std::unique_ptr<sensor::Data> data) {
+void CollatedTrajectoryBuilder::HandleSensorData(
+    const std::string& sensor_id, sensor::SensorData data) {
   auto it = rate_timers_.find(sensor_id);
   if (it == rate_timers_.end()) {
     it = rate_timers_
@@ -63,7 +59,8 @@ void CollatedTrajectoryBuilder::HandleCollatedSensorData(
                      common::FromSeconds(kSensorDataRatesLoggingPeriodSeconds)))
              .first;
   }
-  it->second.Pulse(data->GetTime());
+  it->second.Pulse(std::visit(
+      [](const auto& sensor_data) { return sensor_data.time; }, data));
 
   if (std::chrono::steady_clock::now() - last_logging_time_ >
       common::FromSeconds(kSensorDataRatesLoggingPeriodSeconds)) {
@@ -73,7 +70,11 @@ void CollatedTrajectoryBuilder::HandleCollatedSensorData(
     last_logging_time_ = std::chrono::steady_clock::now();
   }
 
-  data->AddToTrajectoryBuilder(wrapped_trajectory_builder_.get());
+  std::visit(
+      [this, &sensor_id](const auto& sensor_data) {
+        wrapped_trajectory_builder_->AddSensorData(sensor_id, sensor_data);
+      },
+      data);
 }
 
 }  // namespace mapping

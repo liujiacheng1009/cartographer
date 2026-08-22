@@ -25,7 +25,7 @@
 #include "cartographer/trajectory/collated_trajectory_builder.h"
 #include "cartographer/trajectory/global_trajectory_builder.h"
 #include "cartographer/local/motion_filter.h"
-#include "cartographer/core/collator.h"
+#include "cartographer/core/data_dispatcher.h"
 #include "cartographer/core/voxel_filter.h"
 #include "cartographer/core/rigid_transform.h"
 #include "cartographer/core/transform.h"
@@ -92,7 +92,7 @@ MapBuilder::MapBuilder(const MapBuilderOptions& options)
           options_.pose_graph_options().optimization_problem_options()),
       &thread_pool_);
   CHECK(!options.collate_by_trajectory());
-  sensor_collator_ = absl::make_unique<sensor::Collator>();
+  data_dispatcher_ = absl::make_unique<sensor::DataDispatcher>();
 }
 
 int MapBuilder::AddTrajectoryBuilder(
@@ -116,7 +116,7 @@ int MapBuilder::AddTrajectoryBuilder(
   }
   DCHECK(dynamic_cast<PoseGraph*>(pose_graph_.get()));
   trajectory_builders_.push_back(absl::make_unique<CollatedTrajectoryBuilder>(
-      trajectory_options, sensor_collator_.get(), trajectory_id,
+      trajectory_options, data_dispatcher_.get(), trajectory_id,
       expected_sensor_ids,
       CreateGlobalTrajectoryBuilder2D(
           std::move(local_trajectory_builder), trajectory_id,
@@ -142,7 +142,7 @@ int MapBuilder::AddTrajectoryForDeserialization() {
 }
 
 void MapBuilder::FinishTrajectory(const int trajectory_id) {
-  sensor_collator_->FinishTrajectory(trajectory_id);
+  data_dispatcher_->FinishTrajectory(trajectory_id);
   pose_graph_->FinishTrajectory(trajectory_id);
 }
 

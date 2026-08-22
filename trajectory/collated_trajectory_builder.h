@@ -27,20 +27,19 @@
 #include "cartographer/core/port.h"
 #include "cartographer/mapping/submaps.h"
 #include "cartographer/trajectory/trajectory_builder_interface.h"
-#include "cartographer/core/collator.h"
+#include "cartographer/core/data_dispatcher.h"
 
 namespace cartographer {
 namespace mapping {
 
-// Collates sensor data using a sensor::CollatorInterface, then passes it on to
-// a mapping::TrajectoryBuilderInterface which is common for 2D and 3D.
+// Dispatches timestamp-ordered sensor data to the trajectory builder.
 class CollatedTrajectoryBuilder : public TrajectoryBuilderInterface {
  public:
   using SensorId = TrajectoryBuilderInterface::SensorId;
 
   CollatedTrajectoryBuilder(
       const TrajectoryBuilderOptions& trajectory_options,
-      sensor::Collator* sensor_collator, int trajectory_id,
+      sensor::DataDispatcher* data_dispatcher, int trajectory_id,
       const std::set<SensorId>& expected_sensor_ids,
       std::unique_ptr<TrajectoryBuilderInterface> wrapped_trajectory_builder);
   ~CollatedTrajectoryBuilder() override {}
@@ -52,21 +51,19 @@ class CollatedTrajectoryBuilder : public TrajectoryBuilderInterface {
   void AddSensorData(
       const std::string& sensor_id,
       const sensor::TimedPointCloudData& timed_point_cloud_data) override {
-    AddData(sensor::MakeDispatchable(sensor_id, timed_point_cloud_data));
+    data_dispatcher_->AddSensorData(trajectory_id_, sensor_id,
+                                    timed_point_cloud_data);
   }
 
   void AddSensorData(const std::string& sensor_id,
                      const sensor::OdometryData& odometry_data) override {
-    AddData(sensor::MakeDispatchable(sensor_id, odometry_data));
+    data_dispatcher_->AddSensorData(trajectory_id_, sensor_id, odometry_data);
   }
 
  private:
-  void AddData(std::unique_ptr<sensor::Data> data);
+  void HandleSensorData(const std::string& sensor_id, sensor::SensorData data);
 
-  void HandleCollatedSensorData(const std::string& sensor_id,
-                                std::unique_ptr<sensor::Data> data);
-
-  sensor::Collator* const sensor_collator_;
+  sensor::DataDispatcher* const data_dispatcher_;
   const int trajectory_id_;
   std::unique_ptr<TrajectoryBuilderInterface> wrapped_trajectory_builder_;
 

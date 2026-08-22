@@ -117,16 +117,20 @@ LaserScan 的数据时间定义为最后一个有效扫描点所在时刻；各�
 
 ## 5. 时间排序与分派
 
-`CollatedTrajectoryBuilder` 把两种强类型数据包装成 `sensor::Data`，提交给
-`Collator`。`Collator` 为 `(trajectory_id, sensor_id)` 各维护一个队列，并保证：
+`CollatedTrajectoryBuilder` 把两种强类型数据直接提交给 `DataDispatcher`。
+dispatcher 使用 C++20 `std::variant<TimedPointCloudData, OdometryData>` 保存数据，
+为 `(trajectory_id, sensor_id)` 各维护一个无锁 `std::deque`，并保证：
 
 - scan 和 odom 按数据时间全局递增分派；
 - 两个传感器都到达共同起始时间之前，不提前释放不确定顺序的数据；
 - 单个队列缺数据时暂停分派；
 - `FinishTrajectory()` 标记所有队列结束并排空剩余数据。
 
-排序后的数据通过虚分派重新进入 `GlobalTrajectoryBuilder::AddSensorData()`。bag 文件中
-消息的物理排列可以交错，但每个传感器自身仍必须保持时间有序。
+排序后的数据通过 `std::visit` 进入匹配的
+`GlobalTrajectoryBuilder::AddSensorData()` 重载，不再创建 `sensor::Data` 虚对象，也不
+再经过 `BlockingQueue`/`OrderedMultiQueue`。bag 文件中消息的物理排列可以交错，但每个
+传感器自身仍必须保持时间有序。当前 bag reader 是唯一生产者，后台 PoseGraph 不会写
+传感器队列，因此 dispatcher 明确采用单线程同步模型。
 
 ## 6. `/scan` 的局部 SLAM 路径
 
@@ -234,7 +238,7 @@ bag 读完后的顺序不可交换：
 |---|---|
 | bag 主流程 | `application/bag_runner.cc` |
 | 栈装配与状态加载 | `mapping/map_builder.cc` |
-| 时间排序 | `core/collator.cc`、`trajectory/collated_trajectory_builder.cc` |
+| 时间排序 | `core/data_dispatcher.cc`、`trajectory/collated_trajectory_builder.cc` |
 | 前后端桥接 | `trajectory/global_trajectory_builder.cc` |
 | 局部 SLAM | `local/local_trajectory_builder_2d.cc` |
 | 子图和栅格 | `mapping/submap_2d.cc`、`mapping/grid_2d.cc` |

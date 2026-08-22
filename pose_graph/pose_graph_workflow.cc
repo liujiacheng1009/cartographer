@@ -164,7 +164,7 @@ NodeId PoseGraph::AddNode(
   // execute the lambda.
   const bool newly_finished_submap =
       insertion_submaps.front()->insertion_finished();
-  AddWorkItem([=]() LOCKS_EXCLUDED(mutex_) {
+  AddWorkItem([=, this]() LOCKS_EXCLUDED(mutex_) {
     return ComputeConstraintsForNode(node_id, insertion_submaps,
                                      newly_finished_submap);
   });
@@ -208,7 +208,7 @@ void PoseGraph::AddTrajectoryIfNeeded(const int trajectory_id) {
 
 void PoseGraph::AddOdometryData(const int trajectory_id,
                                   const sensor::OdometryData& odometry_data) {
-  AddWorkItem([=]() LOCKS_EXCLUDED(mutex_) {
+  AddWorkItem([=, this]() LOCKS_EXCLUDED(mutex_) {
     absl::MutexLock locker(&mutex_);
     if (CanAddWorkItemModifying(trajectory_id)) {
       optimization_problem_->AddOdometryData(trajectory_id, odometry_data);
