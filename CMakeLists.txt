@@ -51,7 +51,6 @@ set(ALL_LIBRARY_SRCS
   core/time.cc
   core/timestamped_transform.cc
   core/voxel_filter.cc
-  slam/ceres_pose.cc
   slam/ceres_scan_matcher_2d.cc
   slam/collated_trajectory_builder.cc
   slam/constraint_builder_2d.cc
@@ -65,7 +64,6 @@ set(ALL_LIBRARY_SRCS
   slam/local_trajectory_builder_2d.cc
   slam/map_builder.cc
   slam/motion_filter.cc
-  slam/occupied_space_cost_function_2d.cc
   slam/optimization_problem_2d.cc
   slam/options.cc
   slam/overlapping_submaps_trimmer_2d.cc
@@ -78,7 +76,6 @@ set(ALL_LIBRARY_SRCS
   slam/probability_values.cc
   slam/range_data_collator.cc
   slam/real_time_correlative_scan_matcher_2d.cc
-  slam/spa_cost_function_2d.cc
   slam/submap_2d.cc
   slam/trajectory_builder_interface.cc
   slam/trajectory_connectivity_state.cc
