@@ -18,7 +18,7 @@
 
 #include "cartographer/scan_matching/ceres_scan_matcher_2d.h"
 #include "cartographer/scan_matching/fast_correlative_scan_matcher_2d.h"
-#include "cartographer/core/voxel_filter.h"
+#include "cartographer/foundation/voxel_filter.h"
 
 namespace cartographer {
 namespace mapping {

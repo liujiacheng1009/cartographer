@@ -27,19 +27,19 @@
 #include "Eigen/Core"
 #include "Eigen/Geometry"
 #include "absl/synchronization/mutex.h"
-#include "cartographer/core/fixed_ratio_sampler.h"
-#include "cartographer/core/histogram.h"
-#include "cartographer/core/math.h"
-#include "cartographer/core/thread_pool.h"
-#include "cartographer/core/thread_pool.h"
+#include "cartographer/foundation/sampling.h"
+#include "cartographer/foundation/runtime_stats.h"
+#include "cartographer/foundation/math.h"
+#include "cartographer/backend/task_executor.h"
+#include "cartographer/backend/task_executor.h"
 #include "cartographer/mapping/submap_2d.h"
 #include "cartographer/scan_matching/ceres_scan_matcher_2d.h"
 #include "cartographer/scan_matching/fast_correlative_scan_matcher_2d.h"
 #include "cartographer/backend/backend_types.h"
-#include "cartographer/trajectory/options.h"
-#include "cartographer/core/metrics.h"
-#include "cartographer/core/voxel_filter.h"
-#include "cartographer/core/point_cloud.h"
+#include "cartographer/application/slam_options.h"
+#include "cartographer/foundation/runtime_stats.h"
+#include "cartographer/foundation/voxel_filter.h"
+#include "cartographer/foundation/sensor_data.h"
 
 namespace cartographer {
 namespace mapping {
@@ -63,7 +63,7 @@ class ConstraintEngine2D {
   using Result = std::vector<Constraint>;
 
   ConstraintEngine2D(const ConstraintBuilderOptions& options,
-                      common::ThreadPool* thread_pool);
+                      common::TaskExecutor* task_executor);
   ~ConstraintEngine2D();
 
   ConstraintEngine2D(const ConstraintEngine2D&) = delete;
@@ -95,7 +95,7 @@ class ConstraintEngine2D {
 
   // Registers the 'callback' to be called with the results, after all
   // computations triggered by 'MaybeAdd*Constraint' have finished.
-  // 'callback' is executed in the 'ThreadPool'.
+  // 'callback' is executed in the 'TaskExecutor'.
   void WhenDone(const std::function<void(const Result&)>& callback);
 
   // Returns the number of consecutive finished nodes.
@@ -134,7 +134,7 @@ class ConstraintEngine2D {
   void RunWhenDoneCallback() LOCKS_EXCLUDED(mutex_);
 
   const ConstraintBuilderOptions options_;
-  common::ThreadPool* thread_pool_;
+  common::TaskExecutor* task_executor_;
   absl::Mutex mutex_;
 
   // 'callback' set by WhenDone().

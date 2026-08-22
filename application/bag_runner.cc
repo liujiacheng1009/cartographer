@@ -12,9 +12,9 @@
 #include <set>
 #include <string>
 
-#include "cartographer/core/parameter_dictionary.h"
-#include "cartographer/core/rigid_transform.h"
-#include "cartographer/core/transform.h"
+#include "cartographer/application/config.h"
+#include "cartographer/foundation/geometry.h"
+#include "cartographer/foundation/transform.h"
 #include "cartographer/application/slam_system.h"
 #include "gflags/gflags.h"
 #include "glog/logging.h"

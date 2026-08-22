@@ -9,8 +9,8 @@
 #include <vector>
 
 #include "absl/types/optional.h"
-#include "cartographer/core/rigid_transform.h"
-#include "cartographer/core/rigid_transform.h"
+#include "cartographer/foundation/geometry.h"
+#include "cartographer/foundation/geometry.h"
 #include "cartographer/backend/id.h"
 #include "cartographer/mapping/submaps.h"
 

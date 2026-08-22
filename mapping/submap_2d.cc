@@ -24,7 +24,7 @@
 
 #include "Eigen/Geometry"
 #include "absl/memory/memory.h"
-#include "cartographer/core/port.h"
+#include "cartographer/foundation/time.h"
 /*
  * Copyright 2016 The Cartographer Authors
  *
@@ -68,7 +68,7 @@
 
 #include <vector>
 
-#include "cartographer/core/transform.h"
+#include "cartographer/foundation/transform.h"
 
 namespace cartographer {
 namespace mapping {

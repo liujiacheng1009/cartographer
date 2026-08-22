@@ -31,11 +31,11 @@
 
 #include "Eigen/Eigenvalues"
 #include "absl/memory/memory.h"
-#include "cartographer/core/math.h"
+#include "cartographer/foundation/math.h"
 #include "cartographer/backend/overlapping_submaps_trimmer_2d.h"
-#include "cartographer/trajectory/options.h"
-#include "cartographer/core/voxel_filter.h"
-#include "cartographer/core/transform.h"
+#include "cartographer/application/slam_options.h"
+#include "cartographer/foundation/voxel_filter.h"
+#include "cartographer/foundation/transform.h"
 #include "glog/logging.h"
 
 namespace cartographer {
@@ -52,11 +52,11 @@ static auto* kDeletedSubmapsMetric = metrics::Gauge::Null();
 TrajectoryBackend2D::TrajectoryBackend2D(
     const PoseGraphOptions& options,
     std::unique_ptr<optimization::PoseOptimizer2D> optimization_problem,
-    common::ThreadPool* thread_pool)
+    common::TaskExecutor* task_executor)
     : options_(options),
       optimization_problem_(std::move(optimization_problem)),
-      constraint_builder_(options_.constraint_builder_options(), thread_pool),
-      thread_pool_(thread_pool) {
+      constraint_builder_(options_.constraint_builder_options(), task_executor),
+      task_executor_(task_executor) {
   if (options.has_overlapping_submaps_trimmer_2d()) {
     const auto& trimmer_options = options.overlapping_submaps_trimmer_2d();
     AddTrimmer(absl::make_unique<OverlappingSubmapsTrimmer2D>(
@@ -178,7 +178,7 @@ void TrajectoryBackend2D::AddWorkItem(
     work_queue_ = absl::make_unique<WorkQueue>();
     auto task = absl::make_unique<common::Task>();
     task->SetWorkItem([this]() { DrainWorkQueue(); });
-    thread_pool_->Schedule(std::move(task));
+    task_executor_->Schedule(std::move(task));
   }
   const auto now = std::chrono::steady_clock::now();
   work_queue_->push_back({now, work_item});

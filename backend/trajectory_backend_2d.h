@@ -29,9 +29,9 @@
 #include "Eigen/Geometry"
 #include "absl/container/flat_hash_map.h"
 #include "absl/synchronization/mutex.h"
-#include "cartographer/core/fixed_ratio_sampler.h"
-#include "cartographer/core/thread_pool.h"
-#include "cartographer/core/rigid_transform.h"
+#include "cartographer/foundation/sampling.h"
+#include "cartographer/backend/task_executor.h"
+#include "cartographer/foundation/geometry.h"
 #include "cartographer/mapping/submap_2d.h"
 #include "cartographer/backend/constraint_engine_2d.h"
 #include "cartographer/backend/pose_optimizer_2d.h"
@@ -42,11 +42,11 @@
 #include "cartographer/backend/backend_trimmer.h"
 #include "cartographer/mapping/grid_2d.h"
 #include "cartographer/serialization/swmap.h"
-#include "cartographer/core/metrics.h"
-#include "cartographer/core/sensor_data.h"
-#include "cartographer/core/point_cloud.h"
-#include "cartographer/core/rigid_transform.h"
-#include "cartographer/core/transform.h"
+#include "cartographer/foundation/runtime_stats.h"
+#include "cartographer/foundation/sensor_data.h"
+#include "cartographer/foundation/sensor_data.h"
+#include "cartographer/foundation/geometry.h"
+#include "cartographer/foundation/transform.h"
 
 namespace cartographer {
 namespace mapping {
@@ -67,7 +67,7 @@ class TrajectoryBackend2D {
   TrajectoryBackend2D(
       const PoseGraphOptions& options,
       std::unique_ptr<optimization::PoseOptimizer2D> optimization_problem,
-      common::ThreadPool* thread_pool);
+      common::TaskExecutor* task_executor);
   ~TrajectoryBackend2D();
 
   TrajectoryBackend2D(const TrajectoryBackend2D&) = delete;
@@ -238,7 +238,7 @@ class TrajectoryBackend2D {
   constraints::ConstraintEngine2D constraint_builder_;
 
   // Thread pool used for handling the work queue.
-  common::ThreadPool* const thread_pool_;
+  common::TaskExecutor* const task_executor_;
 
   // List of all trimmers to consult when optimizations finish.
   std::vector<std::unique_ptr<PoseGraphTrimmer>> trimmers_ GUARDED_BY(mutex_);

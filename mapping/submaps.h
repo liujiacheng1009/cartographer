@@ -21,8 +21,8 @@
 #include <vector>
 
 #include "Eigen/Geometry"
-#include "cartographer/core/math.h"
-#include "cartographer/core/port.h"
+#include "cartographer/foundation/math.h"
+#include "cartographer/foundation/time.h"
 #include "cartographer/backend/id.h"
 #include "cartographer/mapping/grid_2d.h"
 #include "cartographer/mapping/submap_texture.h"

@@ -20,8 +20,8 @@
 #include <vector>
 
 #include "Eigen/Core"
-#include "cartographer/trajectory/options.h"
-#include "cartographer/core/parameter_dictionary.h"
+#include "cartographer/application/slam_options.h"
+#include "cartographer/application/config.h"
 #include "cartographer/mapping/grid_2d.h"
 /*
  * Copyright 2016 The Cartographer Authors
@@ -43,7 +43,7 @@
 #define CARTOGRAPHER_MAPPING_INTERNAL_2D_SCAN_MATCHING_OCCUPIED_SPACE_COST_FUNCTION_2D_H_
 
 #include "cartographer/mapping/grid_2d.h"
-#include "cartographer/core/point_cloud.h"
+#include "cartographer/foundation/sensor_data.h"
 #include "ceres/ceres.h"
 
 namespace cartographer {
@@ -311,7 +311,7 @@ class TranslationDeltaCostFunctor2D {
 }  // namespace cartographer
 
 #endif  // CARTOGRAPHER_MAPPING_INTERNAL_2D_SCAN_MATCHING_TRANSLATION_DELTA_COST_FUNCTOR_2D_H_
-#include "cartographer/core/transform.h"
+#include "cartographer/foundation/transform.h"
 #include "ceres/ceres.h"
 #include "glog/logging.h"
 

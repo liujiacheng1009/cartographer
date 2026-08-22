@@ -18,7 +18,7 @@
 
 #include <cmath>
 
-#include "cartographer/core/math.h"
+#include "cartographer/foundation/math.h"
 
 namespace cartographer {
 namespace mapping {

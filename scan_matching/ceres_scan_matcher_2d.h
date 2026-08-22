@@ -21,10 +21,10 @@
 #include <vector>
 
 #include "Eigen/Core"
-#include "cartographer/core/parameter_dictionary.h"
+#include "cartographer/application/config.h"
 #include "cartographer/mapping/grid_2d.h"
-#include "cartographer/trajectory/options.h"
-#include "cartographer/core/point_cloud.h"
+#include "cartographer/application/slam_options.h"
+#include "cartographer/foundation/sensor_data.h"
 #include "ceres/ceres.h"
 
 namespace cartographer {

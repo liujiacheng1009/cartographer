@@ -18,16 +18,16 @@
 
 #include "absl/memory/memory.h"
 #include "absl/types/optional.h"
-#include "cartographer/core/rigid_transform.h"
+#include "cartographer/foundation/geometry.h"
 #include "cartographer/serialization/swmap.h"
-#include "cartographer/trajectory/local_slam_2d.h"
+#include "cartographer/frontend/local_slam_2d.h"
 #include "cartographer/backend/trajectory_backend_2d.h"
-#include "cartographer/trajectory/trajectory_frontend_2d.h"
-#include "cartographer/trajectory/motion_filter.h"
-#include "cartographer/core/data_dispatcher.h"
-#include "cartographer/core/voxel_filter.h"
-#include "cartographer/core/rigid_transform.h"
-#include "cartographer/core/transform.h"
+#include "cartographer/frontend/frontend_2d.h"
+#include "cartographer/frontend/motion_filter.h"
+#include "cartographer/frontend/data_dispatcher.h"
+#include "cartographer/foundation/voxel_filter.h"
+#include "cartographer/foundation/geometry.h"
+#include "cartographer/foundation/transform.h"
 
 namespace cartographer {
 namespace mapping {
@@ -85,13 +85,13 @@ void MaybeAddPureLocalizationTrimmer(
 }  // namespace
 
 SlamSystem::SlamSystem(const SlamSystemOptions& options)
-    : options_(options), thread_pool_(options.num_background_threads()) {
+    : options_(options), task_executor_(options.num_background_threads()) {
   CHECK(options.use_trajectory_builder_2d());
   backend_ = absl::make_unique<TrajectoryBackend2D>(
       options_.pose_graph_options(),
       absl::make_unique<optimization::PoseOptimizer2D>(
           options_.pose_graph_options().optimization_problem_options()),
-      &thread_pool_);
+      &task_executor_);
   CHECK(!options.collate_by_trajectory());
   data_dispatcher_ = absl::make_unique<sensor::DataDispatcher>();
 }
@@ -109,7 +109,7 @@ int SlamSystem::AddTrajectoryBuilder(
         MotionFilter(trajectory_options.pose_graph_odometry_motion_filter()));
   }
 
-  trajectory_builders_.push_back(absl::make_unique<TrajectoryFrontend2D>(
+  trajectory_builders_.push_back(absl::make_unique<Frontend2D>(
       trajectory_options, data_dispatcher_.get(), trajectory_id,
       expected_sensor_ids, SelectRangeSensorId(expected_sensor_ids),
       backend_.get(), std::move(local_slam_result_callback),

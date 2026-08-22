@@ -29,12 +29,12 @@
 
 #include "Eigen/Eigenvalues"
 #include "absl/memory/memory.h"
-#include "cartographer/core/math.h"
-#include "cartographer/core/thread_pool.h"
-#include "cartographer/trajectory/options.h"
-#include "cartographer/trajectory/options.h"
-#include "cartographer/core/metrics.h"
-#include "cartographer/core/transform.h"
+#include "cartographer/foundation/math.h"
+#include "cartographer/backend/task_executor.h"
+#include "cartographer/application/slam_options.h"
+#include "cartographer/application/slam_options.h"
+#include "cartographer/foundation/runtime_stats.h"
+#include "cartographer/foundation/transform.h"
 #include "glog/logging.h"
 
 namespace cartographer {
@@ -56,9 +56,9 @@ transform::Rigid2d ComputeSubmapPose(const Submap2D& submap) {
 
 ConstraintEngine2D::ConstraintEngine2D(
     const ConstraintBuilderOptions& options,
-    common::ThreadPool* const thread_pool)
+    common::TaskExecutor* const task_executor)
     : options_(options),
-      thread_pool_(thread_pool),
+      task_executor_(task_executor),
       finish_node_task_(absl::make_unique<common::Task>()),
       when_done_task_(absl::make_unique<common::Task>()),
       ceres_scan_matcher_(options.ceres_scan_matcher_options()) {}
@@ -105,7 +105,7 @@ void ConstraintEngine2D::MaybeAddConstraint(
   });
   constraint_task->AddDependency(scan_matcher->creation_task_handle);
   auto constraint_task_handle =
-      thread_pool_->Schedule(std::move(constraint_task));
+      task_executor_->Schedule(std::move(constraint_task));
   finish_node_task_->AddDependency(constraint_task_handle);
 }
 
@@ -130,7 +130,7 @@ void ConstraintEngine2D::MaybeAddGlobalConstraint(
   });
   constraint_task->AddDependency(scan_matcher->creation_task_handle);
   auto constraint_task_handle =
-      thread_pool_->Schedule(std::move(constraint_task));
+      task_executor_->Schedule(std::move(constraint_task));
   finish_node_task_->AddDependency(constraint_task_handle);
 }
 
@@ -142,7 +142,7 @@ void ConstraintEngine2D::NotifyEndOfNode() {
     ++num_finished_nodes_;
   });
   auto finish_node_task_handle =
-      thread_pool_->Schedule(std::move(finish_node_task_));
+      task_executor_->Schedule(std::move(finish_node_task_));
   finish_node_task_ = absl::make_unique<common::Task>();
   when_done_task_->AddDependency(finish_node_task_handle);
   ++num_started_nodes_;
@@ -156,7 +156,7 @@ void ConstraintEngine2D::WhenDone(
   when_done_ = absl::make_unique<std::function<void(const Result&)>>(callback);
   CHECK(when_done_task_ != nullptr);
   when_done_task_->SetWorkItem([this] { RunWhenDoneCallback(); });
-  thread_pool_->Schedule(std::move(when_done_task_));
+  task_executor_->Schedule(std::move(when_done_task_));
   when_done_task_ = absl::make_unique<common::Task>();
 }
 
@@ -179,7 +179,7 @@ ConstraintEngine2D::DispatchScanMatcherConstruction(const SubmapId& submap_id,
                 *submap_scan_matcher.grid, scan_matcher_options);
       });
   submap_scan_matcher.creation_task_handle =
-      thread_pool_->Schedule(std::move(scan_matcher_task));
+      task_executor_->Schedule(std::move(scan_matcher_task));
   return &submap_scan_matchers_.at(submap_id);
 }
 

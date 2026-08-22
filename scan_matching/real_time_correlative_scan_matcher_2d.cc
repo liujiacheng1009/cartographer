@@ -22,11 +22,11 @@
 #include <limits>
 
 #include "Eigen/Geometry"
-#include "cartographer/core/parameter_dictionary.h"
-#include "cartographer/core/math.h"
+#include "cartographer/application/config.h"
+#include "cartographer/foundation/math.h"
 #include "cartographer/mapping/grid_2d.h"
-#include "cartographer/core/point_cloud.h"
-#include "cartographer/core/transform.h"
+#include "cartographer/foundation/sensor_data.h"
+#include "cartographer/foundation/transform.h"
 #include "glog/logging.h"
 
 namespace cartographer {

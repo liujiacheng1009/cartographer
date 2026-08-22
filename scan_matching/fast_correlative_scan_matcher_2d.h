@@ -29,11 +29,11 @@
 #include <vector>
 
 #include "Eigen/Core"
-#include "cartographer/core/port.h"
+#include "cartographer/foundation/time.h"
 #include "cartographer/mapping/grid_2d.h"
 #include "cartographer/scan_matching/correlative_scan_matcher_2d.h"
-#include "cartographer/trajectory/options.h"
-#include "cartographer/core/point_cloud.h"
+#include "cartographer/application/slam_options.h"
+#include "cartographer/foundation/sensor_data.h"
 
 namespace cartographer {
 namespace mapping {

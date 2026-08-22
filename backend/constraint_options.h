@@ -17,8 +17,8 @@
 #ifndef CARTOGRAPHER_BACKEND_CONSTRAINT_OPTIONS_H_
 #define CARTOGRAPHER_BACKEND_CONSTRAINT_OPTIONS_H_
 
-#include "cartographer/core/parameter_dictionary.h"
-#include "cartographer/trajectory/options.h"
+#include "cartographer/application/config.h"
+#include "cartographer/application/slam_options.h"
 
 namespace cartographer {
 namespace mapping {

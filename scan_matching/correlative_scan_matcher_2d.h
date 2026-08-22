@@ -20,10 +20,10 @@
 #include <vector>
 
 #include "Eigen/Core"
-#include "cartographer/core/parameter_dictionary.h"
+#include "cartographer/application/config.h"
 #include "cartographer/mapping/grid_2d.h"
 #include "cartographer/mapping/grid_2d.h"
-#include "cartographer/core/point_cloud.h"
+#include "cartographer/foundation/sensor_data.h"
 
 namespace cartographer {
 namespace mapping {

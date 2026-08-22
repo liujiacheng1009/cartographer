@@ -43,7 +43,7 @@
 
 #include "Eigen/Core"
 #include "Eigen/Geometry"
-#include "cartographer/core/math.h"
+#include "cartographer/foundation/math.h"
 /*
  * Copyright 2016 The Cartographer Authors
  *
@@ -69,8 +69,8 @@
 #include <iterator>
 
 #include "Eigen/Core"
-#include "cartographer/core/math.h"
-#include "cartographer/core/port.h"
+#include "cartographer/foundation/math.h"
+#include "cartographer/foundation/time.h"
 #include "glog/logging.h"
 
 namespace cartographer {
@@ -146,10 +146,10 @@ class XYIndexRangeIterator
 
 #endif  // CARTOGRAPHER_MAPPING_2D_XY_INDEX_H_
 #include "cartographer/backend/trajectory_node.h"
-#include "cartographer/core/point_cloud.h"
-#include "cartographer/core/range_data.h"
-#include "cartographer/core/rigid_transform.h"
-#include "cartographer/core/transform.h"
+#include "cartographer/foundation/sensor_data.h"
+#include "cartographer/foundation/sensor_data.h"
+#include "cartographer/foundation/geometry.h"
+#include "cartographer/foundation/transform.h"
 #include "glog/logging.h"
 
 namespace cartographer {
@@ -235,8 +235,8 @@ class MapLimits {
 #include <cmath>
 #include <vector>
 
-#include "cartographer/core/math.h"
-#include "cartographer/core/port.h"
+#include "cartographer/foundation/math.h"
+#include "cartographer/foundation/time.h"
 #include "glog/logging.h"
 
 namespace cartographer {
@@ -362,7 +362,7 @@ std::vector<uint16> ComputeLookupTableToApplyCorrespondenceCostOdds(float odds);
 
 #endif  // CARTOGRAPHER_MAPPING_PROBABILITY_VALUES_H_
 #include "cartographer/mapping/submap_texture.h"
-#include "cartographer/trajectory/options.h"
+#include "cartographer/application/slam_options.h"
 /*
  * Copyright 2018 The Cartographer Authors
  *
@@ -387,7 +387,7 @@ std::vector<uint16> ComputeLookupTableToApplyCorrespondenceCostOdds(float odds);
 #include <tuple>
 #include <vector>
 
-#include "cartographer/core/port.h"
+#include "cartographer/foundation/time.h"
 #include "glog/logging.h"
 
 namespace cartographer {
@@ -546,7 +546,7 @@ class Grid2D {
 
 #include <vector>
 
-#include "cartographer/core/port.h"
+#include "cartographer/foundation/time.h"
 
 namespace cartographer {
 namespace mapping {

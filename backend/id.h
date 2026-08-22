@@ -28,8 +28,8 @@
 #include <vector>
 
 #include "absl/memory/memory.h"
-#include "cartographer/core/port.h"
-#include "cartographer/core/rigid_transform.h"
+#include "cartographer/foundation/time.h"
+#include "cartographer/foundation/geometry.h"
 #include "glog/logging.h"
 
 namespace cartographer {

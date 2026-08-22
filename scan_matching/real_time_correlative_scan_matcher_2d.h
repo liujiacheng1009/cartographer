@@ -43,7 +43,7 @@
 #include "Eigen/Core"
 #include "cartographer/mapping/grid_2d.h"
 #include "cartographer/scan_matching/correlative_scan_matcher_2d.h"
-#include "cartographer/trajectory/options.h"
+#include "cartographer/application/slam_options.h"
 
 namespace cartographer {
 namespace mapping {

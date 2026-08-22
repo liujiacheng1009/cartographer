@@ -21,10 +21,10 @@
 #include <vector>
 
 #include "Eigen/Core"
-#include "cartographer/core/parameter_dictionary.h"
+#include "cartographer/application/config.h"
 #include "cartographer/mapping/grid_2d.h"
 #include "cartographer/mapping/grid_2d.h"
-#include "cartographer/trajectory/options.h"
+#include "cartographer/application/slam_options.h"
 /*
  * Copyright 2016 The Cartographer Authors
  *
@@ -47,13 +47,13 @@
 #include <utility>
 #include <vector>
 
-#include "cartographer/core/parameter_dictionary.h"
-#include "cartographer/core/port.h"
+#include "cartographer/application/config.h"
+#include "cartographer/foundation/time.h"
 #include "cartographer/mapping/grid_2d.h"
 #include "cartographer/mapping/grid_2d.h"
-#include "cartographer/trajectory/options.h"
-#include "cartographer/core/point_cloud.h"
-#include "cartographer/core/range_data.h"
+#include "cartographer/application/slam_options.h"
+#include "cartographer/foundation/sensor_data.h"
+#include "cartographer/foundation/sensor_data.h"
 
 namespace cartographer {
 namespace mapping {
@@ -91,8 +91,8 @@ class ProbabilityGridRangeDataInserter2D {
 #include "cartographer/mapping/submaps.h"
 #include "cartographer/backend/trajectory_node.h"
 #include "cartographer/mapping/grid_2d.h"
-#include "cartographer/core/range_data.h"
-#include "cartographer/core/rigid_transform.h"
+#include "cartographer/foundation/sensor_data.h"
+#include "cartographer/foundation/geometry.h"
 
 namespace cartographer {
 namespace mapping {

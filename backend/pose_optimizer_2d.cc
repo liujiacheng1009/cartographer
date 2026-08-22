@@ -24,9 +24,9 @@
 #include <string>
 #include <vector>
 
-#include "cartographer/trajectory/options.h"
-#include "cartographer/core/histogram.h"
-#include "cartographer/core/math.h"
+#include "cartographer/application/slam_options.h"
+#include "cartographer/foundation/runtime_stats.h"
+#include "cartographer/foundation/math.h"
 /*
  * Copyright 2016 The Cartographer Authors
  *
@@ -85,10 +85,10 @@ ceres::CostFunction* CreateAnalyticalSpaCostFunction(
 
 #include "Eigen/Core"
 #include "Eigen/Geometry"
-#include "cartographer/core/math.h"
+#include "cartographer/foundation/math.h"
 #include "cartographer/scan_matching/cost_helpers.h"
-#include "cartographer/core/rigid_transform.h"
-#include "cartographer/core/transform.h"
+#include "cartographer/foundation/geometry.h"
+#include "cartographer/foundation/transform.h"
 #include "ceres/jet.h"
 
 namespace cartographer {
@@ -213,8 +213,8 @@ ceres::CostFunction* CreateAnalyticalSpaCostFunction(
 }  // namespace optimization
 }  // namespace mapping
 }  // namespace cartographer
-#include "cartographer/core/sensor_data.h"
-#include "cartographer/core/transform.h"
+#include "cartographer/foundation/sensor_data.h"
+#include "cartographer/foundation/transform.h"
 #include "ceres/ceres.h"
 #include "glog/logging.h"
 

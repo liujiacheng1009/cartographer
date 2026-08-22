@@ -17,7 +17,7 @@
 #ifndef CARTOGRAPHER_MAPPING_INTERNAL_2D_OVERLAPPING_SUBMAPS_TRIMMER_H_
 #define CARTOGRAPHER_MAPPING_INTERNAL_2D_OVERLAPPING_SUBMAPS_TRIMMER_H_
 
-#include "cartographer/core/port.h"
+#include "cartographer/foundation/time.h"
 #include "cartographer/backend/backend_trimmer.h"
 
 namespace cartographer {

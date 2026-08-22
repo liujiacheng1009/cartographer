@@ -22,14 +22,14 @@
 #include <string>
 #include <vector>
 
-#include "cartographer/core/parameter_dictionary.h"
-#include "cartographer/core/thread_pool.h"
-#include "cartographer/core/data_dispatcher.h"
+#include "cartographer/application/config.h"
+#include "cartographer/backend/task_executor.h"
+#include "cartographer/frontend/data_dispatcher.h"
 #include "cartographer/backend/id.h"
-#include "cartographer/trajectory/options.h"
+#include "cartographer/application/slam_options.h"
 #include "cartographer/backend/trajectory_backend_2d.h"
 #include "cartographer/mapping/submap_texture.h"
-#include "cartographer/trajectory/trajectory_frontend_2d.h"
+#include "cartographer/frontend/frontend_2d.h"
 
 namespace cartographer {
 namespace mapping {
@@ -41,8 +41,8 @@ SlamSystemOptions CreateSlamSystemOptions(
 
 class SlamSystem {
  public:
-  using LocalSlamResultCallback = TrajectoryFrontend2D::LocalSlamResultCallback;
-  using SensorId = TrajectoryFrontend2D::SensorId;
+  using LocalSlamResultCallback = Frontend2D::LocalSlamResultCallback;
+  using SensorId = Frontend2D::SensorId;
 
   explicit SlamSystem(const SlamSystemOptions &options);
   ~SlamSystem() = default;
@@ -74,19 +74,19 @@ class SlamSystem {
     return trajectory_builders_.size();
   }
 
-  TrajectoryFrontend2D *GetTrajectoryBuilder(
+  Frontend2D *GetTrajectoryBuilder(
       int trajectory_id) const {
     return trajectory_builders_.at(trajectory_id).get();
   }
 
  private:
   const SlamSystemOptions options_;
-  common::ThreadPool thread_pool_;
+  common::TaskExecutor task_executor_;
 
   std::unique_ptr<TrajectoryBackend2D> backend_;
 
   std::unique_ptr<sensor::DataDispatcher> data_dispatcher_;
-  std::vector<std::unique_ptr<TrajectoryFrontend2D>> trajectory_builders_;
+  std::vector<std::unique_ptr<Frontend2D>> trajectory_builders_;
 };
 
 std::unique_ptr<SlamSystem> CreateSlamSystem(const SlamSystemOptions& options);

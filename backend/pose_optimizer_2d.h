@@ -25,15 +25,15 @@
 
 #include "Eigen/Core"
 #include "Eigen/Geometry"
-#include "cartographer/core/port.h"
-#include "cartographer/core/rigid_transform.h"
+#include "cartographer/foundation/time.h"
+#include "cartographer/foundation/geometry.h"
 #include "cartographer/backend/id.h"
 #include "cartographer/backend/backend_types.h"
-#include "cartographer/trajectory/options.h"
-#include "cartographer/core/sensor_data.h"
-#include "cartographer/core/map_by_time.h"
-#include "cartographer/core/sensor_data.h"
-#include "cartographer/core/rigid_transform.h"
+#include "cartographer/application/slam_options.h"
+#include "cartographer/foundation/sensor_data.h"
+#include "cartographer/backend/trajectory_history.h"
+#include "cartographer/foundation/sensor_data.h"
+#include "cartographer/foundation/geometry.h"
 
 namespace cartographer {
 namespace mapping {
