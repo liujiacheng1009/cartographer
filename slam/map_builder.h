@@ -18,22 +18,35 @@
 #define CARTOGRAPHER_MAPPING_MAP_BUILDER_H_
 
 #include <memory>
+#include <set>
+#include <string>
+#include <vector>
 
+#include "cartographer/core/parameter_dictionary.h"
 #include "cartographer/core/thread_pool.h"
-#include "cartographer/slam/map_builder_interface.h"
-#include "cartographer/slam/pose_graph.h"
-#include "cartographer/slam/options.h"
 #include "cartographer/core/collator_interface.h"
+#include "cartographer/slam/id.h"
+#include "cartographer/slam/options.h"
+#include "cartographer/slam/pose_graph.h"
+#include "cartographer/slam/submap_texture.h"
+#include "cartographer/slam/trajectory_builder_interface.h"
 
 namespace cartographer {
 namespace mapping {
 
 // Wires up the complete SLAM stack with TrajectoryBuilders (for local submaps)
 // and a PoseGraph for loop closure.
-class MapBuilder : public MapBuilderInterface {
+MapBuilderOptions CreateMapBuilderOptions(
+    common::ParameterDictionary* parameter_dictionary);
+
+class MapBuilder {
  public:
+  using LocalSlamResultCallback =
+      TrajectoryBuilderInterface::LocalSlamResultCallback;
+  using SensorId = TrajectoryBuilderInterface::SensorId;
+
   explicit MapBuilder(const MapBuilderOptions &options);
-  ~MapBuilder() override {}
+  ~MapBuilder() = default;
 
   MapBuilder(const MapBuilder &) = delete;
   MapBuilder &operator=(const MapBuilder &) = delete;
@@ -41,31 +54,29 @@ class MapBuilder : public MapBuilderInterface {
   int AddTrajectoryBuilder(
       const std::set<SensorId> &expected_sensor_ids,
       const TrajectoryBuilderOptions &trajectory_options,
-      LocalSlamResultCallback local_slam_result_callback) override;
+      LocalSlamResultCallback local_slam_result_callback);
 
-  int AddTrajectoryForDeserialization() override;
+  int AddTrajectoryForDeserialization();
 
-  void FinishTrajectory(int trajectory_id) override;
+  void FinishTrajectory(int trajectory_id);
 
   std::string GetSubmapTexture(const SubmapId &submap_id,
-                               SubmapTextureResponse *response) override;
+                               SubmapTextureResponse *response);
 
   bool SerializeStateToFile(bool include_unfinished_submaps,
-                            const std::string &filename) override;
+                            const std::string &filename);
 
   std::map<int, int> LoadStateFromFile(const std::string &filename,
-                                       const bool load_frozen_state) override;
+                                       bool load_frozen_state);
 
-  mapping::PoseGraphInterface *pose_graph() override {
-    return pose_graph_.get();
-  }
+  PoseGraph* pose_graph() { return pose_graph_.get(); }
 
-  int num_trajectory_builders() const override {
+  int num_trajectory_builders() const {
     return trajectory_builders_.size();
   }
 
   mapping::TrajectoryBuilderInterface *GetTrajectoryBuilder(
-      int trajectory_id) const override {
+      int trajectory_id) const {
     return trajectory_builders_.at(trajectory_id).get();
   }
 
@@ -80,8 +91,7 @@ class MapBuilder : public MapBuilderInterface {
       trajectory_builders_;
 };
 
-std::unique_ptr<MapBuilderInterface> CreateMapBuilder(
-    const MapBuilderOptions& options);
+std::unique_ptr<MapBuilder> CreateMapBuilder(const MapBuilderOptions& options);
 
 }  // namespace mapping
 }  // namespace cartographer

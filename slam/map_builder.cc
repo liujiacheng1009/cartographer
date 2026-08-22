@@ -33,6 +33,22 @@
 
 namespace cartographer {
 namespace mapping {
+
+MapBuilderOptions CreateMapBuilderOptions(
+    common::ParameterDictionary* const parameter_dictionary) {
+  MapBuilderOptions options;
+  options.set_use_trajectory_builder_2d(
+      parameter_dictionary->GetBool("use_trajectory_builder_2d"));
+  options.set_num_background_threads(
+      parameter_dictionary->GetNonNegativeInt("num_background_threads"));
+  options.set_collate_by_trajectory(
+      parameter_dictionary->GetBool("collate_by_trajectory"));
+  *options.mutable_pose_graph_options() = CreatePoseGraphOptions(
+      parameter_dictionary->GetDictionary("pose_graph").get());
+  CHECK(options.use_trajectory_builder_2d());
+  return options;
+}
+
 namespace {
 
 
@@ -202,8 +218,7 @@ std::map<int, int> MapBuilder::LoadStateFromFile(
   return trajectory_remapping;
 }
 
-std::unique_ptr<MapBuilderInterface> CreateMapBuilder(
-    const MapBuilderOptions& options) {
+std::unique_ptr<MapBuilder> CreateMapBuilder(const MapBuilderOptions& options) {
   return absl::make_unique<MapBuilder>(options);
 }
 

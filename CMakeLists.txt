@@ -68,7 +68,6 @@ set(ALL_LIBRARY_SRCS
   slam/imu_tracker.cc
   slam/local_trajectory_builder_2d.cc
   slam/map_builder.cc
-  slam/map_builder_interface.cc
   slam/motion_filter.cc
   slam/occupied_space_cost_function_2d.cc
   slam/optimization_problem_2d.cc
