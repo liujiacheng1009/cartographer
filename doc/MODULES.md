@@ -99,19 +99,22 @@ trajectory 和新的活动 trajectory。
 搜索目标，但它仍拥有当前 node 的 intra-submap 插入约束；`kFinished` 表示栅格固定，
 可以建立快速匹配索引并搜索 inter-submap 约束。从 `.swmap` 恢复的历史 submap 按
 finished 状态参与定位约束搜索。
+当前定位模式仍会枚举活动轨迹自身的 finished submap；关闭这类历史回环、
+保留少量滚动局部 submap 的减负方案见
+[Bag 输入架构 9.3 节](BAG_PIPELINE_ARCHITECTURE.md#93-已知地图定位的候选约束减负项)。
 
 ## serialization：状态持久化
 
-**目的**：把后端状态保存为 SQLite + zlib 的 `.swmap`，并恢复 frozen/active 轨迹数据。
+**目的**：把后端状态保存为 SQLite + zlib 的 `.swmap`，并恢复 frozen 轨迹。
 
-当前 schema 为 v3。版本不匹配会明确拒绝，不做隐式字段补全。轨迹 CSV 是方便评测的
+当前 schema 为 v4。版本不匹配会明确拒绝，不做隐式字段补全。轨迹 CSV 是方便评测的
 派生输出，不代替 `.swmap`。
 
 ## foundation：无所有者基础能力
 
 **目的**：提供不依赖 SLAM 工作流的值类型和小型工具。
 
-- `geometry.*`、`transform.h`、`math.h`：SE(2)/SE(3)、插值和数学运算；
+- `geometry.*`、`transform.h`、`math.h`：SE(2)、点云变换和数学运算；
 - `time.h`：统一时间尺度；
 - `sensor_data.*`：点、点云、RangeData、TimedPointCloudData、OdometryData；
 - `voxel_filter.*`：固定和自适应体素滤波；

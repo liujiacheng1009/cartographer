@@ -518,7 +518,59 @@ T_global_new(t) = T_global_reference(t) · T_reference_new · T_new_local(t)
 它只是两条轨迹坐标系之间的初始对齐，不会把活动轨迹永久固定；后续新 node 与冻结
 submap 的约束仍可修正定位轨迹。不加载地图的单轨迹建图不需要这一关系。
 
-### 9.3 Submap 状态与约束搜索资格
+### 9.3 已知地图定位的候选约束减负项
+
+当前已知地图模式仍为活动 trajectory 创建 node 和 submap。这些活动 submap
+对前端局部扫描匹配是必要的：它们提供连续、小范围的局部参考，避免每帧
+扫描都直接搜索冻结大地图。但当前后端没有区分“冻结地图定位目标”和
+“活动轨迹历史回环目标”：`ComputeConstraintsForNode()` 会收集所有 finished
+submap，因此定位阶段实际同时运行两类额外约束：
+
+```text
+活动 node
+  ├── 对活动 trajectory 自己的 finished submap
+  │     → 原有轨迹内 inter-submap 回环
+  │
+  └── 对冻结 trajectory 的 finished submap
+        → 定位所需的跨轨迹约束
+```
+
+相比单轨迹建图，定位模式既保留了原有轨迹内回环，又增加了活动 node
+与冻结地图 submap 的候选组合。跨轨迹尚未连接时，后者按
+`global_sampling_ratio` 执行完整 submap 搜索；建立连接后，会改为带初值的
+距离过滤和 `sampling_ratio` 局部搜索。因此全局匹配不是每帧发生，但大型
+冻结地图附近仍可产生较多局部候选。
+
+纯定位的目标结构应为：
+
+```text
+活动 trajectory
+  ├── 保留 2～3 个滚动 submap，服务前端局部匹配
+  ├── 保留 node 到当前插入 submap 的 INTRA_SUBMAP 约束
+  ├── 禁止 node 对自身 finished submap 的额外历史回环
+  ├── 只将冻结地图 submap 作为长期定位目标
+  └── 及时裁剪过期活动 submap/node
+```
+
+建议按以下顺序实施：
+
+1. **先限制活动子图数量**：定位轨迹启用
+   `pure_localization_trimmer.max_submaps_to_keep=3`。这可限制长期内存和 PGO 规模，
+   但 trimmer 在约束批次汇合后才执行，不能消除裁剪前已经调度的自身回环。
+2. **过滤活动轨迹自身回环**：在定位模式的 finished-submap 候选枚举中，
+   跳过 `node_id.trajectory_id == submap_id.trajectory_id` 的额外
+   `INTER_SUBMAP` 搜索。不得删除节点向当前滚动 submap 插入时直接建立的
+   `INTRA_SUBMAP` 约束。
+3. **减少冻结地图候选枚举**：稳定连接后，按 submap 全局包围盒或空间索引
+   先查询初值附近的冻结 submap，再进入 `max_constraint_distance` 和比例采样。
+   未建立跨轨迹连接时仍保留低频全局重定位，避免失去绑架恢复能力。
+
+该优化会改变约束集、PGO 变量的有效连接方式和定位轨迹，不能当作纯性能
+重构。验收时必须分别记录：每 node 枚举/采样/实际匹配的同轨迹与跨轨迹
+候选数、constraint worker CPU 时间、峰值内存、PGO 时间，并重跑六条真实 bag、
+known-map smoke 与轨迹 SHA-256 差异分析。性能下降不能以放宽 ATE/AOE/RPE 门限换取。
+
+### 9.4 Submap 状态与约束搜索资格
 
 后端的 `SubmapState` 不是完整生命周期枚举，而是描述 submap 能否作为额外约束搜索目标：
 
