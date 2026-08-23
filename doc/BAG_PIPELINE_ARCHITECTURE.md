@@ -230,7 +230,121 @@ bag 主线程在 PGO 期间仍可继续产生局部结果并把 work item 追加
 当前 PGO 完成后才会进入下一批后端处理。最终 `RunFinalOptimization()` 会等待 work queue
 和约束任务全部清空，再运行最终 PGO，保证导出的轨迹和 `.swmap` 已稳定。
 
-### 3.3 `MaybeAddConstraint()` 的候选筛选与任务依赖
+### 3.3 子图裁剪：定位窗口与重叠地图去冗余
+
+子图裁剪不是从栅格中擦除部分像素，而是从位姿图中移除整个 finished submap，并同步
+清理只属于它的 node、相关约束、扫描匹配器缓存和优化变量。后端通过两个接口分离
+“决定删谁”和“怎样安全删除”：
+
+```text
+PoseGraphTrimmer::Trim()       选择应裁剪的 SubmapId
+          │
+          ▼
+Trimmable::TrimSubmap()        执行位姿图一致性清理
+```
+
+`backend_trimmer.h` 定义通用的 `PoseGraphTrimmer` 和 `Trimmable` 接口，并提供
+`PureLocalizationTrimmer`；`OverlappingSubmapsTrimmer2D` 则是另一个实现。所有 trimmer
+都在一次 PGO 完成、约束和全局位姿稳定之后依次运行。已经完成自身使命的 trimmer 通过
+`IsFinished()` 从后端列表移除。
+
+#### 纯定位轨迹：固定子图数量窗口
+
+`PureLocalizationTrimmer` 只处理创建它时指定的活动定位轨迹，不会按窗口裁掉另一条
+冻结地图轨迹。定位进行期间，它取得该轨迹按 `SubmapId` 排列的子图序列，删除头部旧
+子图，只保留尾部最新的 `max_submaps_to_keep` 个：
+
+```text
+max_submaps_to_keep = 3
+
+优化前：S0 S1 S2 S3 S4
+裁剪后：      S2 S3 S4
+```
+
+这是“子图数量窗口”，不是最近若干秒、若干米，也不比较空间覆盖价值。活动定位子图用于
+维持近期 node 的 `INTRA_SUBMAP` 约束和局部连续结构，但它们不是需要永久积累的已知地图，
+所以固定小窗口可以限制长期内存和 PGO 规模。轨迹进入 `FINISHED` 后，窗口缩为 0；后续
+裁剪删除该定位轨迹的剩余子图，将轨迹标记为 `DELETED`，该 trimmer 随即结束。
+
+#### 建图轨迹：根据优化后的覆盖价值裁剪
+
+`OverlappingSubmapsTrimmer2D` 不采用简单的“只留最后 N 个”规则。旧子图即使时间较早，
+只要仍覆盖新子图没有覆盖的区域，就可能具有地图价值。其判定过程分为四步。
+
+第一步是计算子图新鲜度。算法只遍历 `INTRA_SUBMAP` 约束，为每个 `SubmapId` 找到最大
+`NodeId`，再读取该 node 的时间戳：
+
+```text
+SubmapId → 最后一个实际插入该子图的 NodeId → node.time
+```
+
+这里不能使用 `INTER_SUBMAP` 回环约束，因为回环只表示 node 后来与该子图匹配成功，
+不表示这帧激光曾参与生成该子图。最后插入时间也比子图创建时间更能表示地图内容更新到
+何时。
+
+第二步是建立稀疏的全局覆盖网格。算法只处理存在新鲜度记录且已经
+`insertion_finished()` 的子图，遍历每个子图裁剪边界内的已知栅格。每个栅格中心依次做：
+
+```text
+cell(local frame)
+  ── T_submap_from_local ──→ submap frame
+  ── T_global_from_submap ─→ optimized global frame
+```
+
+其中 `T_global_from_submap` 必须使用 PGO 后的子图位姿；回环可能已经移动子图，使用优化前
+位置会误判真实重叠。投影后的全局 cell 保存覆盖它的 `(SubmapId, freshness)` 列表。
+覆盖网格沿用子图分辨率，但它只是重叠统计容器，不是输出概率地图。
+
+第三步是在每个全局 cell 上只承认最新的 `fresh_submaps_count` 个子图。若同一位置被更多
+子图覆盖，先按 freshness 降序排序，再忽略较旧覆盖；随后为仍被承认的每个子图累计一个
+有效 cell：
+
+```text
+某 cell 被 S1(old)、S2、S3(new) 覆盖，fresh_submaps_count = 2
+有效覆盖计数：S2 +1，S3 +1；S1 在该 cell 不计数
+```
+
+这一步不会立即删除 S1，只表示该位置已有足够多更新的地图层，S1 在这里不再贡献独立
+保留价值。遍历全部 cell 后，算法得到每个子图经过新鲜度过滤后仍然有效的覆盖面积。
+
+第四步把面积门限转换成 cell 数量：
+
+```text
+cell_area = resolution²
+min_covered_cells_count = min_covered_area / resolution²
+```
+
+有效 cell 数少于该门限的子图进入删除集合。最终结果用
+`all_submap_ids - submap_ids_to_keep` 求得，因此完全没有获得有效 cell 的参与子图也会被
+裁剪。三个参数分别控制：
+
+| 参数 | 含义 | 增大后的效果 |
+|---|---|---|
+| `fresh_submaps_count` | 每个位置允许保留的最新覆盖层数 | 旧子图更容易继续获得有效 cell，裁剪更保守 |
+| `min_covered_area` | 子图继续保留所需的最低有效面积 | 更多低独立覆盖子图被裁掉，裁剪更激进 |
+| `min_added_submaps_count` | 两次覆盖重算之间至少新增的子图数 | 降低裁剪计算频率和 CPU，但冗余保留更久 |
+
+覆盖计算需要遍历所有参与子图的已知栅格，代价明显高于固定窗口。因此
+`current_submap_count_` 记录上次裁剪后的数量；新增量没有超过
+`min_added_submaps_count` 时直接返回，避免每次 PGO 都重建覆盖网格。
+
+#### `TrimSubmap()` 的一致性边界
+
+两种策略最终都调用同一个 `TrajectoryBackend2D::TrimmingHandle::TrimSubmap()`。它只接受
+`kFinished` 子图，并按以下顺序维护位姿图一致性：
+
+1. 找出该子图关联、同时又被其他子图引用的 node，保留这些共享 node；
+2. 找出只属于待删子图的 node；
+3. 删除指向待删子图的全部约束，并删除指向专属 node 的其他约束；
+4. 清理不再需要的 `FastCorrelativeScanMatcher2D` 缓存和 per-submap sampler；
+5. 从后端子图容器和 `PoseOptimizer2D` 中移除子图；
+6. 从轨迹 node 容器、里程计历史和优化问题中移除专属 node。
+
+`SubmapId` 和 `NodeId` 的编号不会重新压缩，剩余对象仍保持原 ID。裁剪会改变后续可参与
+回环和 PGO 的图规模，属于有算法效果的资源管理策略；调整参数时应同时观察内存、约束
+候选数、PGO 时间和轨迹精度，不能只验证程序能否运行。
+
+### 3.4 `MaybeAddConstraint()` 的候选筛选与任务依赖
 
 `ConstraintEngine2D::MaybeAddConstraint()` 处理的是“已有相对位姿初值”的
 node-submap 局部约束候选。它不在调用线程里直接执行扫描匹配，而是完成
