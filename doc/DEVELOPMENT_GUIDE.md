@@ -74,14 +74,14 @@ PASS 覆盖确定性差异。
 
 ## 并发改动检查
 
-`num_background_threads` 控制 `TaskExecutor`；constraint matcher 和索引任务共享该池。
-PGO 的 Ceres `num_threads` 是另一个并行层。修改时检查：
+后端使用一个私有 FIFO worker，constraint matcher、索引构建和 PGO 按顺序执行；PGO 的
+Ceres `num_threads` 只控制求解器内部并行。修改时检查：
 
-- 工作池线程数与 PGO 内部线程是否造成过度订阅；
-- callback 是否在持锁状态执行；
-- final optimization 前是否等待所有 constraint task；
-- submap/matcher 生命周期是否覆盖后台任务；
-- 多线程完成顺序是否改变确定性输出。
+- PGO 内部线程是否造成过度订阅；
+- 耗时 matcher/PGO 是否在持有全局状态锁时执行；
+- final optimization 前 FIFO fence 是否已执行；
+- submap/matcher 生命周期是否覆盖后端 worker；
+- work item 枚举和约束汇总顺序是否改变确定性输出。
 
 ## 文档格式
 
@@ -102,4 +102,3 @@ PGO 的 Ceres `num_threads` 是另一个并行层。修改时检查：
 
 建议把代码重构、行为变化、文档和外层子模块指针分开提交。Cartographer 子模块先提交并
 推送，再更新主仓库指针；否则主仓库会引用远端不存在的 commit。
-

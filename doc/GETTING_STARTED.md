@@ -46,7 +46,7 @@ third_party/cartographer/config/iilabs3d_offline.yaml
 - `tracking_frame` 与标定文件一致；
 - `min_range`、`max_range` 不超出雷达可靠量程；
 - `grid_options_2d.resolution` 满足地图精度和内存要求；
-- `num_background_threads` 与目标 CPU 预算匹配；
+- PGO 的 `ceres_solver_options.num_threads` 与目标 CPU 预算匹配；
 - `num_range_data` 与期望 submap 尺寸匹配。
 
 配置解析是严格的：未知字段、字段重复读取、字段未消费、类型错误或缺失必需字段都会
@@ -145,4 +145,3 @@ AOE 和 RPE，并另外对轨迹文件做 SHA256 对照。
 - 数据路径细节：[Bag 输入架构](BAG_PIPELINE_ARCHITECTURE.md)
 - 参数含义：[配置参考](CONFIGURATION_REFERENCE.md)
 - 代码入口：[模块与源码索引](MODULES.md)
-

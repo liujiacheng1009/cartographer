@@ -79,21 +79,21 @@ trajectory 和新的活动 trajectory。
 
 ## backend：约束图与全局优化
 
-**目的**：保存 node/submap 图，异步搜索约束，执行 pose graph optimization，并管理
+**目的**：保存 node/submap 图，在单后端 worker 上搜索约束并执行 pose graph optimization，管理
 轨迹状态、裁剪和全局查询。
 
 主要组件：
 
 - `TrajectoryBackend2D`：唯一公开后端和状态所有者；
-- `ConstraintEngine2D`：索引缓存、候选 scan matching 和完成回调；
+- `ConstraintEngine2D`：同步索引缓存和候选 scan matching；
 - `PoseOptimizer2D`：Ceres PGO；
-- `TaskExecutor`：固定数量工作线程和任务依赖；
+- `TrajectoryBackend2D` 私有 FIFO worker：让后端串行工作异步于前端；
 - `TrajectoryConnectivityState`：跨轨迹连接关系；
 - trimmer：删除不再需要的 node/submap 数据。
 
 约束的基本形式始终是 **node ↔ submap**，不是 submap ↔ submap。所谓“submap 回环”是
 通过历史 node 与非插入 submap 的约束将两段轨迹关联起来。多个不同 node-submap pair
-可并行筛选，但 PGO 在约束批次汇合后串行修改全局状态。
+按枚举顺序串行筛选，PGO 在约束批次完成后继续串行修改全局状态。
 
 `SubmapState::kNoConstraintSearch` 表示活动 submap 的栅格仍会变化，不能作为额外回环
 搜索目标，但它仍拥有当前 node 的 intra-submap 插入约束；`kFinished` 表示栅格固定，
@@ -125,9 +125,8 @@ finished 状态参与定位约束搜索。
 
 ```text
 SlamSystem
-├── owns TaskExecutor
 ├── owns DataDispatcher
-├── owns TrajectoryBackend2D
+├── owns TrajectoryBackend2D（含单后端 worker）
 │   ├── owns ConstraintEngine2D
 │   └── owns PoseOptimizer2D
 └── owns Frontend2D[]
@@ -136,8 +135,8 @@ SlamSystem
     └── borrows TrajectoryBackend2D
 ```
 
-`SlamSystem` 必须最后销毁执行资源。结束轨迹、等待约束任务、执行 final optimization 后，
-才能安全序列化和析构被后台任务引用的 node、submap 与 matcher。
+结束轨迹后必须等待后端 FIFO fence 并执行 final optimization，才能安全序列化和析构
+仍由后端 worker 使用的 node、submap 与 matcher。
 
 ## 相关文档
 

@@ -55,16 +55,15 @@ flowchart LR
     GRAPH --> SWMAP
 ```
 
-核心所有权关系是：`SlamSystem` 同时拥有任务执行器、一个 `DataDispatcher`、一个
+核心所有权关系是：`SlamSystem` 同时拥有一个 `DataDispatcher`、一个
 `TrajectoryBackend2D` 和前端数组。每条轨迹只对应一个 `Frontend2D`。它登记排序回调、
 执行局部 SLAM，并把 node/odometry 转交共享的 `TrajectoryBackend2D`，不再经过多层 builder 包装
 和虚接口。
 
 ```text
 SlamSystem
-├── TaskExecutor
 ├── DataDispatcher
-├── TrajectoryBackend2D
+├── TrajectoryBackend2D（内部单后端 worker）
 │   ├── ConstraintEngine2D（内部约束引擎）
 │   └── PoseOptimizer2D（内部 Ceres 求解器）
 └── Frontend2D[trajectory_id]
@@ -82,8 +81,7 @@ SlamSystem
 1. 解析命令行参数并读取 YAML；
 2. 生成 `SlamSystemOptions` 和 `TrajectoryBuilderOptions`；
 3. 校验配置只声明当前支持的输入；
-4. 创建 `SlamSystem`；其内部持有后台 `TaskExecutor`，并将其作为执行资源注入
-   `TrajectoryBackend2D` 的内部任务引擎；
+4. 创建 `SlamSystem`；`TrajectoryBackend2D` 同时启动自己的单一串行 worker；
 5. 如果指定 `--offline_load_state_filename`，先读取并冻结旧地图；
 6. 为 `scan` 和 `odom` 注册一条新轨迹；
 7. 创建一个 `Frontend2D` 并注册 scan/odom 排序回调；
@@ -100,24 +98,23 @@ SlamSystem
 SlamSystem（装配与生命周期容器）
 ├── owns DataDispatcher                    ← scan/odom 时间排序
 ├── owns Frontend2D[]            ← 唯一公开 SLAM 前端
-├── owns TrajectoryBackend2D               ← 唯一公开 SLAM 后端
-└── owns TaskExecutor                        ← 后端执行资源
+└── owns TrajectoryBackend2D               ← 唯一公开 SLAM 后端和串行 worker
 
 Frontend2D
 ├── borrows DataDispatcher                 ← 注册回调并提交传感器数据
 └── borrows TrajectoryBackend2D            ← 提交 node 和 odometry
 
 TrajectoryBackend2D
-└── borrows TaskExecutor                     ← 约束搜索与后端工作队列
+└── owns one serial backend worker          ← FIFO 后端工作队列
 ```
 
 `SlamSystem` 是唯一所有者和装配入口；`Frontend2D`、
-`TrajectoryBackend2D` 是并列的算法边界，`DataDispatcher` 和 `TaskExecutor` 分别是它们的
-执行基础设施。前后端并行指的是 bag 回放和前端继续处理 scan 时，后端可以在线程池中
-推进已提交 node 的约束工作。所有 `borrows` 指针都不参与所有权，生命周期由
-`SlamSystem` 的成员顺序和结束同步屏障保证。
+`TrajectoryBackend2D` 是并列的算法边界。前后端并行指的是 bag 回放和前端继续处理
+scan 时，后端 worker 按 FIFO 顺序推进已提交 node 的约束与 PGO；后端内部不并行计算
+多个候选。所有 `borrows` 指针都不参与所有权，生命周期由 `SlamSystem` 的成员顺序和
+后端队列 fence 保证。
 
-`SlamSystem` 是装配和生命周期入口，本身不执行具体 SLAM 算法。它持有任务执行器、
+`SlamSystem` 是装配和生命周期入口，本身不执行具体 SLAM 算法。它持有
 `TrajectoryBackend2D`、`DataDispatcher` 以及各条 frontend，负责创建轨迹、结束轨迹、
 加载/保存 `.swmap`。当前虽然只有一条轨迹，仍由它统一保证这些对象的析构顺序：必须先
 等待图计算完成，才能销毁被后台任务引用的 submap、node 和 scan matcher。
@@ -146,37 +143,26 @@ trajectory 内的 node/submap 共享第一个 ID 分量。普通新图模式通�
 依赖 `TrajectoryBackend2D`，不能直接访问这两个组件。这样对外只有一个后端边界，同时
 避免把并发任务状态与 Ceres 数值状态混进同一个巨型类。
 
-线程池只服务于 TrajectoryBackend2D 后台工作，不用于并行读取 bag，也不改变 `scan/odom` 的时间
-顺序。当前配置 `map_builder.num_background_threads: 4`，主要执行：
-
-- 构建每个 submap 的 `FastCorrelativeScanMatcher2D` 搜索结构；
-- 并行计算不同 node-submap 候选的局部约束和全局闭环约束；
-- 按依赖关系汇总一个 node 的约束，随后串行更新 TrajectoryBackend2D 工作队列；
-- 等约束全部完成后执行全局优化回调。
-
-之所以保留线程池，是因为约束搜索通常比单帧局部 SLAM昂贵，而且不同候选彼此独立。
-如果全部放到 bag 回放线程同步执行，每插入一个 node 都可能阻塞后续 scan，离线回放时间
-会显著增加。这里的 `Task` 还表达了“先建立 submap scan matcher，再计算约束；所有约束
-完成后才能优化”的依赖关系，并非单纯封装 `std::thread`。
-
-线程池不是 SLAM 数学上的必要条件：可以重写成单线程同步流水线，但不能只删除
-`TaskExecutor`。那样需要同时改写 `ConstraintEngine2D::WhenDone()`、TrajectoryBackend2D 工作队列和
-`WaitForAllComputations()` 的完成协议。当前保留它的核心理由是约束计算吞吐和已有任务依赖
-语义，而不是因为 bag 输入本身需要多线程。
+后端不再使用通用任务 DAG。`TrajectoryBackend2D` 私有的单 worker 依次构建或复用每个
+finished submap 的 `FastCorrelativeScanMatcher2D`、计算 node-submap 候选、收集约束并在
+达到批次门限时执行 PGO 和 trimmer。耗时工作仍不占用 bag/前端线程，但 matcher 构建、
+候选 A、候选 B 和 PGO 之间严格串行。该模型牺牲候选级吞吐，换取确定的执行顺序、简单
+的生命周期和更窄的并发边界。
 
 ### 3.2 后端线程、回环与 PGO 时序
 
-当前有三种执行上下文，不能把“后端线程池”和“PGO 线程”视为同一层：
+当前有三种执行上下文，不能把“后端 worker”和“PGO 内部线程”视为同一层：
 
 ```text
 bag/前端主线程
   └── AddNode / AddOdometryData
         └── 只追加到 TrajectoryBackend2D work queue
 
-后端 TaskExecutor（num_background_threads: 4）
-  ├── 单任务 DrainWorkQueue，串行修改后端图状态
-  ├── 并行构建 submap 快速相关匹配器
-  └── 并行计算多个 node-submap 约束/回环候选
+TrajectoryBackend2D 单 worker
+  ├── FIFO 修改后端图状态
+  ├── 同步构建/复用 submap 快速相关匹配器
+  ├── 串行计算 node-submap 约束/回环候选
+  └── 达到门限后执行 PGO 与 trimmer
 
 PGO：PoseOptimizer2D::Solve
   └── Ceres 求解器线程（ceres_solver_options.num_threads: 7）
@@ -184,53 +170,177 @@ PGO：PoseOptimizer2D::Solve
 
 当前配置的实际并发和候选限流参数是：
 
-- `num_background_threads: 4`：约束阶段最多由 4 个后端 worker 消费匹配器构建和候选
-  验证任务；其中一个 worker 也可能正在执行串行的 `DrainWorkQueue()`；
 - `constraint_builder.sampling_ratio: 0.15`：同轨迹约束候选只抽样约 15%，不是让每个
   node 与所有旧 submap 都匹配；
 - `max_constraint_distance: 15.0`：带初值的候选超过 15 m 直接排除；
 - 快速相关匹配搜索窗为 `7 m / ±30°`，分支定界深度为 7，得分至少达到 `0.65` 才进入
   后续约束；跨轨迹全局匹配要求 `0.7`；
 - `global_sampling_ratio: 0.003`：不同轨迹的全局候选进一步降到约 0.3%；
-- 每个候选的 Ceres 精配准使用 `num_threads: 1`，候选级并行由上述 4 个后端 worker
-  提供；局部 SLAM 的 Ceres 同样是单线程；
+- 每个候选的 Ceres 精配准使用 `num_threads: 1`，候选之间也严格串行；局部 SLAM 的
+  Ceres 同样是单线程；
 - PGO 的 Ceres 配置为 `num_threads: 7`，每超过 20 个 node 批量触发一次。
 
-所以 CPU 确实可能较高，但通常不是 `4 + 7` 个后端计算线程同时满载：进入 PGO 前会先
-等待本批约束任务完成。约束阶段的主要峰值约为“前端主线程 + 最多 4 个后台 worker”；
-PGO 阶段则切换为 Ceres 最多 7 线程，同时前端仍可能继续处理 bag。对于 4 核设备，当前
-配置存在明显过度订阅风险；对于 8 核及以上的离线工作站，这组参数更偏向缩短回放时间。
+约束阶段的主要并发是“前端主线程 + 一个后端 worker”；PGO 阶段由同一个后端 worker
+调用 Ceres，Ceres 内部最多使用 7 线程，同时前端仍可继续处理 bag。PGO 阶段的新 node
+只追加到 FIFO 队列，等当前求解和 trimmer 完成后再处理。
 
 前端调用 `AddNode()` 时会先在互斥锁保护下登记 node，然后把“为该 node 建约束”的
-work item 放入队列。线程池中同时只允许一个 `DrainWorkQueue()` 消费这条队列，因此新增
-node、odometry、冻结轨迹和删除轨迹等图状态修改仍保持确定顺序；并行的是耗时且彼此独立
-的 node-submap 匹配任务，而不是对图容器的无序写入。
+work item 放入队列。唯一后端 worker 消费这条队列，因此新增 node、odometry、冻结轨迹、
+删除轨迹、约束计算和 PGO 都保持确定顺序。
 
 这里的回环最终表现为 `INTER_SUBMAP` 约束：
 
 - 同一轨迹的 node 与已经结束的旧 submap 做带初值、有限窗口的局部约束搜索；
 - 新活动轨迹与冻结地图等不同轨迹之间，在满足时间间隔和采样条件时做全 submap 的全局
   搜索；
-- 快速相关匹配先筛选候选，Ceres scan matcher 再细化相对位姿；不同候选可在线程池中
-  并行计算。
+- 快速相关匹配先筛选候选，Ceres scan matcher 再细化相对位姿；不同候选按枚举顺序
+  串行计算。
 
 回环不是直接建立 submap-submap 边。一个新 node 可以同时对多个已结束 submap 形成候选；
 一个 submap 刚结束时，也会反向检查此前未插入该 submap 的旧 node。每个 finished submap
-只构建一次 `FastCorrelativeScanMatcher2D` 搜索索引，多个 node-submap 候选等待该索引
-任务完成后共享它并行搜索。最终 PGO 通过这些 node-submap 边间接约束 submap 之间的相对
-位置。
+只同步构建一次 `FastCorrelativeScanMatcher2D` 搜索索引，后续候选复用缓存。最终 PGO
+通过这些 node-submap 边间接约束 submap 之间的相对位置。
 
 当累计 node 数超过 `optimize_every_n_nodes`（当前配置为 20）时，work queue 暂停继续
-修改图，并通过 `ConstraintEngine2D::WhenDone()` 等待本轮所有约束任务完成。随后把约束
-一次性并入后端，调用 `PoseOptimizer2D::Solve()` 做 PGO，联合优化 submap pose、node pose
-和 odometry 关系。PGO 完成后才更新连通性、执行 trimmer，并继续排空后续 work item。
+处理完当前 node 后，后端直接通过 `ConstraintEngine2D::TakeConstraints()` 取出本批同步
+结果，一次性并入后端，再调用 `PoseOptimizer2D::Solve()` 做 PGO，联合优化 submap pose、
+node pose 和 odometry 关系。PGO 完成后才更新连通性、执行 trimmer，并继续处理后续
+work item。
 
-因此线程关系是：约束候选之间可以并行；约束汇总、PGO 和后端图状态提交按批次串行。
+因此线程关系是：前端与后端异步；后端约束、约束汇总、PGO 和图状态提交全部串行。
 bag 主线程在 PGO 期间仍可继续产生局部结果并把 work item 追加到队列，但这些结果要等
-当前 PGO 完成后才会进入下一批后端处理。最终 `RunFinalOptimization()` 会等待 work queue
-和约束任务全部清空，再运行最终 PGO，保证导出的轨迹和 `.swmap` 已稳定。
+当前 PGO 完成后才会进入下一批后端处理。最终 `RunFinalOptimization()` 在 FIFO 中插入
+fence，等待此前 work item 和剩余约束全部提交，再完成最终 PGO，保证导出的轨迹和
+`.swmap` 已稳定。
 
-### 3.3 子图裁剪：定位窗口与重叠地图去冗余
+### 3.3 `PoseOptimizer2D::Solve()`：装配并求解 2D 位姿图
+
+`ConstraintEngine2D` 负责发现并计算 node-submap 约束，`PoseOptimizer2D::Solve()` 不再
+搜索回环或判断约束是否成立。它接收已经确定的约束集，把 submap pose、node pose、
+里程计和连续局部 SLAM 关系装配成一个临时 Ceres 问题，联合优化所有可移动的
+`[x, y, yaw]`，最后把结果写回长期状态。
+
+```text
+当前 submap/node 全局位姿（初值）
+              │
+              ▼
+      创建 Ceres 参数块
+              │
+      ┌───────┴────────┐
+      ▼                ▼
+固定坐标基准      添加相对位姿残差
+和 frozen 地图    constraint / odometry / local SLAM
+      └───────┬────────┘
+              ▼
+          Ceres Solve
+              ▼
+写回优化后的 submap/node 全局位姿
+```
+
+如果 `node_data_` 为空，函数直接返回。Ceres 的 `Problem`、参数数组和 cost function 都只
+服务当前一轮求解；后端长期持有的是 node/submap 状态和约束，不持有跨轮复用的
+`ceres::Problem`。
+
+#### 参数块、初值与坐标系基准
+
+`Rigid2d` 先通过 `FromPose()` 转成 Ceres 可原地修改的三元素数组：
+
+```text
+Rigid2d → [x, y, yaw]
+
+SubmapId → C_submaps[3]
+NodeId   → C_nodes[3]
+```
+
+`C_submaps` 和 `C_nodes` 使用当前全局位姿作为初值，并向 Ceres 注册大小为 3 的参数块。
+额外建立这两组容器，是为了给求解器提供地址稳定的连续数值内存，同时不在迭代过程中
+直接修改后端长期状态。
+
+位姿图主要由相对约束组成。如果所有变量一起平移或旋转，残差不会变化，问题存在三个
+平面规范自由度。实现固定遍历到的第一个 submap，把它定义为全局原点和方向，消除秩亏：
+
+```text
+T'_global_object = T_offset · T_global_object
+
+对全部 object 使用相同 T_offset 时，相对位姿不变；
+固定第一个 submap 后，不再允许整张图任意漂移。
+```
+
+此外，状态为 `FROZEN` 的轨迹，其全部 submap 和 node 参数块都设为常量。已知地图定位时，
+典型状态是历史 trajectory 0 固定、当前 trajectory 1 可调；因此新定位数据只能调整自身
+来贴合已有地图，不能反过来拉动加载的地图。
+
+#### node-submap 约束与鲁棒核
+
+每条 `Constraint` 都建立一个连接 submap 参数块和 node 参数块的三维相对位姿残差：
+
+```text
+start_pose = global pose of submap i
+end_pose   = global pose of node j
+observation = zbar_ij（submap i ← node j）
+residual = [weighted error_x, weighted error_y, weighted error_yaw]
+```
+
+`SpaCostFunction2D` 先由两个当前全局变量计算预测相对位姿，再与 `zbar_ij` 比较。平移误差
+在 start/submap 坐标系中表达，yaw 误差经过角度归一化，然后分别乘
+`translation_weight` 和 `rotation_weight`。它使用模板 `operator()`，使 Ceres 可以用
+`Jet` 自动求出对两个 `[x, y, yaw]` 参数块的 Jacobian，不需要维护手写导数。
+
+`INTRA_SUBMAP` 表示 node 的数据实际插入过该 submap，是局部建图的结构约束，不加 loss
+function。`INTER_SUBMAP` 来自回环或跨轨迹匹配，存在误匹配风险，因此使用
+`HuberLoss(huber_scale)`：小残差区域接近平方损失，大残差区域降低增长速度。鲁棒核不会
+删除错误边，只会限制异常回环对全局解的支配程度。
+
+#### 连续 node 的里程计与局部 SLAM 约束
+
+除了显式的 node-submap 边，优化器还逐条遍历非 frozen 轨迹，为编号严格连续的 node
+建立 node-node 约束。只接受：
+
+```text
+second.node_index == first.node_index + 1
+```
+
+裁剪可能让 ID 出现空洞，所以不能把当前容器中相邻、但编号不连续的两个 node 当作连续
+传感器帧；不同 trajectory 也由 `EndOfTrajectory()` 明确隔开。
+
+如果两个 node 时间都落在里程计数据范围内，`CalculateOdometryBetweenNodes()` 先在两个
+时间点分别插值得到 `T_odom_node1` 和 `T_odom_node2`，再构造：
+
+```text
+T_node1_node2_odometry = inverse(T_odom_node1) · T_odom_node2
+```
+
+并使用 odometry translation/rotation weight 添加一条无鲁棒核的 node-node 残差。无论
+里程计是否可用，实现都会再根据前端局部 SLAM 位姿添加：
+
+```text
+T_node1_node2_local =
+    inverse(T_local_node1) · T_local_node2
+```
+
+因此当前逻辑是“有里程计时同时使用 odometry 和 local SLAM；无里程计时只使用 local
+SLAM”，不是二选一。冻结轨迹的 node 已设为常量，且整条轨迹会跳过这组连续约束装配。
+
+#### 目标函数、求解与写回
+
+忽略鲁棒核的分段形式后，本轮目标可以概括为：
+
+```text
+min  Σ ||node-submap residual||²
+   + Σ ||odometry node-node residual||²
+   + Σ ||local-SLAM node-node residual||²
+```
+
+其中 frozen 参数和第一个 submap 不参与更新，`INTER_SUBMAP` 项额外经过 Huber loss。
+`CreateCeresSolverOptions()` 把配置转换为实际迭代次数、线性求解器和线程设置；启用
+`log_solver_summary` 时输出初始/最终 cost、迭代次数、收敛状态和耗时。
+
+Ceres 会直接修改 `C_submaps`、`C_nodes` 中的数组。求解完成后，代码用 `ToPose()` 将它们
+转换回 `Rigid2d`，写入 `submap_data_.global_pose` 和 `node_data_.global_pose_2d`。后端随后
+用这些稳定结果更新公开轨迹、计算 local-to-global 变换、执行下面的 trimmer，并最终输出
+轨迹或 `.swmap`。
+
+### 3.4 子图裁剪：定位窗口与重叠地图去冗余
 
 子图裁剪不是从栅格中擦除部分像素，而是从位姿图中移除整个 finished submap，并同步
 清理只属于它的 node、相关约束、扫描匹配器缓存和优化变量。后端通过两个接口分离
@@ -344,11 +454,11 @@ min_covered_cells_count = min_covered_area / resolution²
 回环和 PGO 的图规模，属于有算法效果的资源管理策略；调整参数时应同时观察内存、约束
 候选数、PGO 时间和轨迹精度，不能只验证程序能否运行。
 
-### 3.4 `MaybeAddConstraint()` 的候选筛选与任务依赖
+### 3.5 `MaybeAddConstraint()` 的同步候选流水线
 
 `ConstraintEngine2D::MaybeAddConstraint()` 处理的是“已有相对位姿初值”的
-node-submap 局部约束候选。它不在调用线程里直接执行扫描匹配，而是完成
-便宜的前置筛选、为异步结果预留位置，然后组装任务依赖图。
+node-submap 局部约束候选。它运行在唯一后端 worker 上，依次完成前置筛选、matcher
+获取、粗匹配和精化；函数返回时该候选已经成功加入结果集或明确失败。
 
 #### 第一层：初值距离门限
 
@@ -395,93 +505,35 @@ num_samples / num_pulses < sampling_ratio
   → 真正执行局部约束匹配
 ```
 
-#### 第三层：预留结果槽与构建 scan matcher
+#### 第三层：同步惰性构建 scan matcher
 
-候选通过后，函数持有 `mutex_`，检查是否已调度 `WhenDone()`，并在
-`constraints_` 的 `std::deque<std::unique_ptr<Constraint>>` 中追加一个空结果槽。
-后台 `ComputeConstraint()` 收到这个槽的地址：匹配成功时填入
-`Constraint`，失败时保持 `nullptr`。使用 `deque` 保证后续追加候选时已传给
-异步任务的元素地址不失效。
+候选通过后，`GetOrCreateScanMatcher(submap_id, submap->grid())` 按 submap 查找缓存。
+第一次使用时就在后端 worker 上同步构建 `FastCorrelativeScanMatcher2D`；submap 的概率
+栅格一旦 finished 就不再变化，因此昂贵的多分辨率索引只构建一次，之后由该 submap 的
+所有 node 候选复用。函数返回时 matcher 一定可用，不存在 creation handle 或生命周期
+跨任务问题。
 
-`DispatchScanMatcherConstruction(submap_id, submap->grid())` 按 submap 查找或
-延迟构建 `FastCorrelativeScanMatcher2D`。submap 的概率栅格一旦 finished 就不再
-变化，因此昂贵的多分辨率搜索索引只需构建一次，之后可被该 submap 的
-多个 node 候选共享。
+#### 第四层：同步计算并收集结果
 
-#### 第四层：约束任务的依赖图
-
-函数为 `ComputeConstraint(..., match_full_submap=false, ...)` 创建后台任务。
-`false` 表示使用 `initial_relative_pose` 作为初值执行有限窗局部搜索；
-`MaybeAddGlobalConstraint()` 则传入 `true` 并搜索完整 submap，两者不应混淆。
-
-每个局部候选都建立如下依赖：
+`ComputeConstraint(..., match_full_submap=false, ...)` 使用
+`initial_relative_pose` 执行有限窗局部搜索；`MaybeAddGlobalConstraint()` 传入 `true`
+并搜索完整 submap。快速相关匹配低于阈值时返回 `std::nullopt`；成功时用 Ceres scan
+matcher 精化并返回 `Constraint`。调用方只把成功结果按候选枚举顺序追加到
+`std::vector<Constraint>`：
 
 ```text
-scan_matcher->creation_task_handle
-                │
-                ▼
-       constraint_task
-       ComputeConstraint()
-                │
-                ▼
-       finish_node_task_
-                │ NotifyEndOfNode()
-                ▼
-        when_done_task_
-                │ WhenDone()
-                ▼
-   汇总非空 Constraint → PGO
+distance filter
+  → per-submap sampler
+  → GetOrCreateScanMatcher（同步）
+  → ComputeConstraint（同步）
+  → optional<Constraint>
+  → pending constraints
 ```
 
-`constraint_task` 先依赖 scan matcher 的构建句柄，所以 worker 不会在索引就绪前
-进入匹配。调度后返回的任务句柄又被添加为 `finish_node_task_` 的依赖，
-使“一个 node 处理完成”精确表示该 node 的全部候选约束已返回。
-`NotifyEndOfNode()` 封闭当前 node 的完成屏障并创建下一个；`WhenDone()` 则等待
-所有 node 屏障，过滤失败匹配留下的空槽，将成功约束一次性交给后端。
-
-耗时的 `ComputeConstraint()` 执行时不持有 `ConstraintEngine2D::mutex_`；锁只保护
-任务批次状态、结果槽和 matcher 缓存的管理。这使多个候选能够真正并行，
-同时保证 PGO 只在完整批次汇合后看到稳定的约束集。
-
-#### 后续重构：评估移除 node 级完成屏障
-
-当前两级屏障中，对 PGO 正确性真正必要的条件是：
-
-```text
-when_done_task_ 必须等待当前批次的全部 constraint_task
-```
-
-PGO 不会消费“某个 node 先于另一个 node 完成”的中间信息，也不会在
-部分 node 完成后提前求解。`finish_node_task_` 目前的可观消费者只是：
-
-- 在它的 work item 中增加 `num_finished_nodes_`；
-- 与 `num_started_nodes_` 一起为 `WaitForAllComputations()` 输出 node 级等待进度；
-- 在结构时检查 started/finished 计数相等，作为生命周期不变式。
-
-它没有参与约束接受决策、结果排序、回环连通性更新或 PGO 残差构造。因此，
-如果 node 级进度信息不再作为对外需求，可评估将任务图扁平化为：
-
-```text
-scan matcher creation ─→ constraint_task A ─┐
-scan matcher creation ─→ constraint_task B ─┤
-scan matcher creation ─→ constraint_task C ─┼→ when_done_task_ → 汇总 → PGO
-                                  ... ─┘
-```
-
-实现上可在调度每个 `constraint_task` 后，直接把其 handle 加入
-`when_done_task_`，并删除每个 node 一个的空 work item。没有任何候选约束的 node
-不需要向批次屏障添加依赖，因为它不会产生延后写入。`NotifyEndOfNode()` 可随
-node 计数需求一并删除，或缩减为不调度任务的输入计数通知。
-
-这项重构的收益是每个 trajectory node 少一个调度任务和一层依赖边，但相比
-扫描匹配本身，性能收益可能较小，应先通过 task 数量和 worker CPU profiling 验证。
-实施时还必须同步处理：
-
-1. 将 `WaitForAllComputations()` 的 node 级进度改为约束任务进度，或只报告批次等待状态；
-2. 替换析构函数中 `num_started_nodes_ == num_finished_nodes_` 的不变式检查；
-3. 保证 `WhenDone()` 调度前已停止排空 work queue，不再向将要封闭的批次追加新依赖；
-4. 覆盖“无候选 node”、“单候选 node”、“多 node/多候选并发”和最终等待路径；
-5. 重跑真实 bag 轨迹 SHA-256；该修改理论上不改变约束集或求解顺序，哈希应保持一致。
+达到 PGO 门限时，后端 worker 调用 `TakeConstraints()` 交换出当前结果向量，然后立即
+进入 `PoseOptimizer2D::Solve()`。由于 matcher、候选和结果收集都在同一个线程按程序顺序
+完成，原来的 `finish_node_task_`、`when_done_task_`、空结果槽、依赖计数和 callback 均已
+删除。最终等待同样只需在 FIFO 中插入 fence；fence 执行即证明此前全部后端工作完成。
 
 ## 4. Bag 单遍读取
 
@@ -636,6 +688,57 @@ Odometry 经 `Frontend2D` 后分成两路：
 `PoseOptimizer2D` 联合优化节点位姿、子图位姿和 odometry 关系。优化完成后执行
 trimmer，删除定位模式下不再需要保留的旧子图。
 
+### 8.1 待办：面向在线部署的高频平滑位姿输出
+
+当前 `bag_runner` 面向离线处理：任务结束后遍历通过 motion filter 的稀疏 node，导出其
+PGO 优化位姿到 `trajectory.csv`。benchmark 再把这些 node 插值到真值时间点，只用于评估
+对齐；这不是机器人运行时的定位发布协议。当前工程也没有 IMU 输入或固定频率定位发布器。
+
+在线定位不应等待下一轮 PGO，也不应把稀疏优化 node 直接当作控制频率输出。计划增加一个
+独立输出层，以最新后端优化结果作为低频全局锚点，以前端局部位姿和 odometry 外推作为
+高频连续增量：
+
+```text
+最新已优化 node k：
+T_map_local = T_map_node_k(optimized) · inverse(T_local_node_k)
+
+任意输出时刻 t：
+T_map_base(t) = T_map_local · T_local_base(t, extrapolated)
+```
+
+其中 `T_local_base(t)` 复用前端“最近一次 scan matching 校正位姿 + 后续 odometry 增量”
+的短时预测能力。激光匹配仍按 scan 累积频率更新局部锚点，PGO 仍按约束批次更新全局
+锚点，而对外发布可以由独立定时器按 Nav2/控制所需频率执行；三种频率不要求相同。
+
+ROS 部署优先采用标准双层 TF 职责：
+
+```text
+map  ── SLAM/PGO 低频全局修正 ──> odom
+odom ── 里程计或局部状态估计 ──> base_link
+
+T_map_base = T_map_odom · T_odom_base
+```
+
+`odom → base_link` 应高频、连续、短期平滑，允许长期漂移；`map → odom` 负责回环、重定位
+和长期漂移修正。这样控制器和局部规划可在连续的 odom frame 工作，全局规划仍使用 map
+frame。若产品要求视觉上平滑 PGO 跳变，只能在发布层对旧、新 `map → odom` 做有界过渡，
+不能把平滑中的临时位姿反馈为 SLAM 观测；大幅重定位还应允许直接切换并通知下游。
+
+该待办与 `PoseOptimizer2D::InterpolateOdometry()` 必须保持职责隔离：后者只在 PGO 中把
+历史 odometry 对齐到两个稀疏 node 的时间戳，用于构造 node-node 相对约束；它不是实时
+融合滤波器，也不决定定位发布频率。
+
+实施前需要明确并验证：
+
+1. 由 `SlamSystem` 或新的窄接口暴露最新 `local_to_global` 锚点和按时间外推的 local pose；
+2. 规定 scan callback 输出、固定频率 TF 输出和离线优化轨迹三者的时间戳及状态语义；
+3. 定义 PGO/重定位跳变时 `map → odom` 的切换策略和下游通知；
+4. 对延迟、最大外推时长、odometry 中断和时间倒退设置硬边界，禁止无限外推；
+5. 增加在线回放测试，分别检查静止抖动、运动连续性、PGO 前后全局一致性及 TF 连通性。
+
+本阶段只记录架构方向，不在离线 Cartographer 核心中提前实现 ROS timer、TF 发布或新的
+融合滤波器。
+
 ## 9. 建图与冻结地图定位
 
 ### 9.1 新图模式
@@ -771,7 +874,7 @@ bag 读完后的顺序不可交换：
 ## 11. 线程和阻塞边界
 
 - bag 读取、消息反序列化、标定变换、`DataDispatcher` 分派和局部 SLAM 在主线程推进；
-- TrajectoryBackend2D 通过 `TaskExecutor` 并行计算候选约束；
+- TrajectoryBackend2D 通过私有单 worker 串行计算候选约束；
 - TrajectoryBackend2D 的 work queue 串行化会修改全局图状态的操作；
 - `RunFinalOptimization()` 是最终同步屏障，返回后才能导出稳定轨迹和地图；
 - `DataDispatcher` 若等待某个 sensor queue，会停止整个轨迹的数据分派，因此缺失 `/scan` 或

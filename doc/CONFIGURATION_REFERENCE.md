@@ -21,10 +21,10 @@ tracking_frame: eve/base_footprint
 | 参数 | 类型 | 基线 | 作用 |
 |---|---:|---:|---|
 | `use_trajectory_builder_2d` | bool | `true` | 必须启用 2D 前端 |
-| `num_background_threads` | int | `4` | constraint 索引和匹配任务工作线程数 |
 | `collate_by_trajectory` | bool | `false` | 保留配置语义；当前单轨迹输入不产生差异 |
 
-线程数必须为正。它不是“前端线程数”，也不等于 PGO 的 Ceres 线程数。
+后端固定使用一个私有 FIFO worker，不提供候选约束线程数配置。PGO 的 Ceres 内部线程数
+仍由 `optimization_problem.ceres_solver_options.num_threads` 独立控制。
 
 ## `map_builder.pose_graph`
 
@@ -83,8 +83,8 @@ tracking_frame: eve/base_footprint
 | `odometry_rotation_weight` | 10 | odometry 旋转权重 |
 | `log_solver_summary` | false | 输出 Ceres 完整摘要 |
 
-PGO 的 `ceres_solver_options.max_num_iterations` 基线为 50，`num_threads` 为 7。它与
-`num_background_threads` 是两个并发层；资源受限设备应联合限制。
+PGO 的 `ceres_solver_options.max_num_iterations` 基线为 50，`num_threads` 为 7。它只控制
+单后端 worker 调用 Ceres 后的数值求解并行度，不会并行执行多个 constraint 候选。
 
 ## `trajectory_builder.trajectory_builder_2d`
 
