@@ -27,7 +27,7 @@
 #include "Eigen/Geometry"
 #include "cartographer/foundation/time.h"
 #include "cartographer/foundation/geometry.h"
-#include "cartographer/backend/id.h"
+#include "cartographer/backend/map_by_id.h"
 #include "cartographer/backend/backend_types.h"
 #include "cartographer/application/slam_options.h"
 #include "cartographer/foundation/sensor_data.h"

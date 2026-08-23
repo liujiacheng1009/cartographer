@@ -135,7 +135,7 @@ node 的局部 SLAM 关系和 odometry。冻结轨迹的变量保持常量，用
 | `TimedPointCloudData` | 同上 | scan 批次，点时间通常非正 |
 | `OdometryData` | 同上 | reference 到 tracking frame 的 pose |
 | `RangeData` | 同上 | origin、returns、misses |
-| `NodeId` / `SubmapId` | `backend/id.h` | `(trajectory_id, index)` 强类型 ID |
+| `NodeId` / `SubmapId` / `MapById` | `backend/map_by_id.h` | 分轨迹强类型 ID 与索引容器 |
 | `Constraint` | `backend/backend_types.h` | node-submap 相对位姿及权重 |
 
 ## 错误处理

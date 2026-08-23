@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-#include "cartographer/backend/id.h"
+#include "cartographer/backend/map_by_id.h"
 #include "cartographer/backend/backend_types.h"
 #include "cartographer/backend/trajectory_node.h"
 #include "cartographer/mapping/grid_2d.h"

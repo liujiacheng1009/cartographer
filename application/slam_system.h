@@ -25,7 +25,7 @@
 #include "cartographer/application/config.h"
 #include "cartographer/backend/task_executor.h"
 #include "cartographer/frontend/data_dispatcher.h"
-#include "cartographer/backend/id.h"
+#include "cartographer/backend/map_by_id.h"
 #include "cartographer/application/slam_options.h"
 #include "cartographer/backend/trajectory_backend_2d.h"
 #include "cartographer/mapping/submap_texture.h"

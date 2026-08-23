@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef CARTOGRAPHER_MAPPING_ID_H_
-#define CARTOGRAPHER_MAPPING_ID_H_
+#ifndef CARTOGRAPHER_BACKEND_MAP_BY_ID_H_
+#define CARTOGRAPHER_BACKEND_MAP_BY_ID_H_
 
 #include <algorithm>
 #include <iostream>
@@ -409,4 +409,4 @@ class MapById {
 }  // namespace mapping
 }  // namespace cartographer
 
-#endif  // CARTOGRAPHER_MAPPING_ID_H_
+#endif  // CARTOGRAPHER_BACKEND_MAP_BY_ID_H_

@@ -25,7 +25,7 @@
 
 #include "cartographer/foundation/time.h"
 #include "cartographer/foundation/geometry.h"
-#include "cartographer/backend/id.h"
+#include "cartographer/backend/map_by_id.h"
 #include "glog/logging.h"
 
 namespace cartographer {

@@ -17,7 +17,7 @@
 #ifndef CARTOGRAPHER_BACKEND_TRIMMER_H_
 #define CARTOGRAPHER_BACKEND_TRIMMER_H_
 
-#include "cartographer/backend/id.h"
+#include "cartographer/backend/map_by_id.h"
 #include "cartographer/backend/backend_types.h"
 
 namespace cartographer {
