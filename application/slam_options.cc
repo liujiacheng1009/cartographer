@@ -5,9 +5,9 @@
 
 #include "cartographer/foundation/voxel_filter.h"
 #include "cartographer/scan_matching/ceres_scan_matcher_2d.h"
-#include "cartographer/backend/constraint_options.h"
 #include "cartographer/frontend/motion_filter.h"
 #include "cartographer/frontend/pose_extrapolator.h"
+#include "cartographer/scan_matching/fast_correlative_scan_matcher_2d.h"
 #include "cartographer/scan_matching/real_time_correlative_scan_matcher_2d.h"
 #include "cartographer/mapping/submap_2d.h"
 
@@ -41,6 +41,29 @@ ceres::Solver::Options CreateCeresSolverOptions(
 namespace mapping {
 
 namespace {
+
+ConstraintBuilderOptions CreateConstraintBuilderOptions(
+    common::ParameterDictionary* const dictionary) {
+  ConstraintBuilderOptions options;
+  options.set_sampling_ratio(dictionary->GetDouble("sampling_ratio"));
+  options.set_max_constraint_distance(
+      dictionary->GetDouble("max_constraint_distance"));
+  options.set_min_score(dictionary->GetDouble("min_score"));
+  options.set_global_localization_min_score(
+      dictionary->GetDouble("global_localization_min_score"));
+  options.set_loop_closure_translation_weight(
+      dictionary->GetDouble("loop_closure_translation_weight"));
+  options.set_loop_closure_rotation_weight(
+      dictionary->GetDouble("loop_closure_rotation_weight"));
+  options.set_log_matches(dictionary->GetBool("log_matches"));
+  *options.mutable_fast_correlative_scan_matcher_options() =
+      scan_matching::CreateFastCorrelativeScanMatcherOptions2D(
+          dictionary->GetDictionary("fast_correlative_scan_matcher").get());
+  *options.mutable_ceres_scan_matcher_options() =
+      scan_matching::CreateCeresScanMatcherOptions2D(
+          dictionary->GetDictionary("ceres_scan_matcher").get());
+  return options;
+}
 
 void PopulatePureLocalizationTrimmerOptions(
     TrajectoryBuilderOptions* const options,
@@ -119,7 +142,7 @@ PoseGraphOptions CreatePoseGraphOptions(
   options.set_optimize_every_n_nodes(
       parameter_dictionary->GetInt("optimize_every_n_nodes"));
   *options.mutable_constraint_builder_options() =
-      constraints::CreateConstraintBuilderOptions(
+      CreateConstraintBuilderOptions(
           parameter_dictionary->GetDictionary("constraint_builder").get());
   options.set_matcher_translation_weight(
       parameter_dictionary->GetDouble("matcher_translation_weight"));

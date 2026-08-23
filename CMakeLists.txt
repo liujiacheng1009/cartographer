@@ -46,7 +46,6 @@ set(ALL_LIBRARY_SRCS
   scan_matching/ceres_scan_matcher_2d.cc
   frontend/frontend_2d.cc
   backend/constraint_engine_2d.cc
-  backend/constraint_options.cc
   scan_matching/correlative_scan_matcher_2d.cc
   scan_matching/fast_correlative_scan_matcher_2d.cc
   mapping/grid_2d.cc
