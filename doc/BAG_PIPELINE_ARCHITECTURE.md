@@ -329,6 +329,46 @@ scan_matcher->creation_task_handle
 任务批次状态、结果槽和 matcher 缓存的管理。这使多个候选能够真正并行，
 同时保证 PGO 只在完整批次汇合后看到稳定的约束集。
 
+#### 后续重构：评估移除 node 级完成屏障
+
+当前两级屏障中，对 PGO 正确性真正必要的条件是：
+
+```text
+when_done_task_ 必须等待当前批次的全部 constraint_task
+```
+
+PGO 不会消费“某个 node 先于另一个 node 完成”的中间信息，也不会在
+部分 node 完成后提前求解。`finish_node_task_` 目前的可观消费者只是：
+
+- 在它的 work item 中增加 `num_finished_nodes_`；
+- 与 `num_started_nodes_` 一起为 `WaitForAllComputations()` 输出 node 级等待进度；
+- 在结构时检查 started/finished 计数相等，作为生命周期不变式。
+
+它没有参与约束接受决策、结果排序、回环连通性更新或 PGO 残差构造。因此，
+如果 node 级进度信息不再作为对外需求，可评估将任务图扁平化为：
+
+```text
+scan matcher creation ─→ constraint_task A ─┐
+scan matcher creation ─→ constraint_task B ─┤
+scan matcher creation ─→ constraint_task C ─┼→ when_done_task_ → 汇总 → PGO
+                                  ... ─┘
+```
+
+实现上可在调度每个 `constraint_task` 后，直接把其 handle 加入
+`when_done_task_`，并删除每个 node 一个的空 work item。没有任何候选约束的 node
+不需要向批次屏障添加依赖，因为它不会产生延后写入。`NotifyEndOfNode()` 可随
+node 计数需求一并删除，或缩减为不调度任务的输入计数通知。
+
+这项重构的收益是每个 trajectory node 少一个调度任务和一层依赖边，但相比
+扫描匹配本身，性能收益可能较小，应先通过 task 数量和 worker CPU profiling 验证。
+实施时还必须同步处理：
+
+1. 将 `WaitForAllComputations()` 的 node 级进度改为约束任务进度，或只报告批次等待状态；
+2. 替换析构函数中 `num_started_nodes_ == num_finished_nodes_` 的不变式检查；
+3. 保证 `WhenDone()` 调度前已停止排空 work queue，不再向将要封闭的批次追加新依赖；
+4. 覆盖“无候选 node”、“单候选 node”、“多 node/多候选并发”和最终等待路径；
+5. 重跑真实 bag 轨迹 SHA-256；该修改理论上不改变约束集或求解顺序，哈希应保持一致。
+
 ## 4. Bag 单遍读取
 
 每个源 bag 目录固定保存自己的 `calibration.yaml`。benchmark worker 生成只包含
