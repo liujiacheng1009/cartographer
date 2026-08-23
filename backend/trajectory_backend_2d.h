@@ -23,6 +23,7 @@
 #include <map>
 #include <memory>
 #include <set>
+#include <thread>
 #include <vector>
 
 #include "Eigen/Core"
@@ -30,7 +31,6 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/synchronization/mutex.h"
 #include "cartographer/foundation/sampling.h"
-#include "cartographer/backend/task_executor.h"
 #include "cartographer/foundation/geometry.h"
 #include "cartographer/mapping/submap_2d.h"
 #include "cartographer/backend/constraint_engine_2d.h"
@@ -64,8 +64,7 @@ class TrajectoryBackend2D {
 
   TrajectoryBackend2D(
       const PoseGraphOptions& options,
-      std::unique_ptr<optimization::PoseOptimizer2D> optimization_problem,
-      common::TaskExecutor* task_executor);
+      std::unique_ptr<optimization::PoseOptimizer2D> optimization_problem);
   ~TrajectoryBackend2D();
 
   TrajectoryBackend2D(const TrajectoryBackend2D&) = delete;
@@ -140,8 +139,6 @@ class TrajectoryBackend2D {
     std::function<Result()> task;
   };
 
-  using WorkQueue = std::deque<WorkItem>;
-
   MapById<SubmapId, SubmapData> GetSubmapDataUnderLock()
       const EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
@@ -168,7 +165,7 @@ class TrajectoryBackend2D {
       const std::vector<std::shared_ptr<const Submap2D>>& insertion_submaps)
       EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
-  // Adds constraints for a node, and starts scan matching in the background.
+  // Adds constraints for a node on the serial backend worker.
   WorkItem::Result ComputeConstraintsForNode(
       const NodeId& node_id,
       std::vector<std::shared_ptr<const Submap2D>> insertion_submaps,
@@ -182,17 +179,16 @@ class TrajectoryBackend2D {
   // constraint search.
   void DeleteTrajectoriesIfNeeded() EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
-  // Runs the optimization, executes the trimmers and processes the work queue.
-  void HandleWorkQueue(const constraints::ConstraintEngine2D::Result& result)
+  // Runs the optimization and executes the trimmers.
+  void HandleOptimizationResult(
+      const constraints::ConstraintEngine2D::Result& result)
       LOCKS_EXCLUDED(mutex_) LOCKS_EXCLUDED(work_queue_mutex_);
 
-  // Process pending tasks in the work queue on the calling thread, until the
-  // queue is either empty or an optimization is required.
-  void DrainWorkQueue() LOCKS_EXCLUDED(mutex_)
+  // Serially processes backend work without blocking the frontend thread.
+  void BackendWorkerLoop() LOCKS_EXCLUDED(mutex_)
       LOCKS_EXCLUDED(work_queue_mutex_);
 
-  // Waits until we caught up (i.e. nothing is waiting to be scheduled), and
-  // all computations have finished.
+  // Inserts a FIFO fence and waits until all earlier backend work has finished.
   void WaitForAllComputations() LOCKS_EXCLUDED(mutex_)
       LOCKS_EXCLUDED(work_queue_mutex_);
 
@@ -225,9 +221,9 @@ class TrajectoryBackend2D {
   mutable absl::Mutex mutex_;
   absl::Mutex work_queue_mutex_;
 
-  // If it exists, further work items must be added to this queue, and will be
-  // considered later.
-  std::unique_ptr<WorkQueue> work_queue_ GUARDED_BY(work_queue_mutex_);
+  std::deque<WorkItem> work_queue_ GUARDED_BY(work_queue_mutex_);
+  bool worker_running_ GUARDED_BY(work_queue_mutex_) = true;
+  std::thread backend_worker_;
 
   // We globally localize a fraction of the nodes from each trajectory.
   absl::flat_hash_map<int, std::unique_ptr<common::FixedRatioSampler>>
@@ -239,9 +235,6 @@ class TrajectoryBackend2D {
   // Current optimization problem.
   std::unique_ptr<optimization::PoseOptimizer2D> optimization_problem_;
   constraints::ConstraintEngine2D constraint_builder_;
-
-  // Thread pool used for handling the work queue.
-  common::TaskExecutor* const task_executor_;
 
   // List of all trimmers to consult when optimizations finish.
   std::vector<std::unique_ptr<PoseGraphTrimmer>> trimmers_ GUARDED_BY(mutex_);

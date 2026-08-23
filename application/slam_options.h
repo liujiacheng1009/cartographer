@@ -241,7 +241,6 @@ struct PoseGraphOptions {
 
 struct SlamSystemOptions {
   CARTOGRAPHER_OPTION_SCALAR(bool, use_trajectory_builder_2d)
-  CARTOGRAPHER_OPTION_SCALAR(int, num_background_threads)
   CARTOGRAPHER_OPTION_SCALAR(bool, collate_by_trajectory)
   CARTOGRAPHER_OPTION_FIELD(PoseGraphOptions, pose_graph_options)
   PoseGraphOptions* mutable_pose_graph_options() { return &pose_graph_options_; }

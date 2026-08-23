@@ -23,7 +23,6 @@
 #include <vector>
 
 #include "cartographer/application/config.h"
-#include "cartographer/backend/task_executor.h"
 #include "cartographer/frontend/data_dispatcher.h"
 #include "cartographer/backend/map_by_id.h"
 #include "cartographer/application/slam_options.h"
@@ -81,7 +80,6 @@ class SlamSystem {
 
  private:
   const SlamSystemOptions options_;
-  common::TaskExecutor task_executor_;
 
   std::unique_ptr<TrajectoryBackend2D> backend_;
 

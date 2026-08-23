@@ -37,8 +37,6 @@ SlamSystemOptions CreateSlamSystemOptions(
   SlamSystemOptions options;
   options.set_use_trajectory_builder_2d(
       parameter_dictionary->GetBool("use_trajectory_builder_2d"));
-  options.set_num_background_threads(
-      parameter_dictionary->GetNonNegativeInt("num_background_threads"));
   options.set_collate_by_trajectory(
       parameter_dictionary->GetBool("collate_by_trajectory"));
   *options.mutable_pose_graph_options() = CreatePoseGraphOptions(
@@ -84,14 +82,12 @@ void MaybeAddPureLocalizationTrimmer(
 
 }  // namespace
 
-SlamSystem::SlamSystem(const SlamSystemOptions& options)
-    : options_(options), task_executor_(options.num_background_threads()) {
+SlamSystem::SlamSystem(const SlamSystemOptions& options) : options_(options) {
   CHECK(options.use_trajectory_builder_2d());
   backend_ = absl::make_unique<TrajectoryBackend2D>(
       options_.pose_graph_options(),
       absl::make_unique<optimization::PoseOptimizer2D>(
-          options_.pose_graph_options().optimization_problem_options()),
-      &task_executor_);
+          options_.pose_graph_options().optimization_problem_options()));
   CHECK(!options.collate_by_trajectory());
   data_dispatcher_ = absl::make_unique<sensor::DataDispatcher>();
 }

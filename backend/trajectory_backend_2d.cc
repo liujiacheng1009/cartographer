@@ -17,10 +17,15 @@
 #include "cartographer/backend/trajectory_backend_2d.h"
 #include "cartographer/mapping/grid_2d.h"
 
+#ifndef WIN32
+#include <unistd.h>
+#endif
+
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <functional>
+#include <future>
 #include <iomanip>
 #include <iostream>
 #include <iterator>
@@ -43,12 +48,10 @@ namespace mapping {
 
 TrajectoryBackend2D::TrajectoryBackend2D(
     const PoseGraphOptions& options,
-    std::unique_ptr<optimization::PoseOptimizer2D> optimization_problem,
-    common::TaskExecutor* task_executor)
+    std::unique_ptr<optimization::PoseOptimizer2D> optimization_problem)
     : options_(options),
       optimization_problem_(std::move(optimization_problem)),
-      constraint_builder_(options_.constraint_builder_options(), task_executor),
-      task_executor_(task_executor) {
+      constraint_builder_(options_.constraint_builder_options()) {
   if (options.has_overlapping_submaps_trimmer_2d()) {
     const auto& trimmer_options = options.overlapping_submaps_trimmer_2d();
     AddTrimmer(absl::make_unique<OverlappingSubmapsTrimmer2D>(
@@ -56,12 +59,17 @@ TrajectoryBackend2D::TrajectoryBackend2D(
         trimmer_options.min_covered_area(),
         trimmer_options.min_added_submaps_count()));
   }
+  backend_worker_ = std::thread([this] { BackendWorkerLoop(); });
 }
 
 TrajectoryBackend2D::~TrajectoryBackend2D() {
   WaitForAllComputations();
-  absl::MutexLock locker(&work_queue_mutex_);
-  CHECK(work_queue_ == nullptr);
+  {
+    absl::MutexLock locker(&work_queue_mutex_);
+    CHECK(worker_running_);
+    worker_running_ = false;
+  }
+  backend_worker_.join();
 }
 
 std::vector<SubmapId> TrajectoryBackend2D::InitializeGlobalSubmapPoses(
@@ -165,13 +173,8 @@ NodeId TrajectoryBackend2D::AddNode(
 void TrajectoryBackend2D::AddWorkItem(
     const std::function<WorkItem::Result()>& work_item) {
   absl::MutexLock locker(&work_queue_mutex_);
-  if (work_queue_ == nullptr) {
-    work_queue_ = absl::make_unique<WorkQueue>();
-    auto task = absl::make_unique<common::Task>();
-    task->SetWorkItem([this]() { DrainWorkQueue(); });
-    task_executor_->Schedule(std::move(task));
-  }
-  work_queue_->push_back({work_item});
+  CHECK(worker_running_);
+  work_queue_.push_back({work_item});
 }
 
 void TrajectoryBackend2D::AddTrajectoryIfNeeded(const int trajectory_id) {
@@ -332,7 +335,6 @@ TrajectoryBackend2D::ComputeConstraintsForNode(
       }
     }
   }
-  constraint_builder_.NotifyEndOfNode();
   absl::MutexLock locker(&mutex_);
   ++num_nodes_since_last_loop_closure_;
   if (options_.optimize_every_n_nodes() > 0 &&
@@ -382,7 +384,7 @@ void TrajectoryBackend2D::DeleteTrajectoriesIfNeeded() {
   }
 }
 
-void TrajectoryBackend2D::HandleWorkQueue(
+void TrajectoryBackend2D::HandleOptimizationResult(
     const constraints::ConstraintEngine2D::Result& result) {
   {
     absl::MutexLock locker(&mutex_);
@@ -431,98 +433,48 @@ void TrajectoryBackend2D::HandleWorkQueue(
     });
 
     num_nodes_since_last_loop_closure_ = 0;
-
   }
-
-  DrainWorkQueue();
 }
 
-void TrajectoryBackend2D::DrainWorkQueue() {
-  bool process_work_queue = true;
-  size_t work_queue_size;
-  while (process_work_queue) {
-    std::function<WorkItem::Result()> work_item;
+void TrajectoryBackend2D::BackendWorkerLoop() {
+#ifdef __linux__
+  CHECK_NE(nice(10), -1);
+#endif
+  const auto predicate = [this]() EXCLUSIVE_LOCKS_REQUIRED(work_queue_mutex_) {
+    return !work_queue_.empty() || !worker_running_;
+  };
+  for (;;) {
+    WorkItem work_item;
     {
       absl::MutexLock locker(&work_queue_mutex_);
-      if (work_queue_->empty()) {
-        work_queue_.reset();
+      work_queue_mutex_.Await(absl::Condition(&predicate));
+      if (work_queue_.empty()) {
+        CHECK(!worker_running_);
         return;
       }
-      work_item = work_queue_->front().task;
-      work_queue_->pop_front();
-      work_queue_size = work_queue_->size();
+      work_item = std::move(work_queue_.front());
+      work_queue_.pop_front();
     }
-    process_work_queue = work_item() == WorkItem::Result::kDoNotRunOptimization;
+    if (work_item.task() == WorkItem::Result::kRunOptimization) {
+      HandleOptimizationResult(constraint_builder_.TakeConstraints());
+    }
   }
-  LOG(INFO) << "Remaining work items in queue: " << work_queue_size;
-  // We have to optimize again.
-  constraint_builder_.WhenDone(
-      [this](const constraints::ConstraintEngine2D::Result& result) {
-        HandleWorkQueue(result);
-      });
 }
 
 void TrajectoryBackend2D::WaitForAllComputations() {
-  int num_trajectory_nodes;
-  {
-    absl::MutexLock locker(&mutex_);
-    num_trajectory_nodes = data_.num_trajectory_nodes;
-  }
-
-  const int num_finished_nodes_at_start =
-      constraint_builder_.GetNumFinishedNodes();
-
-  auto report_progress = [this, num_trajectory_nodes,
-                          num_finished_nodes_at_start]() {
-    // Log progress on nodes only when we are actually processing nodes.
-    if (num_trajectory_nodes != num_finished_nodes_at_start) {
-      std::ostringstream progress_info;
-      progress_info << "Optimizing: " << std::fixed << std::setprecision(1)
-                    << 100. *
-                           (constraint_builder_.GetNumFinishedNodes() -
-                            num_finished_nodes_at_start) /
-                           (num_trajectory_nodes - num_finished_nodes_at_start)
-                    << "%...";
-      std::cout << "\r\x1b[K" << progress_info.str() << std::flush;
+  std::promise<void> done;
+  auto future = done.get_future();
+  AddWorkItem([this, &done] {
+    auto result = constraint_builder_.TakeConstraints();
+    {
+      absl::MutexLock locker(&mutex_);
+      data_.constraints.insert(data_.constraints.end(), result.begin(),
+                               result.end());
     }
-  };
-
-  // First wait for the work queue to drain so that it's safe to schedule
-  // a WhenDone() callback.
-  {
-    const auto predicate = [this]()
-                               EXCLUSIVE_LOCKS_REQUIRED(work_queue_mutex_) {
-                                 return work_queue_ == nullptr;
-                               };
-    absl::MutexLock locker(&work_queue_mutex_);
-    while (!work_queue_mutex_.AwaitWithTimeout(
-        absl::Condition(&predicate),
-        absl::FromChrono(common::FromSeconds(1.)))) {
-      report_progress();
-    }
-  }
-
-  // Now wait for any pending constraint computations to finish.
-  absl::MutexLock locker(&mutex_);
-  bool notification = false;
-  constraint_builder_.WhenDone(
-      [this,
-       &notification](const constraints::ConstraintEngine2D::Result& result)
-          LOCKS_EXCLUDED(mutex_) {
-            absl::MutexLock locker(&mutex_);
-            data_.constraints.insert(data_.constraints.end(), result.begin(),
-                                     result.end());
-            notification = true;
-          });
-  const auto predicate = [&notification]() EXCLUSIVE_LOCKS_REQUIRED(mutex_) {
-    return notification;
-  };
-  while (!mutex_.AwaitWithTimeout(absl::Condition(&predicate),
-                                  absl::FromChrono(common::FromSeconds(1.)))) {
-    report_progress();
-  }
-  CHECK_EQ(constraint_builder_.GetNumFinishedNodes(), num_trajectory_nodes);
-  std::cout << "\r\x1b[KOptimizing: Done.     " << std::endl;
+    done.set_value();
+    return WorkItem::Result::kDoNotRunOptimization;
+  });
+  future.wait();
 }
 
 void TrajectoryBackend2D::DeleteTrajectory(const int trajectory_id) {
