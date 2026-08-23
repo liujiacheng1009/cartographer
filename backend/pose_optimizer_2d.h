@@ -14,26 +14,21 @@
  * limitations under the License.
  */
 
-#ifndef CARTOGRAPHER_MAPPING_INTERNAL_OPTIMIZATION_OPTIMIZATION_PROBLEM_2D_H_
-#define CARTOGRAPHER_MAPPING_INTERNAL_OPTIMIZATION_OPTIMIZATION_PROBLEM_2D_H_
+#ifndef CARTOGRAPHER_BACKEND_POSE_OPTIMIZER_2D_H_
+#define CARTOGRAPHER_BACKEND_POSE_OPTIMIZER_2D_H_
 
 #include <array>
-#include <deque>
 #include <map>
-#include <set>
+#include <memory>
 #include <vector>
 
-#include "Eigen/Core"
-#include "Eigen/Geometry"
-#include "cartographer/foundation/time.h"
-#include "cartographer/foundation/geometry.h"
-#include "cartographer/backend/map_by_id.h"
-#include "cartographer/backend/backend_types.h"
 #include "cartographer/application/slam_options.h"
-#include "cartographer/foundation/sensor_data.h"
+#include "cartographer/backend/backend_types.h"
+#include "cartographer/backend/map_by_id.h"
 #include "cartographer/backend/trajectory_history.h"
-#include "cartographer/foundation/sensor_data.h"
 #include "cartographer/foundation/geometry.h"
+#include "cartographer/foundation/sensor_data.h"
+#include "cartographer/foundation/time.h"
 
 namespace cartographer {
 namespace mapping {
@@ -52,8 +47,7 @@ struct SubmapSpec2D {
 class PoseOptimizer2D {
  public:
   using Constraint = ::cartographer::mapping::Constraint;
-  explicit PoseOptimizer2D(
-      const OptimizationProblemOptions& options);
+  explicit PoseOptimizer2D(const OptimizationProblemOptions& options);
   ~PoseOptimizer2D();
 
   PoseOptimizer2D(const PoseOptimizer2D&) = delete;
@@ -61,8 +55,7 @@ class PoseOptimizer2D {
 
   void AddOdometryData(int trajectory_id,
                        const sensor::OdometryData& odometry_data);
-  void AddTrajectoryNode(int trajectory_id,
-                         const NodeSpec2D& node_data);
+  void AddTrajectoryNode(int trajectory_id, const NodeSpec2D& node_data);
   void InsertTrajectoryNode(const NodeId& node_id,
                             const NodeSpec2D& node_data);
   void TrimTrajectoryNode(const NodeId& node_id);
@@ -73,9 +66,8 @@ class PoseOptimizer2D {
   void TrimSubmap(const SubmapId& submap_id);
   void SetMaxNumIterations(int32 max_num_iterations);
 
-  void Solve(
-      const std::vector<Constraint>& constraints,
-      const std::map<int, TrajectoryState>& trajectories_state);
+  void Solve(const std::vector<Constraint>& constraints,
+             const std::map<int, TrajectoryState>& trajectories_state);
 
   const MapById<NodeId, NodeSpec2D>& node_data() const {
     return node_data_;
@@ -83,8 +75,7 @@ class PoseOptimizer2D {
   const MapById<SubmapId, SubmapSpec2D>& submap_data() const {
     return submap_data_;
   }
-  const sensor::MapByTime<sensor::OdometryData>& odometry_data()
-      const {
+  const sensor::MapByTime<sensor::OdometryData>& odometry_data() const {
     return odometry_data_;
   }
 
@@ -106,4 +97,4 @@ class PoseOptimizer2D {
 }  // namespace mapping
 }  // namespace cartographer
 
-#endif  // CARTOGRAPHER_MAPPING_INTERNAL_OPTIMIZATION_OPTIMIZATION_PROBLEM_2D_H_
+#endif  // CARTOGRAPHER_BACKEND_POSE_OPTIMIZER_2D_H_
