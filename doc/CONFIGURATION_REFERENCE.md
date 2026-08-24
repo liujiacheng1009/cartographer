@@ -36,7 +36,6 @@ tracking_frame: eve/base_footprint
 | `max_num_final_iterations` | 200 | 轨迹结束时最大优化迭代数 |
 | `global_sampling_ratio` | 0.003 | 全局定位约束采样比例 |
 | `log_residual_histograms` | true | 输出优化残差分布 |
-| `global_constraint_search_after_n_seconds` | 10.0 | 未连接轨迹多久后尝试全局约束 |
 
 把 `optimize_every_n_nodes` 设为较小值会频繁形成同步屏障。离线吞吐优先时应结合回环密度
 和最终优化评估，不要只追求更频繁的 PGO。

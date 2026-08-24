@@ -88,7 +88,6 @@ trajectory 和新的活动 trajectory。
 - `ConstraintEngine2D`：同步索引缓存和候选 scan matching；
 - `PoseOptimizer2D`：Ceres PGO；
 - `TrajectoryBackend2D` 私有 FIFO worker：让后端串行工作异步于前端；
-- `TrajectoryConnectivityState`：跨轨迹连接关系；
 - trimmer：删除不再需要的 node/submap 数据。
 
 约束的基本形式始终是 **node ↔ submap**，不是 submap ↔ submap。所谓“submap 回环”是

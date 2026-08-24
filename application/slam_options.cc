@@ -158,9 +158,6 @@ PoseGraphOptions CreatePoseGraphOptions(
       parameter_dictionary->GetDouble("global_sampling_ratio"));
   options.set_log_residual_histograms(
       parameter_dictionary->GetBool("log_residual_histograms"));
-  options.set_global_constraint_search_after_n_seconds(
-      parameter_dictionary->GetDouble(
-          "global_constraint_search_after_n_seconds"));
   PopulateOverlappingSubmapsTrimmerOptions2D(&options, parameter_dictionary);
   return options;
 }

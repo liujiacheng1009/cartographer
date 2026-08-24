@@ -210,8 +210,6 @@ struct PoseGraphOptions {
   CARTOGRAPHER_OPTION_SCALAR(int, max_num_final_iterations)
   CARTOGRAPHER_OPTION_SCALAR(double, global_sampling_ratio)
   CARTOGRAPHER_OPTION_SCALAR(bool, log_residual_histograms)
-  CARTOGRAPHER_OPTION_SCALAR(double,
-                            global_constraint_search_after_n_seconds)
   CARTOGRAPHER_OPTION_FIELD(ConstraintBuilderOptions,
                             constraint_builder_options)
   CARTOGRAPHER_OPTION_FIELD(OptimizationProblemOptions,
