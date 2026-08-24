@@ -73,19 +73,13 @@ TrajectoryBackend2D::~TrajectoryBackend2D() {
 }
 
 std::vector<SubmapId> TrajectoryBackend2D::InitializeGlobalSubmapPoses(
-    const int trajectory_id, const common::Time time,
+    const int trajectory_id,
     const std::vector<std::shared_ptr<const Submap2D>>& insertion_submaps) {
   CHECK(!insertion_submaps.empty());
   const auto& submap_data = optimization_problem_->submap_data();
   if (insertion_submaps.size() == 1) {
     // If we don't already have an entry for the first submap, add one.
     if (submap_data.SizeOfTrajectoryOrZero(trajectory_id) == 0) {
-      if (data_.initial_trajectory_poses.count(trajectory_id) > 0) {
-        data_.trajectory_connectivity_state.Connect(
-            trajectory_id,
-            data_.initial_trajectory_poses.at(trajectory_id).to_trajectory_id,
-            time);
-      }
       optimization_problem_->AddSubmap(
           trajectory_id,
           ComputeLocalToGlobalTransform(data_.global_submap_poses_2d,
@@ -185,7 +179,6 @@ void TrajectoryBackend2D::AddTrajectoryIfNeeded(const int trajectory_id) {
         TrajectoryState::DELETED);
   CHECK(data_.trajectories_state.at(trajectory_id).deletion_state ==
         InternalTrajectoryState::DeletionState::NORMAL);
-  data_.trajectory_connectivity_state.Add(trajectory_id);
   // Make sure we have a sampler for this trajectory.
   if (!global_localization_samplers_[trajectory_id]) {
     global_localization_samplers_[trajectory_id] =
@@ -220,19 +213,8 @@ void TrajectoryBackend2D::ComputeConstraint(const NodeId& node_id,
       return;
     }
 
-    const common::Time node_time = GetLatestNodeTime(node_id, submap_id);
-    const common::Time last_connection_time =
-        data_.trajectory_connectivity_state.LastConnectionTime(
-            node_id.trajectory_id, submap_id.trajectory_id);
-    if (node_id.trajectory_id == submap_id.trajectory_id ||
-        node_time <
-            last_connection_time +
-                common::FromSeconds(
-                    options_.global_constraint_search_after_n_seconds())) {
-      // If the node and the submap belong to the same trajectory or if there
-      // has been a recent global constraint that ties that node's trajectory to
-      // the submap's trajectory, it suffices to do a match constrained to a
-      // local search window.
+    if (node_id.trajectory_id == submap_id.trajectory_id) {
+      // Same-trajectory constraints can be matched in a local search window.
       maybe_add_local_constraint = true;
     } else if (global_localization_samplers_[node_id.trajectory_id]->Pulse()) {
       maybe_add_global_constraint = true;
@@ -268,8 +250,8 @@ TrajectoryBackend2D::ComputeConstraintsForNode(
     absl::MutexLock locker(&mutex_);
     const auto& constant_data =
         data_.trajectory_nodes.at(node_id).constant_data;
-    submap_ids = InitializeGlobalSubmapPoses(
-        node_id.trajectory_id, constant_data->time, insertion_submaps);
+    submap_ids = InitializeGlobalSubmapPoses(node_id.trajectory_id,
+                                             insertion_submaps);
     CHECK_EQ(submap_ids.size(), insertion_submaps.size());
     const SubmapId matching_id = submap_ids.front();
     const transform::Rigid2d local_pose_2d = constant_data->local_pose;
@@ -344,29 +326,6 @@ TrajectoryBackend2D::ComputeConstraintsForNode(
   return WorkItem::Result::kDoNotRunOptimization;
 }
 
-common::Time TrajectoryBackend2D::GetLatestNodeTime(const NodeId& node_id,
-                                            const SubmapId& submap_id) const {
-  common::Time time = data_.trajectory_nodes.at(node_id).constant_data->time;
-  const InternalSubmapData& submap_data = data_.submap_data.at(submap_id);
-  if (!submap_data.node_ids.empty()) {
-    const NodeId last_submap_node_id =
-        *data_.submap_data.at(submap_id).node_ids.rbegin();
-    time = std::max(
-        time,
-        data_.trajectory_nodes.at(last_submap_node_id).constant_data->time);
-  }
-  return time;
-}
-
-void TrajectoryBackend2D::UpdateTrajectoryConnectivity(const Constraint& constraint) {
-  CHECK_EQ(constraint.tag, Constraint::INTER_SUBMAP);
-  const common::Time time =
-      GetLatestNodeTime(constraint.node_id, constraint.submap_id);
-  data_.trajectory_connectivity_state.Connect(
-      constraint.node_id.trajectory_id, constraint.submap_id.trajectory_id,
-      time);
-}
-
 void TrajectoryBackend2D::DeleteTrajectoriesIfNeeded() {
   TrimmingHandle trimming_handle(this);
   for (auto& it : data_.trajectories_state) {
@@ -420,9 +379,6 @@ void TrajectoryBackend2D::HandleOptimizationResult(
 
   {
     absl::MutexLock locker(&mutex_);
-    for (const Constraint& constraint : result) {
-      UpdateTrajectoryConnectivity(constraint);
-    }
     DeleteTrajectoriesIfNeeded();
     TrimmingHandle trimming_handle(this);
     for (auto& trimmer : trimmers_) {
@@ -523,29 +479,9 @@ bool TrajectoryBackend2D::IsTrajectoryFinished(const int trajectory_id) const {
 }
 
 void TrajectoryBackend2D::FreezeTrajectory(const int trajectory_id) {
-  {
-    absl::MutexLock locker(&mutex_);
-    data_.trajectory_connectivity_state.Add(trajectory_id);
-  }
   AddWorkItem([this, trajectory_id]() LOCKS_EXCLUDED(mutex_) {
     absl::MutexLock locker(&mutex_);
     CHECK(!IsTrajectoryFrozen(trajectory_id));
-    // Connect multiple frozen trajectories among each other.
-    // This is required for localization against multiple frozen trajectories
-    // because we lose inter-trajectory constraints when freezing.
-    for (const auto& entry : data_.trajectories_state) {
-      const int other_trajectory_id = entry.first;
-      if (!IsTrajectoryFrozen(other_trajectory_id)) {
-        continue;
-      }
-      if (data_.trajectory_connectivity_state.TransitivelyConnected(
-              trajectory_id, other_trajectory_id)) {
-        // Already connected, nothing to do.
-        continue;
-      }
-      data_.trajectory_connectivity_state.Connect(
-          trajectory_id, other_trajectory_id, common::FromUniversal(0));
-    }
     data_.trajectories_state[trajectory_id].state = TrajectoryState::FROZEN;
     return WorkItem::Result::kDoNotRunOptimization;
   });
@@ -633,7 +569,6 @@ void TrajectoryBackend2D::AddSerializedConstraints(
                     .second);
           break;
         case Constraint::Tag::INTER_SUBMAP:
-          UpdateTrajectoryConnectivity(constraint);
           break;
       }
       const Constraint::Pose pose = constraint.pose;

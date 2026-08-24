@@ -97,11 +97,6 @@ transform::Rigid2d TrajectoryBackend2D::GetLocalToGlobalTransform(
                                        trajectory_id);
 }
 
-std::vector<std::vector<int>> TrajectoryBackend2D::GetConnectedTrajectories() const {
-  absl::MutexLock locker(&mutex_);
-  return data_.trajectory_connectivity_state.Components();
-}
-
 SubmapData TrajectoryBackend2D::GetSubmapData(
     const SubmapId& submap_id) const {
   absl::MutexLock locker(&mutex_);

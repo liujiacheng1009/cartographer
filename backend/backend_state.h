@@ -22,7 +22,6 @@
 #include <vector>
 
 #include "cartographer/backend/pose_optimizer_2d.h"
-#include "cartographer/backend/trajectory_connectivity_state.h"
 #include "cartographer/backend/backend_types.h"
 #include "cartographer/mapping/submaps.h"
 
@@ -74,9 +73,6 @@ struct PoseGraphData {
   // Data that are currently being shown.
   MapById<NodeId, TrajectoryNode> trajectory_nodes;
 
-
-  // How our various trajectories are related.
-  TrajectoryConnectivityState trajectory_connectivity_state;
   int num_trajectory_nodes = 0;
   std::map<int, InternalTrajectoryState> trajectories_state;
 

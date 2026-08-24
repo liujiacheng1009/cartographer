@@ -36,7 +36,6 @@
 #include "cartographer/backend/constraint_engine_2d.h"
 #include "cartographer/backend/pose_optimizer_2d.h"
 #include "cartographer/backend/backend_state.h"
-#include "cartographer/backend/trajectory_connectivity_state.h"
 #include "cartographer/backend/backend_types.h"
 #include "cartographer/backend/backend_trimmer.h"
 #include "cartographer/mapping/grid_2d.h"
@@ -100,8 +99,6 @@ class TrajectoryBackend2D {
       const std::vector<Constraint>& constraints);
   void AddTrimmer(std::unique_ptr<PoseGraphTrimmer> trimmer);
   void RunFinalOptimization();
-  std::vector<std::vector<int>> GetConnectedTrajectories() const
-      LOCKS_EXCLUDED(mutex_);
   SubmapData GetSubmapData(const SubmapId& submap_id) const
       LOCKS_EXCLUDED(mutex_);
   MapById<SubmapId, SubmapData> GetAllSubmapData() const
@@ -161,7 +158,7 @@ class TrajectoryBackend2D {
   // Grows the optimization problem to have an entry for every element of
   // 'insertion_submaps'. Returns the IDs for the 'insertion_submaps'.
   std::vector<SubmapId> InitializeGlobalSubmapPoses(
-      int trajectory_id, const common::Time time,
+      int trajectory_id,
       const std::vector<std::shared_ptr<const Submap2D>>& insertion_submaps)
       EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
@@ -206,14 +203,6 @@ class TrajectoryBackend2D {
       int trajectory_id) const EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   SubmapData GetSubmapDataUnderLock(const SubmapId& submap_id) const
-      EXCLUSIVE_LOCKS_REQUIRED(mutex_);
-
-  common::Time GetLatestNodeTime(const NodeId& node_id,
-                                 const SubmapId& submap_id) const
-      EXCLUSIVE_LOCKS_REQUIRED(mutex_);
-
-  // Updates the trajectory connectivity structure with a new constraint.
-  void UpdateTrajectoryConnectivity(const Constraint& constraint)
       EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   const PoseGraphOptions options_;
