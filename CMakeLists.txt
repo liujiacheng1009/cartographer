@@ -40,7 +40,6 @@ set(ALL_LIBRARY_SRCS
   foundation/sampling.cc
   application/config.cc
   foundation/sensor_data.cc
-  foundation/geometry.cc
   foundation/voxel_filter.cc
   scan_matching/ceres_scan_matcher_2d.cc
   frontend/frontend_2d.cc

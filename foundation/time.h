@@ -19,7 +19,10 @@
 
 #include <array>
 #include <cinttypes>
+#include <chrono>
 #include <cmath>
+#include <ostream>
+#include <ratio>
 #include <stdexcept>
 #include <string>
 #include <zlib.h>
@@ -36,6 +39,54 @@ using uint32 = uint32_t;
 using uint64 = uint64_t;
 
 namespace common {
+
+constexpr int64 kUtsEpochOffsetFromUnixEpochInSeconds =
+    (719162ll * 24ll * 60ll * 60ll);
+
+struct UniversalTimeScaleClock {
+  using rep = int64;
+  using period = std::ratio<1, 10000000>;
+  using duration = std::chrono::duration<rep, period>;
+  using time_point = std::chrono::time_point<UniversalTimeScaleClock>;
+  static constexpr bool is_steady = true;
+};
+
+// Represents Universal Time Scale durations and timestamps which are 64-bit
+// integers representing the 100 nanosecond ticks since the Epoch which is
+// January 1, 1 at the start of day in UTC.
+using Duration = UniversalTimeScaleClock::duration;
+using Time = UniversalTimeScaleClock::time_point;
+
+inline Duration FromSeconds(const double seconds) {
+  return std::chrono::duration_cast<Duration>(
+      std::chrono::duration<double>(seconds));
+}
+
+inline Duration FromMilliseconds(const int64 milliseconds) {
+  return std::chrono::duration_cast<Duration>(
+      std::chrono::milliseconds(milliseconds));
+}
+
+inline double ToSeconds(const Duration duration) {
+  return std::chrono::duration_cast<std::chrono::duration<double>>(duration)
+      .count();
+}
+
+inline double ToSeconds(const std::chrono::steady_clock::duration duration) {
+  return std::chrono::duration_cast<std::chrono::duration<double>>(duration)
+      .count();
+}
+
+inline Time FromUniversal(const int64 ticks) { return Time(Duration(ticks)); }
+
+inline int64 ToUniversal(const Time time) {
+  return time.time_since_epoch().count();
+}
+
+inline std::ostream& operator<<(std::ostream& os, const Time time) {
+  os << std::to_string(ToUniversal(time));
+  return os;
+}
 
 inline int RoundToInt(const float x) { return std::lround(x); }
 
