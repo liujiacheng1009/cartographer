@@ -23,7 +23,6 @@
 
 #include "Eigen/Geometry"
 #include "cartographer/application/config.h"
-#include "cartographer/foundation/math.h"
 #include "cartographer/mapping/grid_2d.h"
 #include "cartographer/foundation/sensor_data.h"
 #include "cartographer/foundation/transform.h"
@@ -137,11 +136,11 @@ void RealTimeCorrelativeScanMatcher2D::ScoreCandidates(
             candidate.y_index_offset);
         break;
     }
-    candidate.score *=
-        std::exp(-common::Pow2(std::hypot(candidate.x, candidate.y) *
-                                   options_.translation_delta_cost_weight() +
-                               std::abs(candidate.orientation) *
-                                   options_.rotation_delta_cost_weight()));
+    const double delta =
+        std::hypot(candidate.x, candidate.y) *
+            options_.translation_delta_cost_weight() +
+        std::abs(candidate.orientation) * options_.rotation_delta_cost_weight();
+    candidate.score *= std::exp(-(delta * delta));
   }
 }
 

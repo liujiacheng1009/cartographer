@@ -23,7 +23,7 @@
 #include <vector>
 
 #include "cartographer/application/slam_options.h"
-#include "cartographer/foundation/math.h"
+#include "cartographer/foundation/utils.h"
 #include "cartographer/foundation/sensor_data.h"
 #include "cartographer/foundation/transform.h"
 #include "cartographer/scan_matching/cost_helpers.h"

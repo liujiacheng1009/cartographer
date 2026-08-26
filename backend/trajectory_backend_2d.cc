@@ -36,7 +36,6 @@
 
 #include "Eigen/Eigenvalues"
 #include "absl/memory/memory.h"
-#include "cartographer/foundation/math.h"
 #include "cartographer/backend/overlapping_submaps_trimmer_2d.h"
 #include "cartographer/application/slam_options.h"
 #include "cartographer/foundation/voxel_filter.h"

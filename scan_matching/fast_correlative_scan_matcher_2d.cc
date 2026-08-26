@@ -24,7 +24,6 @@
 
 #include "Eigen/Geometry"
 #include "absl/memory/memory.h"
-#include "cartographer/foundation/math.h"
 #include "cartographer/mapping/grid_2d.h"
 #include "cartographer/foundation/sensor_data.h"
 #include "cartographer/foundation/transform.h"

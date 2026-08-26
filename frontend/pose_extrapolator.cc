@@ -7,7 +7,7 @@
 
 #include "cartographer/frontend/pose_extrapolator.h"
 
-#include "cartographer/foundation/math.h"
+#include "cartographer/foundation/utils.h"
 #include "glog/logging.h"
 
 namespace cartographer {

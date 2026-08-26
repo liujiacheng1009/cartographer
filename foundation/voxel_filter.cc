@@ -21,7 +21,6 @@
 #include <utility>
 
 #include "absl/container/flat_hash_map.h"
-#include "cartographer/foundation/math.h"
 
 namespace cartographer {
 namespace sensor {

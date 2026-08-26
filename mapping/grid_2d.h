@@ -17,6 +17,7 @@
 #ifndef CARTOGRAPHER_MAPPING_2D_GRID_2D_H_
 #define CARTOGRAPHER_MAPPING_2D_GRID_2D_H_
 
+#include <algorithm>
 #include <vector>
 
 /*
@@ -43,7 +44,6 @@
 
 #include "Eigen/Core"
 #include "Eigen/Geometry"
-#include "cartographer/foundation/math.h"
 /*
  * Copyright 2016 The Cartographer Authors
  *
@@ -69,7 +69,6 @@
 #include <iterator>
 
 #include "Eigen/Core"
-#include "cartographer/foundation/math.h"
 #include "cartographer/foundation/time.h"
 #include "glog/logging.h"
 
@@ -235,7 +234,6 @@ class MapLimits {
 #include <cmath>
 #include <vector>
 
-#include "cartographer/foundation/math.h"
 #include "cartographer/foundation/time.h"
 #include "glog/logging.h"
 
@@ -249,7 +247,7 @@ inline uint16 BoundedFloatToValue(const float float_value,
                                   const float upper_bound) {
   const int value =
       common::RoundToInt(
-          (common::Clamp(float_value, lower_bound, upper_bound) - lower_bound) *
+          (std::clamp(float_value, lower_bound, upper_bound) - lower_bound) *
           (32766.f / (upper_bound - lower_bound))) +
       1;
   // DCHECK for performance.
@@ -283,13 +281,13 @@ constexpr float kMaxCorrespondenceCost = 1.f - kMinProbability;
 
 // Clamps probability to be in the range [kMinProbability, kMaxProbability].
 inline float ClampProbability(const float probability) {
-  return common::Clamp(probability, kMinProbability, kMaxProbability);
+  return std::clamp(probability, kMinProbability, kMaxProbability);
 }
 // Clamps correspondece cost to be in the range [kMinCorrespondenceCost,
 // kMaxCorrespondenceCost].
 inline float ClampCorrespondenceCost(const float correspondence_cost) {
-  return common::Clamp(correspondence_cost, kMinCorrespondenceCost,
-                       kMaxCorrespondenceCost);
+  return std::clamp(correspondence_cost, kMinCorrespondenceCost,
+                    kMaxCorrespondenceCost);
 }
 
 constexpr uint16 kUnknownProbabilityValue = 0;

@@ -11,7 +11,7 @@
 #include <array>
 
 #include "cartographer/foundation/transform.h"
-#include "cartographer/foundation/math.h"
+#include "cartographer/foundation/utils.h"
 
 namespace cartographer {
 namespace mapping {

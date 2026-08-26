@@ -5,7 +5,7 @@
 
 #include <iterator>
 
-#include "cartographer/foundation/math.h"
+#include "cartographer/foundation/utils.h"
 #include "cartographer/foundation/transform.h"
 
 namespace cartographer {

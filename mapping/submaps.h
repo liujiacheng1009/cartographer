@@ -21,7 +21,6 @@
 #include <vector>
 
 #include "Eigen/Geometry"
-#include "cartographer/foundation/math.h"
 #include "cartographer/foundation/time.h"
 #include "cartographer/backend/map_by_id.h"
 #include "cartographer/mapping/grid_2d.h"
