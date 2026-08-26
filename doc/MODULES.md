@@ -113,11 +113,10 @@ finished 状态参与定位约束搜索。
 
 **目的**：提供不依赖 SLAM 工作流的值类型和小型工具。
 
-- `geometry.*`、`transform.h`、`math.h`：SE(2)、点云变换和数学运算；
+- `transform.h`、`utils.h`：SE(2)、点云变换和角度工具；
 - `time.h`：统一时间尺度；
 - `sensor_data.*`：点、点云、RangeData、TimedPointCloudData、OdometryData；
 - `voxel_filter.*`：固定和自适应体素滤波；
-- `runtime_stats.*`、`rate_timer.h`：指标接口和诊断统计；
 - `sampling.*`：确定比例采样。
 
 ## 端到端所有权

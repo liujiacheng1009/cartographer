@@ -12,8 +12,6 @@
 namespace cartographer::mapping {
 namespace {
 
-constexpr double kSensorDataRatesLoggingPeriodSeconds = 15.;
-
 }  // namespace
 
 Frontend2D::Frontend2D(
@@ -30,8 +28,7 @@ Frontend2D::Frontend2D(
           options.trajectory_builder_2d_options(),
           std::move(range_sensor_id))),
       local_slam_result_callback_(std::move(local_slam_result_callback)),
-      pose_graph_odometry_motion_filter_(pose_graph_odometry_motion_filter),
-      last_logging_time_(std::chrono::steady_clock::now()) {
+      pose_graph_odometry_motion_filter_(pose_graph_odometry_motion_filter) {
   absl::flat_hash_set<std::string> sensor_ids;
   for (const SensorId& sensor_id : expected_sensor_ids) {
     sensor_ids.insert(sensor_id.id);
@@ -56,21 +53,6 @@ void Frontend2D::AddSensorData(
 
 void Frontend2D::HandleSensorData(
     const std::string& sensor_id, sensor::SensorData data) {
-  auto it = rate_timers_
-                .try_emplace(sensor_id, common::FromSeconds(
-                                            kSensorDataRatesLoggingPeriodSeconds))
-                .first;
-  it->second.Pulse(std::visit(
-      [](const auto& sensor_data) { return sensor_data.time; }, data));
-
-  if (std::chrono::steady_clock::now() - last_logging_time_ >
-      common::FromSeconds(kSensorDataRatesLoggingPeriodSeconds)) {
-    for (const auto& [id, timer] : rate_timers_) {
-      LOG(INFO) << id << " rate: " << timer.DebugString();
-    }
-    last_logging_time_ = std::chrono::steady_clock::now();
-  }
-
   std::visit(
       [this, &sensor_id](const auto& sensor_data) {
         ProcessSensorData(sensor_id, sensor_data);

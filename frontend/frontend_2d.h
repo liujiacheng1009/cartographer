@@ -14,7 +14,6 @@
 
 #include "absl/types/optional.h"
 #include "cartographer/frontend/data_dispatcher.h"
-#include "cartographer/foundation/rate_timer.h"
 #include "cartographer/frontend/local_slam_2d.h"
 #include "cartographer/frontend/motion_filter.h"
 #include "cartographer/mapping/submaps.h"
@@ -75,8 +74,6 @@ class Frontend2D {
   std::unique_ptr<LocalSlam2D> local_slam_;
   LocalSlamResultCallback local_slam_result_callback_;
   absl::optional<MotionFilter> pose_graph_odometry_motion_filter_;
-  std::chrono::steady_clock::time_point last_logging_time_;
-  std::map<std::string, common::RateTimer<>> rate_timers_;
 };
 
 }  // namespace cartographer::mapping
