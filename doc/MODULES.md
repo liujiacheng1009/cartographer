@@ -77,6 +77,36 @@ trajectory 和新的活动 trajectory。
 前端和后端 matcher 不能互换：前者围绕 odom/外推初值做局部定位，后者在更大窗口内
 验证历史 node-submap 候选。
 
+### FastCorrelativeScanMatcher2D 的分支定界搜索
+
+后端的快速相关匹配把每个离散候选表示为“一个旋转后的 scan + 一个栅格平移偏移”。若逐一在
+原始概率栅格上评分，候选数随平移窗口、角度采样和栅格分辨率相乘增长。分支定界不改变要找的
+最优离散位姿，而是通过可信的分数上界跳过不可能胜出的区域。
+
+对每个 finished submap，`PrecomputationGridStack2D` 在构造 matcher 时建立
+`branch_and_bound_depth` 层预计算栅格。第 `d` 层每个单元保存原栅格中
+`2^d × 2^d` 区域的最大占据匹配分数；实现使用两次滑动窗口最大值，因而构建每层索引是线性的。
+对一个候选，`ScoreCandidates()` 将所有 scan 点查询到的这些最大值取平均。这个值是其覆盖区域
+内任一更细平移候选的上界：用最大值替代实际单元值只能抬高分数，不会低估。因此若上界不超过
+当前最佳分数（初始为调用方传入的 `min_score`），该候选及全部子节点都可安全剪枝。
+
+搜索流程与源码一一对应：
+
+```text
+Match()/MatchFullSubmap()
+  → GenerateLowestResolutionCandidates()：以 2^max_depth 的步长枚举旋转/平移根候选
+  → ScoreCandidates(最粗预计算栅格)，按上界从高到低排序
+  → BranchAndBound()
+       ├─ 上界 <= 当前最佳：停止该分支
+       └─ 否则分成至多 4 个 (x, y) 子块，使用下一层更细预计算栅格重新评分
+            → 深度 0：返回该叶子；其分数是原始单元分辨率的实际离散匹配分数
+```
+
+`BranchAndBound()` 始终将已找到的最佳叶子分数回传为下一分支的阈值；候选已按上界降序排列，
+所以高分分支优先收紧阈值，后续剪枝更多。`branch_and_bound_depth` 越大，根候选越稀疏、索引和
+递归层数越多；过小会减少剪枝，过大则增加预计算和分裂开销。它只影响搜索开销和离散搜索结构，
+不替代 `min_score` 的约束质量门限；通过该粗搜索后，候选仍会交给 Ceres 做连续位姿精化。
+
 ## backend：约束图与全局优化
 
 **目的**：保存 node/submap 图，在单后端 worker 上搜索约束并执行 pose graph optimization，管理
