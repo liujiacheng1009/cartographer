@@ -31,7 +31,7 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/synchronization/mutex.h"
 #include "cartographer/foundation/sampling.h"
-#include "cartographer/foundation/geometry.h"
+#include "cartographer/foundation/transform.h"
 #include "cartographer/mapping/submap_2d.h"
 #include "cartographer/backend/constraint_engine_2d.h"
 #include "cartographer/backend/pose_optimizer_2d.h"
@@ -42,7 +42,7 @@
 #include "cartographer/serialization/swmap.h"
 #include "cartographer/foundation/sensor_data.h"
 #include "cartographer/foundation/sensor_data.h"
-#include "cartographer/foundation/geometry.h"
+#include "cartographer/foundation/transform.h"
 #include "cartographer/foundation/transform.h"
 
 namespace cartographer {

@@ -22,9 +22,9 @@
 
 #include "Eigen/Core"
 #include "absl/types/optional.h"
-#include "cartographer/foundation/geometry.h"
+#include "cartographer/foundation/transform.h"
 #include "cartographer/foundation/sensor_data.h"
-#include "cartographer/foundation/geometry.h"
+#include "cartographer/foundation/transform.h"
 
 namespace cartographer {
 namespace mapping {

@@ -20,7 +20,7 @@
 #include <memory>
 #include <string>
 
-#include "cartographer/foundation/geometry.h"
+#include "cartographer/foundation/transform.h"
 #include "cartographer/mapping/submap_2d.h"
 #include "cartographer/scan_matching/ceres_scan_matcher_2d.h"
 #include "cartographer/scan_matching/real_time_correlative_scan_matcher_2d.h"

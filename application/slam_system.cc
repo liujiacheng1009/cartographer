@@ -18,7 +18,7 @@
 
 #include "absl/memory/memory.h"
 #include "absl/types/optional.h"
-#include "cartographer/foundation/geometry.h"
+#include "cartographer/foundation/transform.h"
 #include "cartographer/serialization/swmap.h"
 #include "cartographer/frontend/local_slam_2d.h"
 #include "cartographer/backend/trajectory_backend_2d.h"
@@ -26,7 +26,7 @@
 #include "cartographer/frontend/motion_filter.h"
 #include "cartographer/frontend/data_dispatcher.h"
 #include "cartographer/foundation/voxel_filter.h"
-#include "cartographer/foundation/geometry.h"
+#include "cartographer/foundation/transform.h"
 #include "cartographer/foundation/transform.h"
 
 namespace cartographer {

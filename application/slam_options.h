@@ -7,9 +7,9 @@
 #include <optional>
 
 #include "cartographer/application/config.h"
-#include "cartographer/foundation/geometry.h"
+#include "cartographer/foundation/transform.h"
 #include "cartographer/foundation/time.h"
-#include "cartographer/foundation/geometry.h"
+#include "cartographer/foundation/transform.h"
 #include "ceres/ceres.h"
 
 namespace cartographer {

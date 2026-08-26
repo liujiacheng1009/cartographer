@@ -27,7 +27,7 @@
 
 #include "cartographer/foundation/math.h"
 #include "cartographer/foundation/time.h"
-#include "cartographer/foundation/geometry.h"
+#include "cartographer/foundation/transform.h"
 
 namespace cartographer {
 namespace common {

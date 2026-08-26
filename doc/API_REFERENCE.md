@@ -130,7 +130,7 @@ node 的局部 SLAM 关系和 odometry。冻结轨迹的变量保持常量，用
 | 类型 | 头文件 | 关键语义 |
 |---|---|---|
 | `common::Time` | `foundation/time.h` | 100 ns universal ticks |
-| `transform::Rigid2/3` | `foundation/geometry.h` | `T_parent_child` 风格刚体变换 |
+| `transform::Rigid2/3` | `foundation/transform.h` | `T_parent_child` 风格刚体变换 |
 | `TimedRangefinderPoint` | `foundation/sensor_data.h` | 点坐标加相对 scan 结束时刻 |
 | `TimedPointCloudData` | 同上 | scan 批次，点时间通常非正 |
 | `OdometryData` | 同上 | reference 到 tracking frame 的 pose |

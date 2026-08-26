@@ -10,7 +10,7 @@
 
 #include <array>
 
-#include "cartographer/foundation/geometry.h"
+#include "cartographer/foundation/transform.h"
 #include "cartographer/foundation/math.h"
 
 namespace cartographer {

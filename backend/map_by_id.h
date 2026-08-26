@@ -29,7 +29,7 @@
 
 #include "absl/memory/memory.h"
 #include "cartographer/foundation/time.h"
-#include "cartographer/foundation/geometry.h"
+#include "cartographer/foundation/transform.h"
 #include "glog/logging.h"
 
 namespace cartographer {

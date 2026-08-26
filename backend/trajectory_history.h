@@ -24,7 +24,7 @@
 #include <vector>
 
 #include "cartographer/foundation/time.h"
-#include "cartographer/foundation/geometry.h"
+#include "cartographer/foundation/transform.h"
 #include "cartographer/backend/map_by_id.h"
 #include "glog/logging.h"
 

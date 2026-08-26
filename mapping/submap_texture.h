@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#include "cartographer/foundation/geometry.h"
+#include "cartographer/foundation/transform.h"
 
 namespace cartographer {
 namespace mapping {

@@ -10,7 +10,7 @@
 
 #include <deque>
 
-#include "cartographer/foundation/geometry.h"
+#include "cartographer/foundation/transform.h"
 #include "cartographer/foundation/sensor_data.h"
 
 namespace cartographer {

@@ -20,9 +20,9 @@
 #include <limits>
 
 #include "cartographer/application/config.h"
-#include "cartographer/foundation/geometry.h"
+#include "cartographer/foundation/transform.h"
 #include "cartographer/application/slam_options.h"
-#include "cartographer/foundation/geometry.h"
+#include "cartographer/foundation/transform.h"
 
 namespace cartographer {
 namespace mapping {

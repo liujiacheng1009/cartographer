@@ -148,7 +148,7 @@ class XYIndexRangeIterator
 #include "cartographer/backend/trajectory_node.h"
 #include "cartographer/foundation/sensor_data.h"
 #include "cartographer/foundation/sensor_data.h"
-#include "cartographer/foundation/geometry.h"
+#include "cartographer/foundation/transform.h"
 #include "cartographer/foundation/transform.h"
 #include "glog/logging.h"
 
