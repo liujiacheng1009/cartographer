@@ -84,6 +84,23 @@ t_corrected = t_message + time_offset_seconds
 当前 IILABS3D 没有独立的时钟偏移标定，因此 lidar 和 odometry 均为 `0`。字段仍是
 必填项，便于以后接入硬件同步误差已知的数据集，而不改变 schema。
 
+### 时间偏移是标定，不是评测补偿
+
+`time_offset_seconds` 必须来自传感器同步/延迟标定，并写入对应传感器的
+`calibration.yaml`；不允许在评测器中移动真值或输出轨迹来获得更小误差。非零值的常见
+含义是驱动在采集后才给消息打时间戳。例如 LILocBench 前置雷达经五个公开真值会话验证为
+`-0.13`：
+
+```yaml
+lidar:
+  time_offset_seconds: -0.13  # corrected lidar time = header stamp - 130 ms
+odometry:
+  time_offset_seconds: 0
+```
+
+设置后，runner 会在启动日志中输出两路传感器的有效偏移。标定验证至少应在独立静态、动态
+会话中检查 ATE 与航向误差是否同时改善；不能只用单个会话拟合该值。
+
 ## 管理与校验
 
 标定文件是数据集的固定资产，必须直接放在对应 ROS 2 bag 目录中，例如

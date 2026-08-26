@@ -131,16 +131,28 @@ Calibration LoadCalibration(const std::string& filename) {
            "nav_msgs/msg/Odometry");
   CHECK_EQ(odometry["pose_convention"].as<std::string>(),
            "T_reference_child");
+  const double lidar_time_offset_seconds =
+      lidar["time_offset_seconds"].as<double>();
+  const double odometry_time_offset_seconds =
+      odometry["time_offset_seconds"].as<double>();
+  CHECK(std::isfinite(lidar_time_offset_seconds));
+  CHECK(std::isfinite(odometry_time_offset_seconds));
+  if (lidar_time_offset_seconds != 0. || odometry_time_offset_seconds != 0.) {
+    LOG(INFO) << "Using calibrated sensor time offsets: lidar="
+              << lidar_time_offset_seconds << " s, odometry="
+              << odometry_time_offset_seconds
+              << " s (corrected_time = message_time + offset).";
+  }
   return {
       NormalizeFrame(root["tracking_frame"].as<std::string>()),
       lidar["topic"].as<std::string>(),
       NormalizeFrame(lidar["frame"].as<std::string>()),
-      lidar["time_offset_seconds"].as<double>(),
+      lidar_time_offset_seconds,
       ReadPlanarTransform(lidar["T_tracking_sensor"], "T_tracking_sensor"),
       odometry["topic"].as<std::string>(),
       NormalizeFrame(odometry["reference_frame"].as<std::string>()),
       NormalizeFrame(odometry["child_frame"].as<std::string>()),
-      odometry["time_offset_seconds"].as<double>(),
+      odometry_time_offset_seconds,
       ReadPlanarTransform(odometry["T_tracking_child"], "T_tracking_child")};
 }
 
