@@ -70,7 +70,6 @@ trajectory 和新的活动 trajectory。
 算法：
 
 - `CeresScanMatcher2D`：连续优化，占据概率残差加平移/旋转先验；
-- `RealTimeCorrelativeScanMatcher2D`：可选的前端离散粗搜索；
 - `FastCorrelativeScanMatcher2D`：后端 branch-and-bound 回环候选搜索；
 - `PrecomputationGridStack2D`：为 finished submap 建立多分辨率搜索索引。
 

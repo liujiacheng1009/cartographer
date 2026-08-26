@@ -58,7 +58,6 @@ set(ALL_LIBRARY_SRCS
   backend/trajectory_backend_2d.cc
   backend/trajectory_backend_query_2d.cc
   backend/backend_trimmer.cc
-  scan_matching/real_time_correlative_scan_matcher_2d.cc
   mapping/submap_2d.cc
   serialization/swmap.cc
 )

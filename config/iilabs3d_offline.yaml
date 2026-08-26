@@ -60,12 +60,6 @@ trajectory_builder:
       max_length: 0.9
       min_num_points: 100
       max_range: 50.0
-    use_online_correlative_scan_matching: false
-    real_time_correlative_scan_matcher:
-      linear_search_window: 0.3
-      angular_search_window: 0.5235987755982988
-      translation_delta_cost_weight: 0.1
-      rotation_delta_cost_weight: 0.1
     ceres_scan_matcher:
       occupied_space_weight: 10.0
       translation_weight: 5.0

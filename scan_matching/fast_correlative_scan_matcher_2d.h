@@ -17,10 +17,8 @@
 // This is an implementation of the algorithm described in "Real-Time
 // Correlative Scan Matching" by Olson.
 //
-// It is similar to the RealTimeCorrelativeScanMatcher but has a different
-// trade-off: Scan matching is faster because more effort is put into the
-// precomputation done for a given map. However, this map is immutable after
-// construction.
+// It trades immutable-map precomputation for fast loop-closure candidate
+// validation.
 
 #ifndef CARTOGRAPHER_MAPPING_INTERNAL_2D_SCAN_MATCHING_FAST_CORRELATIVE_SCAN_MATCHER_2D_H_
 #define CARTOGRAPHER_MAPPING_INTERNAL_2D_SCAN_MATCHING_FAST_CORRELATIVE_SCAN_MATCHER_2D_H_

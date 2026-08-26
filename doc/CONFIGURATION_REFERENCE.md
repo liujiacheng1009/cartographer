@@ -107,10 +107,6 @@ PGO 的 `ceres_solver_options.max_num_iterations` 基线为 50，`num_threads` �
 
 ### 前端 scan matching
 
-`use_online_correlative_scan_matching=false` 时，直接用外推 pose 作为 Ceres 初值；设为
-true 时先运行 `real_time_correlative_scan_matcher`。这会提高较差初值下的鲁棒性，也会
-显著增加每帧 CPU。
-
 前端 `ceres_scan_matcher`：
 
 - `occupied_space_weight`：scan 与概率栅格一致性；

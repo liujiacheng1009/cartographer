@@ -49,13 +49,6 @@ struct MotionFilterOptions {
   CARTOGRAPHER_OPTION_SCALAR(double, max_angle_radians)
 };
 
-struct RealTimeCorrelativeScanMatcherOptions {
-  CARTOGRAPHER_OPTION_SCALAR(double, linear_search_window)
-  CARTOGRAPHER_OPTION_SCALAR(double, angular_search_window)
-  CARTOGRAPHER_OPTION_SCALAR(double, translation_delta_cost_weight)
-  CARTOGRAPHER_OPTION_SCALAR(double, rotation_delta_cost_weight)
-};
-
 struct CeresScanMatcherOptions2D {
   CARTOGRAPHER_OPTION_SCALAR(double, occupied_space_weight)
   CARTOGRAPHER_OPTION_SCALAR(double, translation_weight)
@@ -129,13 +122,10 @@ struct LocalTrajectoryBuilderOptions2D {
   CARTOGRAPHER_OPTION_SCALAR(float, missing_data_ray_length)
   CARTOGRAPHER_OPTION_SCALAR(int, num_accumulated_range_data)
   CARTOGRAPHER_OPTION_SCALAR(float, voxel_filter_size)
-  CARTOGRAPHER_OPTION_SCALAR(bool, use_online_correlative_scan_matching)
   CARTOGRAPHER_OPTION_FIELD(AdaptiveVoxelFilterOptions,
                             adaptive_voxel_filter_options)
   CARTOGRAPHER_OPTION_FIELD(AdaptiveVoxelFilterOptions,
                             loop_closure_adaptive_voxel_filter_options)
-  CARTOGRAPHER_OPTION_FIELD(RealTimeCorrelativeScanMatcherOptions,
-                            real_time_correlative_scan_matcher_options)
   CARTOGRAPHER_OPTION_FIELD(CeresScanMatcherOptions2D,
                             ceres_scan_matcher_options)
   CARTOGRAPHER_OPTION_FIELD(MotionFilterOptions, motion_filter_options)
@@ -148,10 +138,6 @@ struct LocalTrajectoryBuilderOptions2D {
   AdaptiveVoxelFilterOptions*
   mutable_loop_closure_adaptive_voxel_filter_options() {
     return &loop_closure_adaptive_voxel_filter_options_;
-  }
-  RealTimeCorrelativeScanMatcherOptions*
-  mutable_real_time_correlative_scan_matcher_options() {
-    return &real_time_correlative_scan_matcher_options_;
   }
   CeresScanMatcherOptions2D* mutable_ceres_scan_matcher_options() {
     return &ceres_scan_matcher_options_;
@@ -312,12 +298,6 @@ namespace optimization {
 OptimizationProblemOptions CreateOptimizationProblemOptions(
     common::ParameterDictionary* parameter_dictionary);
 }  // namespace optimization
-
-namespace scan_matching {
-RealTimeCorrelativeScanMatcherOptions
-CreateRealTimeCorrelativeScanMatcherOptions(
-    common::ParameterDictionary* parameter_dictionary);
-}  // namespace scan_matching
 
 #undef CARTOGRAPHER_OPTION_FIELD
 #undef CARTOGRAPHER_OPTION_SCALAR
