@@ -83,11 +83,10 @@ transform::Rigid2d TrajectoryBackend2D::GetInterpolatedGlobalTrajectoryPose(
       factor * (end.data.global_pose.translation() -
                 start.data.global_pose.translation());
   const double delta_angle = common::NormalizeAngleDifference(
-      end.data.global_pose.rotation().angle() -
-      start.data.global_pose.rotation().angle());
-  return transform::Rigid2d(
-      translation, start.data.global_pose.rotation().angle() +
-                       factor * delta_angle);
+      transform::Yaw(end.data.global_pose) -
+      transform::Yaw(start.data.global_pose));
+  return transform::MakeRigid2(
+      translation, transform::Yaw(start.data.global_pose) + factor * delta_angle);
 }
 
 transform::Rigid2d TrajectoryBackend2D::GetLocalToGlobalTransform(
@@ -130,7 +129,7 @@ transform::Rigid2d TrajectoryBackend2D::ComputeLocalToGlobalTransform(
   if (begin_it == end_it) {
     const auto it = data_.initial_trajectory_poses.find(trajectory_id);
     if (it == data_.initial_trajectory_poses.end()) {
-      return transform::Rigid2d::Identity();
+      return transform::Rigid2d();
     }
     return GetInterpolatedGlobalTrajectoryPose(it->second.to_trajectory_id,
                                                it->second.time) *

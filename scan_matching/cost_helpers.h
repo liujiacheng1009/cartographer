@@ -32,7 +32,7 @@ static std::array<T, 3> ComputeUnscaledError(
   return {{T(relative_pose.translation().x()) - h[0],
            T(relative_pose.translation().y()) - h[1],
            common::NormalizeAngleDifference(
-               T(relative_pose.rotation().angle()) - h[2])}};
+               T(transform::Yaw(relative_pose)) - h[2])}};
 }
 
 template <typename T>

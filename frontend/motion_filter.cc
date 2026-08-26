@@ -47,7 +47,7 @@ bool MotionFilter::IsSimilar(const common::Time time,
       time - last_time_ <= common::FromSeconds(options_.max_time_seconds()) &&
       (pose.translation() - last_pose_.translation()).norm() <=
           options_.max_distance_meters() &&
-      std::abs((pose.inverse() * last_pose_).normalized_angle()) <=
+      std::abs(transform::Yaw(pose.inverse() * last_pose_)) <=
           options_.max_angle_radians()) {
     return true;
   }

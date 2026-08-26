@@ -216,7 +216,7 @@ bool FastCorrelativeScanMatcher2D::MatchFullSubmap(
       1e6 * limits_.resolution(),  // Linear search window, 1e6 cells/direction.
       M_PI,  // Angular search window, 180 degrees in both directions.
       point_cloud, limits_.resolution());
-  const transform::Rigid2d center = transform::Rigid2d::Translation(
+  const transform::Rigid2d center = transform::MakeRigid2Translation(
       limits_.max() - 0.5 * limits_.resolution() *
                           Eigen::Vector2d(limits_.cell_limits().num_y_cells,
                                           limits_.cell_limits().num_x_cells));
@@ -232,11 +232,11 @@ bool FastCorrelativeScanMatcher2D::MatchWithSearchParameters(
   CHECK(score != nullptr);
   CHECK(pose_estimate != nullptr);
 
-  const Eigen::Rotation2Dd initial_rotation = initial_pose_estimate.rotation();
+  const double initial_yaw = transform::Yaw(initial_pose_estimate);
   const sensor::PointCloud rotated_point_cloud = sensor::TransformPointCloud(
       point_cloud,
-      transform::Rigid3f::Rotation(Eigen::AngleAxisf(
-          initial_rotation.cast<float>().angle(), Eigen::Vector3f::UnitZ())));
+      transform::MakeRigid3Rotation(Eigen::AngleAxisf(
+          static_cast<float>(initial_yaw), Eigen::Vector3f::UnitZ())));
   const std::vector<sensor::PointCloud> rotated_scans =
       GenerateRotatedScans(rotated_point_cloud, search_parameters);
   const std::vector<DiscreteScan2D> discrete_scans = DiscretizeScans(
@@ -252,10 +252,10 @@ bool FastCorrelativeScanMatcher2D::MatchWithSearchParameters(
       precomputation_grid_stack_->max_depth(), min_score);
   if (best_candidate.score > min_score) {
     *score = best_candidate.score;
-    *pose_estimate = transform::Rigid2d(
-        {initial_pose_estimate.translation().x() + best_candidate.x,
-         initial_pose_estimate.translation().y() + best_candidate.y},
-        initial_rotation * Eigen::Rotation2Dd(best_candidate.orientation));
+    *pose_estimate = transform::MakeRigid2(
+        Eigen::Vector2d(initial_pose_estimate.translation().x() + best_candidate.x,
+                        initial_pose_estimate.translation().y() + best_candidate.y),
+        initial_yaw + best_candidate.orientation);
     return true;
   }
   return false;

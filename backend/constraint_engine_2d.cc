@@ -69,7 +69,7 @@ void ConstraintEngine2D::MaybeAddGlobalConstraint(
   ++num_computations_;
   auto constraint = ComputeConstraint(
       submap_id, submap, node_id, true, /* match_full_submap */ constant_data,
-      transform::Rigid2d::Identity(), scan_matcher);
+      transform::Rigid2d(), scan_matcher);
   if (constraint) constraints_.push_back(std::move(*constraint));
 }
 
@@ -105,7 +105,7 @@ ConstraintEngine2D::ComputeConstraint(
   // - the result 'pose_estimate' of Match() (map <- node j).
   // - the ComputeSubmapPose() (map <- submap i)
   float score = 0.;
-  transform::Rigid2d pose_estimate = transform::Rigid2d::Identity();
+  transform::Rigid2d pose_estimate;
 
   // Compute 'pose_estimate' in three stages:
   // 1. Fast estimate using the fast correlative scan matcher.
@@ -161,7 +161,7 @@ ConstraintEngine2D::ComputeConstraint(
           initial_pose.inverse() * pose_estimate;
       info << " differs by translation " << std::setprecision(2)
            << difference.translation().norm() << " rotation "
-           << std::setprecision(3) << std::abs(difference.normalized_angle());
+           << std::setprecision(3) << std::abs(transform::Yaw(difference));
     }
     info << " with score " << std::setprecision(1) << 100. * score << "%.";
     LOG(INFO) << info.str();

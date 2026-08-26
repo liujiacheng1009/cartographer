@@ -71,12 +71,13 @@ ceres::CostFunction* CreateAutoDiffSpaCostFunction(
 // orientation.
 std::array<double, 3> FromPose(const transform::Rigid2d& pose) {
   return {{pose.translation().x(), pose.translation().y(),
-           pose.normalized_angle()}};
+           transform::Yaw(pose)}};
 }
 
 // Converts a pose as represented for Ceres back to an transform::Rigid2d pose.
 transform::Rigid2d ToPose(const std::array<double, 3>& values) {
-  return transform::Rigid2d({values[0], values[1]}, values[2]);
+  return transform::MakeRigid2(Eigen::Vector2d(values[0], values[1]),
+                               values[2]);
 }
 
 }  // namespace
@@ -271,12 +272,10 @@ std::unique_ptr<transform::Rigid2d> PoseOptimizer2D::InterpolateOdometry(
   const Eigen::Vector2d translation =
       prev_it->pose.translation() +
       factor * (it->pose.translation() - prev_it->pose.translation());
-  const double yaw = prev_it->pose.rotation().angle() +
+  const double yaw = transform::Yaw(prev_it->pose) +
       factor * common::NormalizeAngleDifference(
-                   it->pose.rotation().angle() -
-                   prev_it->pose.rotation().angle());
-  return absl::make_unique<transform::Rigid2d>(
-      translation, Eigen::Rotation2Dd(yaw));
+                   transform::Yaw(it->pose) - transform::Yaw(prev_it->pose));
+  return absl::make_unique<transform::Rigid2d>(yaw, translation);
 }
 
 std::unique_ptr<transform::Rigid2d>

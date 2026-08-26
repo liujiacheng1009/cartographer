@@ -107,7 +107,7 @@ void Frontend2D::ProcessSensorData(
 void Frontend2D::ProcessSensorData(
     const std::string&, const sensor::OdometryData& data) {
   CHECK(data.pose.translation().allFinite());
-  CHECK(std::isfinite(data.pose.rotation().angle()));
+  CHECK(std::isfinite(transform::Yaw(data.pose)));
   local_slam_->AddOdometryData(data);
   if (pose_graph_odometry_motion_filter_.has_value() &&
       pose_graph_odometry_motion_filter_->IsSimilar(data.time, data.pose)) {

@@ -125,10 +125,10 @@ void BindPose(sqlite3_stmt* s, int first, const transform::Rigid2d& pose) {
   const auto& t = pose.translation();
   sqlite3_bind_double(s, first, t.x());
   sqlite3_bind_double(s, first + 1, t.y());
-  sqlite3_bind_double(s, first + 2, pose.rotation().angle());
+  sqlite3_bind_double(s, first + 2, transform::Yaw(pose));
 }
 transform::Rigid2d ReadPose(sqlite3_stmt* s, int first) {
-  return transform::Rigid2d(
+  return transform::MakeRigid2(
       Eigen::Vector2d(sqlite3_column_double(s, first),
                       sqlite3_column_double(s, first + 1)),
       sqlite3_column_double(s, first + 2));

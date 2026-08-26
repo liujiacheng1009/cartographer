@@ -17,7 +17,7 @@ PoseExtrapolator::PoseExtrapolator(
     const common::Duration pose_queue_duration)
     : pose_queue_duration_(pose_queue_duration),
       cached_extrapolated_pose_{common::Time::min(),
-                                transform::Rigid2d::Identity()} {}
+                                transform::Rigid2d()} {}
 
 common::Time PoseExtrapolator::GetLastPoseTime() const {
   return timed_pose_queue_.empty() ? common::Time::min()
@@ -52,7 +52,7 @@ void PoseExtrapolator::AddOdometryData(
   const auto& newest = odometry_data_.back();
   const double time_delta = common::ToSeconds(oldest.time - newest.time);
   const transform::Rigid2d pose_delta = newest.pose.inverse() * oldest.pose;
-  angular_velocity_from_odometry_ = pose_delta.normalized_angle() / time_delta;
+  angular_velocity_from_odometry_ = transform::Yaw(pose_delta) / time_delta;
   if (timed_pose_queue_.empty()) return;
 
   const Eigen::Vector2d velocity_in_tracking_frame =
@@ -60,7 +60,7 @@ void PoseExtrapolator::AddOdometryData(
   const double extrapolation_delta =
       common::ToSeconds(newest.time - timed_pose_queue_.back().time);
   const double orientation_at_newest =
-      timed_pose_queue_.back().pose.rotation().angle() +
+      transform::Yaw(timed_pose_queue_.back().pose) +
       extrapolation_delta * angular_velocity_from_odometry_;
   linear_velocity_from_odometry_ =
       Eigen::Rotation2Dd(orientation_at_newest) * velocity_in_tracking_frame;
@@ -80,11 +80,11 @@ transform::Rigid2d PoseExtrapolator::ExtrapolatePose(const common::Time time) {
       delta * (use_odometry ? linear_velocity_from_odometry_
                             : linear_velocity_from_poses_);
   const double yaw = common::NormalizeAngleDifference(
-      newest.pose.rotation().angle() +
+      transform::Yaw(newest.pose) +
       delta * (use_odometry ? angular_velocity_from_odometry_
                             : angular_velocity_from_poses_));
   cached_extrapolated_pose_ = {
-      time, transform::Rigid2d(translation, Eigen::Rotation2Dd(yaw))};
+      time, transform::MakeRigid2(translation, yaw)};
   return cached_extrapolated_pose_.pose;
 }
 
@@ -101,7 +101,7 @@ void PoseExtrapolator::UpdateVelocitiesFromPoses() {
   linear_velocity_from_poses_ =
       (newest.pose.translation() - oldest.pose.translation()) / delta;
   angular_velocity_from_poses_ =
-      (oldest.pose.inverse() * newest.pose).normalized_angle() / delta;
+      transform::Yaw(oldest.pose.inverse() * newest.pose) / delta;
 }
 
 void PoseExtrapolator::TrimOdometryData() {

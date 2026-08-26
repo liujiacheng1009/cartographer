@@ -392,7 +392,7 @@ SubmapsOptions2D CreateSubmapsOptions2D(
 
 Submap2D::Submap2D(const Eigen::Vector2f& origin, std::unique_ptr<Grid2D> grid,
                    ValueConversionTables* conversion_tables)
-    : Submap(transform::Rigid2d::Translation(origin.cast<double>())),
+    : Submap(transform::MakeRigid2Translation(origin.cast<double>())),
       conversion_tables_(conversion_tables) {
   grid_ = std::move(grid);
 }

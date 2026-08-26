@@ -352,7 +352,7 @@ void CeresScanMatcher2D::Match(const Eigen::Vector2d& target_translation,
                                ceres::Solver::Summary* const summary) const {
   double ceres_pose_estimate[3] = {initial_pose_estimate.translation().x(),
                                    initial_pose_estimate.translation().y(),
-                                   initial_pose_estimate.rotation().angle()};
+                                   transform::Yaw(initial_pose_estimate)};
   ceres::Problem problem;
   CHECK_GT(options_.occupied_space_weight(), 0.);
   switch (grid.GetGridType()) {
@@ -378,8 +378,9 @@ void CeresScanMatcher2D::Match(const Eigen::Vector2d& target_translation,
 
   ceres::Solve(ceres_solver_options_, &problem, summary);
 
-  *pose_estimate = transform::Rigid2d(
-      {ceres_pose_estimate[0], ceres_pose_estimate[1]}, ceres_pose_estimate[2]);
+  *pose_estimate = transform::MakeRigid2(
+      Eigen::Vector2d(ceres_pose_estimate[0], ceres_pose_estimate[1]),
+      ceres_pose_estimate[2]);
 }
 
 }  // namespace scan_matching

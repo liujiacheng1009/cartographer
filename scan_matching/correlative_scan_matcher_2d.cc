@@ -102,7 +102,7 @@ std::vector<sensor::PointCloud> GenerateRotatedScans(
        ++scan_index,
            delta_theta += search_parameters.angular_perturbation_step_size) {
     rotated_scans.push_back(sensor::TransformPointCloud(
-        point_cloud, transform::Rigid3f::Rotation(Eigen::AngleAxisf(
+        point_cloud, transform::MakeRigid3Rotation(Eigen::AngleAxisf(
                          delta_theta, Eigen::Vector3f::UnitZ()))));
   }
   return rotated_scans;

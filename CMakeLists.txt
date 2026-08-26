@@ -26,6 +26,7 @@ get_filename_component(CARTOGRAPHER_SOURCE_PARENT
 find_package(absl REQUIRED)
 find_package(Ceres REQUIRED COMPONENTS SuiteSparse)
 find_package(Eigen3 REQUIRED)
+find_package(Sophus 1.22.10 CONFIG REQUIRED)
 find_package(gflags REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(rclcpp REQUIRED)
@@ -67,6 +68,7 @@ add_library(cartographer_offline_core STATIC ${ALL_LIBRARY_SRCS})
 target_include_directories(cartographer_offline_core SYSTEM PUBLIC
   "${EIGEN3_INCLUDE_DIR}")
 target_link_libraries(cartographer_offline_core PUBLIC ${EIGEN3_LIBRARIES})
+target_link_libraries(cartographer_offline_core PUBLIC Sophus::Sophus)
 
 target_include_directories(cartographer_offline_core SYSTEM PUBLIC
   "${CERES_INCLUDE_DIRS}")

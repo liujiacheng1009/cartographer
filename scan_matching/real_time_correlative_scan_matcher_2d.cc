@@ -96,11 +96,11 @@ double RealTimeCorrelativeScanMatcher2D::Match(
     transform::Rigid2d* pose_estimate) const {
   CHECK(pose_estimate != nullptr);
 
-  const Eigen::Rotation2Dd initial_rotation = initial_pose_estimate.rotation();
+  const double initial_yaw = transform::Yaw(initial_pose_estimate);
   const sensor::PointCloud rotated_point_cloud = sensor::TransformPointCloud(
       point_cloud,
-      transform::Rigid3f::Rotation(Eigen::AngleAxisf(
-          initial_rotation.cast<float>().angle(), Eigen::Vector3f::UnitZ())));
+      transform::MakeRigid3Rotation(Eigen::AngleAxisf(
+          static_cast<float>(initial_yaw), Eigen::Vector3f::UnitZ())));
   const SearchParameters search_parameters(
       options_.linear_search_window(), options_.angular_search_window(),
       rotated_point_cloud, grid.limits().resolution());
@@ -117,10 +117,10 @@ double RealTimeCorrelativeScanMatcher2D::Match(
 
   const Candidate2D& best_candidate =
       *std::max_element(candidates.begin(), candidates.end());
-  *pose_estimate = transform::Rigid2d(
-      {initial_pose_estimate.translation().x() + best_candidate.x,
-       initial_pose_estimate.translation().y() + best_candidate.y},
-      initial_rotation * Eigen::Rotation2Dd(best_candidate.orientation));
+  *pose_estimate = transform::MakeRigid2(
+      Eigen::Vector2d(initial_pose_estimate.translation().x() + best_candidate.x,
+                      initial_pose_estimate.translation().y() + best_candidate.y),
+      initial_yaw + best_candidate.orientation);
   return best_candidate.score;
 }
 

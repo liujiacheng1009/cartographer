@@ -8,6 +8,7 @@
 
 #include "cartographer/application/config.h"
 #include "cartographer/foundation/geometry.h"
+#include "cartographer/foundation/time.h"
 #include "cartographer/foundation/geometry.h"
 #include "ceres/ceres.h"
 
@@ -245,7 +246,7 @@ struct SlamSystemOptions {
 };
 
 struct InitialTrajectoryPose {
-  transform::Rigid2d relative_pose = transform::Rigid2d::Identity();
+  transform::Rigid2d relative_pose;
   int to_trajectory_id = 0;
   common::Time timestamp;
 };

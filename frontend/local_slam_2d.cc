@@ -237,7 +237,7 @@ void LocalSlam2D::InitializeExtrapolator(const common::Time time) {
       ::cartographer::common::FromSeconds(options_.pose_extrapolator_options()
                                               .constant_velocity()
                                               .pose_queue_duration()));
-  extrapolator_->AddPose(time, transform::Rigid2d::Identity());
+  extrapolator_->AddPose(time, transform::Rigid2d());
 }
 
 }  // namespace mapping

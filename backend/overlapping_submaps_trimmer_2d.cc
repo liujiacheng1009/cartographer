@@ -82,7 +82,7 @@ std::set<SubmapId> AddSubmapsToSubmapCoverageGrid2D(
       if (!grid.IsKnown(index)) continue;
 
       const transform::Rigid2d center_of_cell_in_local_frame =
-          transform::Rigid2d::Translation(Eigen::Vector2d(
+          transform::MakeRigid2Translation(Eigen::Vector2d(
               grid.limits().max().x() -
                   grid.limits().resolution() * (index.y() + 0.5),
               grid.limits().max().y() -

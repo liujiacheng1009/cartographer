@@ -62,7 +62,8 @@ carto::transform::Rigid2d ToRigid2d(const geometry_msgs::msg::Pose& pose) {
             normalized.x() * normalized.y()),
       1. - 2. * (normalized.y() * normalized.y() +
                  normalized.z() * normalized.z()));
-  return {{pose.position.x, pose.position.y}, Eigen::Rotation2Dd(yaw)};
+  return carto::transform::MakeRigid2(
+      Eigen::Vector2d(pose.position.x, pose.position.y), yaw);
 }
 
 std::string NormalizeFrame(std::string frame) {
@@ -107,7 +108,7 @@ carto::transform::Rigid2d ReadPlanarTransform(const YAML::Node& node,
   const double yaw = node["yaw"].as<double>();
   CHECK(std::isfinite(x) && std::isfinite(y) && std::isfinite(yaw))
       << name << " is not finite.";
-  return {{x, y}, Eigen::Rotation2Dd(yaw)};
+  return carto::transform::MakeRigid2(Eigen::Vector2d(x, y), yaw);
 }
 
 Calibration LoadCalibration(const std::string& filename) {
@@ -214,7 +215,7 @@ void WriteTrajectory(const std::string& filename, int trajectory_id,
   for (const auto& item : backend->GetTrajectoryNodes()) {
     if (item.id.trajectory_id != trajectory_id) continue;
     const auto& pose = item.data.global_pose;
-    const double yaw = pose.rotation().angle();
+    const double yaw = carto::transform::Yaw(pose);
     output << ToUnixSeconds(item.data.time()) << ',' << pose.translation().x()
            << ',' << pose.translation().y() << ',' << yaw << '\n';
   }
